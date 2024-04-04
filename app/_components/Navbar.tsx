@@ -3,8 +3,13 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { ModeToggle } from '@/components/ThemeToggle';
 import { Button } from '@/components/ui/button';
+import { RegisterLink, LoginLink, LogoutLink } from "@kinde-oss/kinde-auth-nextjs/components";
+import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
+import UserDropDown  from "./UserDropDown";
 
-function Navbar() {
+async function Navbar() {
+  const { getUser } = getKindeServerSession();
+  const user = await getUser();
   return (
     <nav className='container h-[10dvh] flex justify-between items-center border-b'> 
     
@@ -17,15 +22,21 @@ function Navbar() {
     height={100} />
     </Link>
     <div className='flex gap-5 baseline'>
-    <Button variant='ghost'>Sign Up</Button>
-    <Button className='dark:text-secondary'>Log In</Button>
-    <div>
-    <ModeToggle />
-    </div>
-    
-    </div>
-    </nav>
-    )
-  }
-  
-  export default Navbar
+    {user ? (
+      <UserDropDown userImage={user.picture} />
+      ) : (
+        <div>
+        <RegisterLink><Button variant='ghost'>Sign Up</Button></RegisterLink>
+        <LoginLink><Button className='dark:text-secondary'>Log In</Button></LoginLink>
+        </div>
+        )}
+        <div>
+        <ModeToggle />
+        </div>
+        
+        </div>
+        </nav>
+        )
+      }
+      
+      export default Navbar
