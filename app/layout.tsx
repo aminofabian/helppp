@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Jost } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/app/_components/Navbar";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { Toaster } from "@/components/ui/toaster"
 
-const inter = Inter({ subsets: ["latin"] });
+
+const inter = Jost ({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -26,8 +28,12 @@ export default function RootLayout({
     disableTransitionOnChange
     >
     <Navbar />
+    <div className='container mx-auto px-4'>
     {children}
+    </div>
+    <Toaster />
     </ThemeProvider>
+    
     </body>
     </html>
     );
