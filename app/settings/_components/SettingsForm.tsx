@@ -38,7 +38,7 @@ export default function SettingsForm({ username }: { username: string | null | u
     
   }, [state, toast])
   return (
-    <form action={formAction}>
+    <form action={formAction} className='container mx-auto '>
     <h1 className='text-3xl font-semibold tracking-tight mt-5'>Settings</h1>
     <Separator className='my-4' />
     
@@ -50,7 +50,7 @@ export default function SettingsForm({ username }: { username: string | null | u
     {state?.message} </p>}
     <div className='flex gap-x-5 mt-10 w-full'>
     <Button className='w-full' variant='secondary' asChild><Link href='/' type='button' className='dark:bg-slate-800 hover:scale-105'>Cancel</Link></Button>
-    <SubmitButton />
+    <SubmitButton ButtonName='Change Username' />
     </div>
     
     </form>
