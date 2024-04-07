@@ -63,3 +63,8 @@
     .custom-div:focus {
         outline: none;
     }
+
+    .ProseMirror:focus{
+    outline: none;
+    
+    }
