@@ -32,7 +32,7 @@ async function Navbar() {
     </Link>
     <div className='flex gap-8 baseline'>
     {user ? (
-      <UserDropDown userImage={user.picture || ''} />
+      <UserDropDown userImage={user.picture || '/user.svg'} />
       ) : (
         <div>
         <RegisterLink><Button variant='ghost'>Sign Up</Button></RegisterLink>

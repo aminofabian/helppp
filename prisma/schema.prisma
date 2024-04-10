@@ -20,6 +20,7 @@ model User {
   createdCommunities Community[]
 
   requests         Request[]
+  love Vote[]
 
   points                Float           @default(0)
   totalDonations        Int         @default(0)
@@ -52,6 +53,7 @@ model Request {
   title String
   textContent Json?
   imageString String?
+  deadline DateTime @default(now()) 
 
   amount Int
   pointsUsed Float
@@ -62,10 +64,30 @@ model Request {
   User  User? @relation(fields: [userId], references: [id])
   userId String
 
+  Vote Vote[]
+
 
 createdAt DateTime @default(now())
 updatedAt DateTime @updatedAt
 
+
+}
+
+enum TypeOfVote {
+LOVE
+SUSPISION
+}
+
+model Vote {
+  id String @id @default(uuid())
+
+  Request Request? @relation(fields: [requestId], references: [id])
+  requestId String
+
+  User User? @relation(fields: [userId], references: [id])
+  userId String
+
+  voteType TypeOfVote
 
 }
 

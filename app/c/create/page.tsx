@@ -50,7 +50,7 @@ function CreateCommunityPage() {
     <Label htmlFor="url" className="block text-sm font-medium my-5">Community Name</Label>
     <div className="flex">
     <span className="flex items-center px-3 pointer-events-none sm:text-sm dark:bg-gray-800 dark:text-gray-300">c/</span>
-    <Input type="text" name="name" required minLength={3} maxLength={21}  id="url" className="flex flex-1 border sm:text-sm focus:ring-inset dark:border-gray-300 dark:text-gray-800 dark:bg-gray-800 focus:dark:primary" />
+    <Input type="text" name="name" required minLength={3} maxLength={30}  id="url" className="flex flex-1 border sm:text-sm focus:ring-inset dark:border-gray-300 dark:text-gray-800 dark:bg-gray-800 focus:dark:primary" />
     </div>
     
     {state.status === 'error'? <p className='text-orange-500 text-xs flex gap-x-2 mt-5 baseline bg-orange-100 rounded-2xl pl-5 ml-10 my-5'>{state.message} </p> : <p className='text-green-500 text-xs flex gap-x-2 mt-5 baseline bg-green-100 rounded-2xl pl-5'>{state.message} </p>}

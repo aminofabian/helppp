@@ -32,7 +32,7 @@ export default withUt({
           foreground: "hsl(var(--primary-foreground))",
         },
         secondary: {
-          DEFAULT: "#fef2e9",
+          DEFAULT: "#d4e6d4",
           foreground: "hsl(var(--secondary-foreground))",
         },
         destructive: {

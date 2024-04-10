@@ -1,64 +1,67 @@
 'use client'
 
 import { Button } from '@/components/ui/button';
-import { type Editor, useEditor, EditorContent } from '@tiptap/react';
+import { CodeIcon, CodeSandboxLogoIcon, FontItalicIcon, ListBulletIcon, QuoteIcon, StrikethroughIcon } from '@radix-ui/react-icons';
+import { type Editor, useEditor, EditorContent, JSONContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit'
+import { BoldIcon, Code2, Code2Icon, Heading1, Heading2, Heading3, ListOrdered } from 'lucide-react';
 
 export  function Menubar({ editor }: { editor: Editor | null }) {
   if (!editor) {
     return null;
   }
+  
   return (
-    <div className='flex flex-wrap gap-3 text-sm'>
+    <div className='flex flex-wrap gap-2 text-sm text-[#298126]'>
     <Button type="button"
     onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
     variant={editor.isActive('heading', { level: 1 }) ? 'default' : 'secondary'}
-    >H1</Button>
+    ><Heading1 className='h-4 w-4'/></Button>
     
     <Button type="button"
     onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
     variant={editor.isActive('heading', { level: 2 }) ? 'default' : 'secondary'}
-    >H2</Button>
+    ><Heading2 className='h-4 w-4 text-[#298126'/></Button>
     
     <Button type="button"
     onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
     variant={editor.isActive('heading', { level: 3 }) ? 'default' : 'secondary'}
-    >H3</Button>
+    ><Heading3 className='w-4 h-4'/></Button>
     
     <Button type="button" className='font-bold'
     onClick={() => editor.chain().focus().toggleBold().run()}
     variant={editor.isActive('bold') ? 'default' : 'secondary'}
-    >Bold</Button>
+    ><BoldIcon className='w-4 h-3'/></Button>
     
     <Button type="button" className='italic'
     onClick={() => editor.chain().focus().toggleItalic().run()}
     variant={editor.isActive('italic') ? 'default' : 'secondary'}
-    >Italic</Button>
+    ><FontItalicIcon /></Button>
     
     <Button type="button" className='strike'
     onClick={() => editor.chain().focus().toggleStrike().run()}
     variant={editor.isActive('strike') ? 'default' : 'secondary'}
-    >Strike</Button>
+    ><StrikethroughIcon /></Button>
     
     <Button type="button" className='strike'
     onClick={() => editor.chain().focus().toggleBlockquote().run()}
     variant={editor.isActive('blockquote') ? 'default' : 'secondary'}
-    >Blockquote</Button>
+    ><QuoteIcon />   </Button>
     
     <Button type="button" className='strike'
     onClick={() => editor.chain().focus().toggleBulletList().run()}
     variant={editor.isActive('bulletlist') ? 'default' : 'secondary'}
-    >Bulletlist</Button>
+    ><ListBulletIcon /></Button>
     
     <Button type="button" className='strike'
     onClick={() => editor.chain().focus().toggleCode().run()}
     variant={editor.isActive('code') ? 'default' : 'secondary'}
-    >Code</Button>
+    ><CodeIcon /></Button>
     
     <Button type="button" className='strike'
     onClick={() => editor.chain().focus().toggleOrderedList().run()}
-    variant={editor.isActive('code') ? 'default' : 'secondary'}
-    >Ordered List</Button>
+    variant={editor.isActive('orderedlist') ? 'default' : 'secondary'}
+    ><ListOrdered className='h-4 w-4 font-thin'/></Button>
     
     
     
@@ -66,20 +69,28 @@ export  function Menubar({ editor }: { editor: Editor | null }) {
     </div>
     )
   }
-  import React from 'react'
+  import React, { useState } from 'react'
   
-  export  function TipTapEditor() {
+  export function TipTapEditor({ setJson, json }: {
+    setJson: any, json: JSONContent | null
+  }) {
     const editor = useEditor({
       extensions: [
         StarterKit,
       ],
-      content: '<p>Hello World! 🌎️</p>',
+      content: json ?? '<p Share Your Help Request</p>',
       editorProps: {
         attributes: {
           class: 'prose',
         }
       },
+      onUpdate: ({ editor }) => {
+        const json = editor.getJSON();
+        setJson(json);
+        
+      }
     })
+    
     
     return (
       <div>

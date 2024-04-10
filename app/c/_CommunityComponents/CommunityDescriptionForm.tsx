@@ -42,17 +42,17 @@ function CommunityDescriptionForm({ description, communityName }: iAppProps) {
     <form action={formAction}>
     <Input name='communityName' value={communityName} />
     <Textarea placeholder='Write a description' className='w-full h-40 rounded-lg border-2 border-primary focus:outline-none focus:ring-2 focus:ring-slate-400 focus:border-transparent my-5'
-    maxLength={300}
+    maxLength={120}
     name='description'
     defaultValue={description ?? undefined}
-        />
-        <div className="mb-5">
+    />
+    <div className="mb-5">
     {state?.status === 'green' ? <p className='text-primary text-xs flex gap-x-2 mt-5 baseline bg-green-100 rounded-2xl pl-5'>{state?.message} <CheckIcon width={20} height={20} /></p> : 
     <p className='text-orange-500 text-xs flex gap-x-2 mt-5 baseline bg-orange-100 rounded-2xl pl-5'>
-              {state?.message} </p>}
-          </div>
-          
-
+    {state?.message} </p>}
+    </div>
+    
+    
     <SubmitButton ButtonName='Update Description' />
     </form>
     

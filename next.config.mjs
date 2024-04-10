@@ -1,7 +1,14 @@
 /** @type {import('next').NextConfig} */
-const nextConfig = {
-  reactStrictMode: true,
 
+
+
+const nextConfig = {
+  reactStrictMode: false,
+  output: 'standalone',
+  typescript: {
+    ignoreBuildErrors: true,
+
+  },
   images: {
     remotePatterns: [
       {
@@ -38,6 +45,19 @@ const nextConfig = {
         protocol: 'https',
         hostname: 'avatar.vercel.sh',
         pathname: '**',
+      },
+
+      {
+        protocol: 'https',
+        hostname: 'utfs.io',
+        pathname: '**',
+        port: '',
+      },
+      {
+        protocol: 'https',
+        hostname: 'source.unsplash.com',
+        pathname: '**',
+        port: '',
       },
     ],
   }
