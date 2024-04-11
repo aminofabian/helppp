@@ -36,6 +36,7 @@ async function getData(name: string) {
 import { DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import Link from 'next/link';
 import { Separator } from '@/components/ui/separator';
+import CreatePostCard from '@/app/_components/CreatePostCard';
 
 interface CreatedAtProps {
   data: {
@@ -78,7 +79,8 @@ export default async function CommunityPage({params}: {params: {id: string}}) {
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-8 my-5 dark:bg-slate-800">
     <div className="container h-32 rounded-lg bg-gray-200 lg:col-span-2 my-5">
     {/* The Post Section */}
-    <h1>Hello from the Request Section</h1>
+    
+    <CreatePostCard />
     </div>
     <div className="container h-fit rounded-lg bg-secondary my-5 dark:bg-slate-800">
     

@@ -6,12 +6,12 @@ on:
       - dev
       - prod
 
-jobs:checkout
+jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/@v2
+        uses: actions/checkout@v2
 
       - name: Setup SSH and rsync
         run: sudo apt-get install -y sshpass
@@ -22,7 +22,7 @@ jobs:checkout
           SERVER_USERNAME: ${{ secrets.SERVER_USERNAME }}
           SERVER_PASSWORD: ${{ secrets.SERVER_PASSWORD }}
         run: |
-          ENV_FOLDER="analog-meter-project-$(echo $GITHUB_REF | sed 's/refs\/heads\///')"
+          ENV_FOLDER="nextjs-$(echo $GITHUB_REF | sed 's/refs\/heads\///')"
           sshpass -p $SERVER_PASSWORD ssh -o StrictHostKeyChecking=no $SERVER_USERNAME@$SERVER_IP "mkdir -p /var/www/$ENV_FOLDER && chown -R root:root /var/www/$ENV_FOLDER && chmod -R 755 /var/www/$ENV_FOLDER"
           sshpass -p $SERVER_PASSWORD rsync -av --rsh="ssh -o StrictHostKeyChecking=no" ./ $SERVER_USERNAME@$SERVER_IP:/var/www/$ENV_FOLDER
 
@@ -32,7 +32,7 @@ jobs:checkout
           SERVER_USERNAME: ${{ secrets.SERVER_USERNAME }}
           SERVER_PASSWORD: ${{ secrets.SERVER_PASSWORD }}
         run: |
-          ENV_FOLDER="analog-meter-project-$(echo $GITHUB_REF | sed 's/refs\/heads\///')"
+          ENV_FOLDER="nextjs-$(echo $GITHUB_REF | sed 's/refs\/heads\///')"
           if [[ $GITHUB_REF == 'refs/heads/prod' ]]; then
             DOCKER_COMPOSE_FILE=docker-compose-prod.yml
           else
