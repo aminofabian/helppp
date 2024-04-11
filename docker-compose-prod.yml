@@ -1,0 +1,17 @@
+version: "3.8"
+services: 
+  frontend:
+    container_name: frontend
+    build: 
+      context: . 
+    restart: always #change if you don't want your container restarting
+    environment:
+      - NODE_ENV=production
+    ports:
+      - 3000:3000
+    networks:
+      - caddy_network
+networks:
+  caddy_network:
+    external: true
+    name: caddy_network

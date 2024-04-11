@@ -39,31 +39,32 @@ const Counter: React.FC<{ deadline: Date; createdAt: Date }> = ({ deadline, crea
     }, 1000);
     
     return () => clearTimeout(timer);
-  }, [deadline]);
+  }, [deadline, timeLeft]);
+  
   return (
     <div>
     <div className={`flex gap-1 text-center auto-cols-max text-xs ${timeLeft.days < 3 ? 'text-red-500 border border-red-500 px-3 rounded-md' : 'border border-primary px-3 rounded-md'}`}>
-    <div className="flex flex-col p-1 bg-neutral rounded-box text-neutral-content">
+    <div className={`flex flex-col p-1 bg-neutral rounded-box text-neutral-content`}>
     <span className="countdown font-mono text-xs">
-    <span style={{ '--value': timeLeft.days.toString() } as React.CSSProperties}>{timeLeft.days}</span>
+    <span style={{ '--value': timeLeft.days }}>{timeLeft.days}</span>
     </span>
     days
     </div>
     <div className="flex flex-col p-1 bg-neutral rounded-box text-neutral-content">
     <span className="countdown font-mono text-xs">
-    <span style={{ '--value': timeLeft.hours.toString() } as React.CSSProperties}>{timeLeft.hours}</span>
+    <span style={{ '--value': timeLeft.hours }}>{timeLeft.hours}</span>
     </span>
     hours
     </div>
     <div className="flex flex-col p-1 bg-neutral rounded-box text-neutral-content">
     <span className="countdown font-mono text-xs">
-    <span style={{ '--value': timeLeft.minutes.toString() } as React.CSSProperties}>{timeLeft.minutes}</span>
+    <span className='text-xs' style={{ '--value': timeLeft.minutes as unknown as number }}>{timeLeft.minutes}</span>
     </span>
     min
     </div>
     <div className="flex flex-col p-1 bg-neutral rounded-box text-neutral-content">
     <span className="countdown font-mono text-xs">
-    <span style={{ '--value': timeLeft.seconds.toString() } as React.CSSProperties}>{timeLeft.seconds}</span>
+    <span style={{ '--value': timeLeft.seconds }}>{timeLeft.seconds}</span>
     </span>
     sec
     </div>
