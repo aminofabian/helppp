@@ -18,16 +18,16 @@ export default function CreatePostCard() {
     />
     <div className='flex w-full'>
     <Link href='/c/eldoret/create' className='w-full mr-5'>
-    <Input placeholder='Create a Help Request' className='border-primary text-primary' />  
+    <Input placeholder='Create a Help Request' className='border-secondary text-primary' readOnly />  
     </Link>
     <div className='mr-1 flex flex-row'>
-    <Button variant='outline' size='icon' className=' border-primary' asChild>
+    <Button variant='outline' size='icon' className=' border-secondary' asChild>
     <Link href='/c/eldoret/create' className='l mr-2'>
     <ImageDown className='h-4 w-4 text-primary' />
     </Link>
     </Button>
     
-    <Button variant='outline' size='icon' className=' border-primary' asChild>
+    <Button variant='outline' size='icon' className=' border-secondary' asChild>
     <Link href='/c/eldoret/create' className=' mr-5'>
     <Link1Icon className='h-4 w-4 text-primary' />
     </Link>

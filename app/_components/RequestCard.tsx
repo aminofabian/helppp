@@ -25,6 +25,7 @@ import { handleVote } from '../actions';
 import { LOVE, SUSPISION } from './SubmitButtons';
 import RenderToJson from './RenderToJson';
 import Donate from './Donate';
+import { Card } from '@/components/ui/card';
 export async function RequestCard({
   id,
   title,
@@ -55,9 +56,9 @@ export async function RequestCard({
   })
   
   { return (
-    <div key={id}>
-    <div className="w-full px-6 py-16 mx-auto space-y-12 border border-primary rounded-md relative pr-3 my-6" >
-    <div className='flex flex-col justify-center w-full'>
+    <div>
+    <Card className="w-full px-6 py-16 mx-auto space-y-12 border border-secondary rounded-md relative pr-3 my-6" >
+    <div className='flex flex-col justify-center w-full' key={id}>
     <h1 className='font-normal mx-5 my-2 text-sm'> c/ <Link href={`/c/${communityName}`} className='text-primary'>{communityName}</Link> </h1>
     <div className="md:tracking md:text-sm ml-auto absolute top-3 right-3 px-5 py-2 rounded-md mr-2">
     <Counter deadline={deadline} createdAt={createdAt} />
@@ -75,7 +76,7 @@ export async function RequestCard({
     width={40}
     height={40}
     className="border rounded-full dark:bg-gray-500 dark:border-gray-700 self-baseline"
-    /><span className='relative border border-primary rounded-full text-xs text-white bg-primary top-4 right-4 h-4 w-4 self-center text-center'>3</span>
+    /><span className='relative border border-secondary rounded-full text-xs text-white bg-primary top-4 right-4 h-4 w-4 self-center text-center'>3</span>
     </div>
     <p className="text-sm flex hover:text-primary cursor-pointer">
     {userName}
@@ -98,11 +99,8 @@ export async function RequestCard({
     </div>
     <div className="dark:text-gray-100">
     <h1 className='text-lg font-bold my-3'>{title}</h1>
-    
     <RenderToJson data={jsonContent} />
-    <p>
-    {/* {request.textContent as string} */}
-    
+    <p>    
     </p>
     </div>
     <div className="rounded-md">
@@ -284,7 +282,7 @@ export async function RequestCard({
     </Dialog>
     </div>
     </div>
-    </div>
+    </Card>
     
     </div>
     )

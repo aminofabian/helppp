@@ -37,8 +37,7 @@ const MpesaPay = () => {
       onClick={handleEditClick}
       className="mr-2 w-full px-4 py-2 bg-orange-400 text-white rounded"
       >
-      Edit
-      </button>
+      Add a Custom Amount      </button>
       </div>
       </div>
       <div className="h-fit rounded-lg bg-slate-50 w-full">

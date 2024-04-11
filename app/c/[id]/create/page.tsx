@@ -153,6 +153,14 @@ export default function CreateRequest({
   const { toast } = useToast()
   
   
+  const [currentTab, setCurrentTab] = useState<number>(0); // State to keep track of the current tab index
+  
+  const handleNextTab = () => {
+    setCurrentTab((prevTab) => prevTab + 1); // Switch to the next tab
+  };
+  
+  
+  
   
   return (
     <div className="my-5">
@@ -161,6 +169,8 @@ export default function CreateRequest({
     <h1 className='font-semibold mx-5 my-5'> c/ <Link href={`/c/${params.id}`} className='text-primary'>{params.id}</Link> </h1>
     
     <Tabs defaultValue="Request" className="w-full px-5">
+    
+    
     <TabsList className='grid w-full grid-cols-4'>
     <TabsTrigger value='Request'>
     <TextIcon className='mr-2' />
