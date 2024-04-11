@@ -8,12 +8,7 @@ WORKDIR /app
 
 # Install dependencies based on the preferred package manager
 COPY package.json yarn.lock* package-lock.json* pnpm-lock.yaml* ./
-RUN \
-    if [ -f yarn.lock ]; then yarn config set network-timeout 300000 && \
-    for i in 1 2 3 4 5; do yarn install --production=true --prefer-offline && break || sleep 30; done; \
-    elif [ -f package-lock.json ]; then npm ci; \
-    elif [ -f pnpm-lock.yaml ]; then yarn global add pnpm && pnpm i --frozen-lockfile; \
-    fi
+RUN npm ci;
 
 FROM base AS dev
 
