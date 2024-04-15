@@ -5,6 +5,8 @@ import { CodeIcon, CodeSandboxLogoIcon, FontItalicIcon, ListBulletIcon, QuoteIco
 import { type Editor, useEditor, EditorContent, JSONContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit'
 import { BoldIcon, Code2, Code2Icon, Heading1, Heading2, Heading3, ListOrdered } from 'lucide-react';
+import React, { useState } from 'react'
+
 
 export  function Menubar({ editor }: { editor: Editor | null }) {
   if (!editor) {
@@ -62,42 +64,39 @@ export  function Menubar({ editor }: { editor: Editor | null }) {
     onClick={() => editor.chain().focus().toggleOrderedList().run()}
     variant={editor.isActive('orderedlist') ? 'default' : 'secondary'}
     ><ListOrdered className='h-4 w-4 font-thin'/></Button>
-    
-    
-    
-    
     </div>
-    )
-  }
-  import React, { useState } from 'react'
-  
-  export function TipTapEditor({ setJson, json }: {
-    setJson: any, json: JSONContent | null
-  }) {
-    const editor = useEditor({
-      extensions: [
-        StarterKit,
-      ],
-      content: json ?? '<p Share Your Help Request</p>',
-      editorProps: {
-        attributes: {
-          class: 'prose',
-        }
-      },
-      onUpdate: ({ editor }) => {
-        const json = editor.getJSON();
-        setJson(json);
-        
+  )
+}
+
+export function TipTapEditor({ setJson, json }: {
+  setJson: any, json: JSONContent | null
+}) {
+  const editor = useEditor({
+    extensions: [
+      StarterKit,
+    ],
+    content: json ?? '<p> Share Your Help Request</p>',
+    editorProps: {
+      attributes: {
+        class: 'prose',
       }
-    })
-    
-    
-    return (
-      <div>
-      <Menubar editor={editor} />
-      <EditorContent editor={editor} className='min-h-[10vh] border border-primary my-2 px-3 py-2 rounded-lg'/>
-      </div>
+    },
+    onUpdate: ({ editor }) => {
+      const json = editor.getJSON();
+      setJson(json);
       
-      )
     }
+  })
+  
+  
+  return (
+    <div>
+    <Menubar editor={editor} />
+      <EditorContent
+        editor={editor}
+        className='min-h-[10vh] border border-primary my-2 px-3 py-2 rounded-lg'
+    />
+    </div>
     
+  );
+}

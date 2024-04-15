@@ -18,13 +18,14 @@ model User {
   imageUrl          String?
   userName          String    @unique
   createdCommunities Community[]
+  Comment Comment[]
+
+  donations          Donation[]
 
   requests         Request[]
   love Vote[]
 
   points                Float           @default(0)
-  totalDonations        Int         @default(0)
-  totalRequestsHelped   Int           @default(0)
 
 
   createdAt DateTime @default(now())
@@ -55,8 +56,13 @@ model Request {
   imageString String?
   deadline DateTime @default(now()) 
 
+
+  donations Donation[]
+
   amount Int
   pointsUsed Float
+
+  Comment Comment[]
 
   Community Community? @relation(fields: [communityName], references: [name])
   communityName String?
@@ -88,6 +94,34 @@ model Vote {
   userId String
 
   voteType TypeOfVote
+
+}
+
+model Comment {
+id String @id @default(uuid())
+text String
+createdAt DateTime @default(now())
+
+User User? @relation(fields: [userId], references: [id])
+userId String?
+
+Request  Request? @relation(fields: [requestId], references: [id])
+requestId String? 
+}
+
+model Donation {
+  id        String   @id @default(cuid())
+  User      User?     @relation(fields: [userId], references: [id])
+  userId    String
+  Request   Request?  @relation(fields: [requestId], references: [id])
+  requestId String
+  amount    Float
+  createdAt DateTime @default(now())
+  phoneNumber String
+
+  invoice   String
+  status     String
+
 
 }
 

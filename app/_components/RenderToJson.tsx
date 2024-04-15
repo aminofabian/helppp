@@ -26,10 +26,9 @@ const handlers: NodeHandlers = {
 
 export default function RenderToJson({data}: {data: any}) {
   return (
-    <div className='px-2 mb-3 prose'>
+    <div className='px-2 mb-1 prose'>
     <TipTapRender handlers={handlers} node={data}  />
     
     </div>
-    )
-  }
-  
+  )
+}

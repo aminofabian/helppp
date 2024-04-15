@@ -6,6 +6,9 @@ import prisma from "./lib/db";
 import { Prisma, TypeOfVote } from "@prisma/client";
 import { JSONContent } from "@tiptap/react";
 import { revalidatePath } from "next/cache";
+import { mpesa } from './mpesaone/mpesa'
+
+
 
 export async function updateUsername(prevState: any, formData: FormData) {
   const { getUser } = getKindeServerSession();
@@ -214,3 +217,69 @@ export async function handleVote(formData: FormData) {
   }
 }
 
+
+
+export async function createComment(formData: FormData) {
+  const { getUser } = getKindeServerSession();
+  const user = await getUser();
+
+  if (!user) {
+    return redirect('/api/auth/login')
+  }
+  const comment = formData.get('comment') as string;
+  const requestId = formData.get('requestId') as string;
+
+  const data = await prisma.comment.create({
+    data: {
+      text: comment,
+      userId: user.id,
+      requestId: requestId,
+    }
+
+  })
+  revalidatePath(`/request/${requestId}`)
+}
+
+export async function handleMpesa(formData: FormData) {
+  const { getUser } = getKindeServerSession();
+  const user = await getUser();
+
+  if (!user) {
+    return redirect('/api/auth/login');
+  }
+
+  const amount = Number(formData.get('amount'));
+  const phoneNumber = formData.get('phoneNumber') as string;
+  const requestId = formData.get('requestId') as string;
+  const invoice: string = `fit${Date.now()}`;
+  const status: string = 'Unpaid';
+
+  try {
+    // Call the M-Pesa API to initiate the payment
+    const response = await mpesa(phoneNumber, amount, invoice);
+
+    // Handle the response from M-Pesa
+    if (response.success) {
+      // Payment was successful
+      // Update the status of the donation to 'Paid' in your database
+      await prisma.donation.create({
+        data: {
+          amount: amount,
+          userId: user.id,
+          phoneNumber: phoneNumber,
+          requestId: requestId,
+          // @ts-ignore
+          invoice: invoice,
+          status: 'Paid',
+        },
+      });
+    } else {
+      // Payment failed
+      // Handle the error (e.g., display an error message to the user)
+      console.error('M-Pesa payment failed:', response.error);
+    }
+  } catch (error) {
+    // Handle any errors that occur during the payment process
+    console.error('Error processing M-Pesa payment:', error);
+  }
+}

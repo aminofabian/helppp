@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button"
 import { AlertCircle, HandHeart, Loader2 } from "lucide-react";
 import { useFormStatus } from "react-dom"
 
-export default function SubmitButton({ ButtonName }: { ButtonName: string }) {
+export function SubmitButton({ ButtonName }: { ButtonName: string }) {
   {
     const { pending } = useFormStatus();
     return (

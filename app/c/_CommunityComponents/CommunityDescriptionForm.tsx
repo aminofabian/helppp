@@ -2,7 +2,7 @@
 import { Textarea } from "@/components/ui/textarea";
 import { updateCommunityDescription } from '@/app/actions';
 import { Input } from '@/components/ui/input';
-import SubmitButton from '@/app/_components/SubmitButtons';
+import { SubmitButton} from '@/app/_components/SubmitButtons';
 import { useFormState } from "react-dom";
 import { useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";

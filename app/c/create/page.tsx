@@ -1,6 +1,6 @@
 'use client'
 
-import SubmitButton from '@/app/_components/SubmitButtons';
+import { SubmitButton } from '@/app/_components/SubmitButtons';
 import { createCommunity } from '@/app/actions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,7 +10,6 @@ import { useToast } from '@/components/ui/use-toast';
 import Link from 'next/link';
 import React, { useEffect } from 'react'
 import { useFormState } from 'react-dom';
-import { Textarea } from "@/components/ui/textarea"
 
 
 const initialState = {

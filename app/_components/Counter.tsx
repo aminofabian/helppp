@@ -9,7 +9,8 @@ interface TimeLeft {
   seconds: number;
 }
 
-const Counter: React.FC<{ deadline: Date; createdAt: Date }> = ({ deadline, createdAt }) => {
+
+const Counter: React.FC<{ deadline: Date; createdAt: Date; }> = ({ deadline, createdAt }) => {
   const calculateTimeLeft = (): TimeLeft => {
     const difference = +new Date(deadline) - +new Date();
     let timeLeft: TimeLeft = {
@@ -31,47 +32,52 @@ const Counter: React.FC<{ deadline: Date; createdAt: Date }> = ({ deadline, crea
     return timeLeft;
   };
   
-  const [timeLeft, setTimeLeft] = useState<TimeLeft>(calculateTimeLeft());
+  const [timeLeft, setTimeLeft] = useState<TimeLeft>({
+    days: 0,
+    hours: 0,
+    minutes: 0,
+    seconds: 0
+  });
   
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setTimeLeft(calculateTimeLeft());
+    setTimeLeft(calculateTimeLeft()); // Calculate initial timeLeft after component mounts on client
+    const timer = setInterval(() => {
+      setTimeLeft(calculateTimeLeft()); // Update timeLeft every second
     }, 1000);
     
-    return () => clearTimeout(timer);
-  }, [deadline, timeLeft]);
+    return () => clearInterval(timer); // Cleanup timer on component unmount
+  }, [deadline, createdAt]);
   
   return (
-    <div>
+    <>
     <div className={`flex gap-1 text-center auto-cols-max text-xs ${timeLeft.days < 3 ? 'text-red-500 border border-red-500 px-3 rounded-md' : 'border border-primary px-3 rounded-md'}`}>
     <div className={`flex flex-col p-1 bg-neutral rounded-box text-neutral-content`}>
-    <span className="countdown font-mono text-xs">
-    <span style={{ '--value': timeLeft.days }}>{timeLeft.days}</span>
-    </span>
+    <div className="countdown font-mono text-xs">
+    <div style={{ '--value': timeLeft.days } as React.CSSProperties}>{timeLeft.days}</div>
+    </div>
     days
     </div>
     <div className="flex flex-col p-1 bg-neutral rounded-box text-neutral-content">
-    <span className="countdown font-mono text-xs">
-    <span style={{ '--value': timeLeft.hours }}>{timeLeft.hours}</span>
-    </span>
+    <div className="countdown font-mono text-xs">
+    <div style={{ '--value': timeLeft.hours } as React.CSSProperties}>{timeLeft.hours}</div>
+    </div>
     hours
     </div>
     <div className="flex flex-col p-1 bg-neutral rounded-box text-neutral-content">
-    <span className="countdown font-mono text-xs">
-    <span className='text-xs' style={{ '--value': timeLeft.minutes as unknown as number }}>{timeLeft.minutes}</span>
-    </span>
+    <div className="countdown font-mono text-xs">
+    <div className='text-xs' style={{ '--value': timeLeft.minutes as unknown as number } as React.CSSProperties}>{timeLeft.minutes}</div>
+    </div>
     min
     </div>
     <div className="flex flex-col p-1 bg-neutral rounded-box text-neutral-content">
-    <span className="countdown font-mono text-xs">
-    <span style={{ '--value': timeLeft.seconds }}>{timeLeft.seconds}</span>
-    </span>
+    <div className="countdown font-mono text-xs">
+    <div style={{ '--value': timeLeft.seconds } as React.CSSProperties}>{timeLeft.seconds}</div>
+    </div>
     sec
     </div>
     </div>
-    </div>
-    );
-  };
-  
-  export default Counter;
-  
+    </>
+  );
+};
+
+export default Counter;

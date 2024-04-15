@@ -24,12 +24,16 @@ import CopyLink from './CopyLink';
 import { handleVote } from '../actions';
 import { LOVE, SUSPISION } from './SubmitButtons';
 import RenderToJson from './RenderToJson';
-import Donate from './Donate';
 import { Card } from '@/components/ui/card';
+import { getKindeServerSession } from '@kinde-oss/kinde-auth-nextjs/server';
+
+
 export async function RequestCard({
+  key,
   id,
   title,
   amount,
+  textContent,
   jsonContent,
   imageString,
   createdAt,
@@ -39,10 +43,14 @@ export async function RequestCard({
   communityName,
   pointsUsed,
   voteCount1,
+  commentCount,
   voteCount2 }: {
+    key: string
+    
     id: string
     title: string
     amount: number
+    textContent: any
     jsonContent: any
     imageString: string
     createdAt: Date
@@ -53,85 +61,153 @@ export async function RequestCard({
     pointsUsed: number
     voteCount1: number
     voteCount2: number
+    commentCount: number
   })
   
-  { return (
-    <div>
-    <Card className="w-full px-6 py-16 mx-auto space-y-12 border border-secondary rounded-md relative pr-3 my-6" >
-    <div className='flex flex-col justify-center w-full' key={id}>
-    <h1 className='font-normal mx-5 my-2 text-sm'> c/ <Link href={`/c/${communityName}`} className='text-primary'>{communityName}</Link> </h1>
-    <div className="md:tracking md:text-sm ml-auto absolute top-3 right-3 px-5 py-2 rounded-md mr-2">
-    <Counter deadline={deadline} createdAt={createdAt} />
-    </div>
-    </div>
-    <div className="space-y-1 dark:bg-gray-800 dark:text-gray-50 pr-3">
-    <div className="space-y-1">
-    <div className="flex flex-col items-start justify-between w-full md:flex-row md:items-center dark:text-gray-400">
+  
+  {
+    const { getUser } = getKindeServerSession();
+    const user = await getUser();
     
-    <div className="flex items-center md:space-x-2">
-    <div className="flex items-stretch">
-    <Image
-    src="https://source.unsplash.com/75x75/?portrait"
-    alt={'my image'}
-    width={40}
-    height={40}
-    className="border rounded-full dark:bg-gray-500 dark:border-gray-700 self-baseline"
-    /><span className='relative border border-secondary rounded-full text-xs text-white bg-primary top-4 right-4 h-4 w-4 self-center text-center'>3</span>
-    </div>
-    <p className="text-sm flex hover:text-primary cursor-pointer">
-    {userName}
-    <span className="inline-flex items-center justify-center rounded-full bg-purple-100 py-0.5 text-purple-700 dark:bg-slate-800 dark:text-slate-50 dark:border-slate-50">
-    
-    <BadgeCheck className="pr-2" />
-    {/* <p className="whitespace-nowrap text-sm">Level 3</p> */}
-    </span>
-    <Link href={`localhost:3000/request/${id}`}>
-    <DateDifference createdAt={createdAt} deadline={deadline} />
-    </Link>
-    </p>
-    </div>
-    <p className="flex-shrink-0 mt-3 text-sm md:mt-0">
-    <span className="whitespace-nowrap rounded-full bg-purple-100 px-2.5 py-0.5 text-sm text-purple-700 dark:bg-slate-800 dark:text-slate-50 border dark:border-purple-700">
-    Amount Requested: {amount}
-    </span>
-    </p>
-    </div>
-    </div>
-    <div className="dark:text-gray-100">
-    <h1 className='text-lg font-bold my-3'>{title}</h1>
-    <RenderToJson data={jsonContent} />
-    <p>    
-    </p>
-    </div>
-    <div className="rounded-md">
-    
-    {imageString && (
+    return (
+      <div>
+      <Card className="w-full mx-auto space-y-7 border border-secondary rounded-md relative pr-3 my-10 py-5 px-2" >
+      <div className='flex flex-col justify-center w-full' key={id}>
+      <h1 className='font-normal mx-5 my-2 text-sm'> c/ <Link href={`/c/${communityName}`} className='text-primary'>{communityName}</Link> </h1>
+      <div className="md:tracking md:text-sm ml-auto absolute top-3 right-3 px-5 py-2 rounded-md mr-2">
+      <Counter deadline={deadline} createdAt={createdAt} />
+      </div>
+      </div>
+      <div className="space-y-1 dark:bg-gray-800 dark:text-gray-50 pr-3">
+      <div className="space-y-1">
+      <div className="flex flex-col items-start justify-between w-full md:flex-row md:items-center dark:text-gray-400">
+      
+      <div className="flex items-center md:space-x-2">
+      <div className="flex items-stretch">
       <Image
-      src={imageString as string}
-      width={0}
-      height={0}
-      sizes="100vw"
-      alt="post image"
-      style={{ width: '100%', height: 'auto' }}
-      className="rounded-lg ring-1 ring-primary shadow-sm opacity-90 scale-97"
-      />)
-    }
-    
-    </div>
-    </div>
-    <div>
-    <div className="flex flex-wrap pb-2 border-b border-primary dark:border-gray-400 gap-2 text-baseline">
-    <div className="flex gap-3">
-    <a
-    rel="noopener noreferrer"
-    href="#"
-    className="px-2 py-1 rounded-sm hover:underline "
-    >
-    <div className="flex gap-2 whitespace-nowrap rounded-full pb-0.5 text-xs text-lime-700 hover:text-primary">
-    <form action={handleVote}>
-    <input className="hidden" name='voteDirection' value='LOVE' readOnly />
-    {id && (
-      <input className="hidden" name='requestId' value={id} readOnly/>
+      src="https://source.unsplash.com/75x75/?portrait"
+      alt={'my image'}
+      width={40}
+      height={40}
+      className="border rounded-full dark:bg-gray-500 dark:border-gray-700 self-baseline"
+      /><span className='relative border border-secondary rounded-full text-xs text-white bg-primary top-4 right-4 h-4 w-4 self-center text-center'>3</span>
+      </div>
+      <div className="text-sm flex hover:text-primary cursor-pointer">
+      {userName}
+      <span className="inline-flex items-center justify-center rounded-full bg-purple-100 py-0.5 text-purple-700 dark:bg-slate-800 dark:text-slate-50 dark:border-slate-50">
+      
+      <BadgeCheck className="pr-2" />
+      {/* <p className="whitespace-nowrap text-sm">Level 3</p> */}
+      </span>
+      <a href={`/request/${id}`}>
+      <DateDifference createdAt={createdAt} deadline={deadline} />
+      </a>
+      </div>
+      </div>
+      <p className="flex-shrink-0 mt-3 text-sm md:mt-0">
+      <span className="whitespace-nowrap rounded-full bg-purple-100 px-2.5 py-0.5 text-sm text-purple-700 dark:bg-slate-800 dark:text-slate-50 border dark:border-purple-700">
+      Amount Requested: {amount}
+      </span>
+      </p>
+      </div>
+      </div>
+      <div className="dark:text-gray-100">
+      
+      <div className="mx-auto sm:px-3 dark:bg-gray-100 dark:text-gray-800">
+      <div className="flex flex-col w-full mx-auto overflow-hidden rounded">
+      
+      <div className="p-3 m-2 mx-auto mt-1 sm:px-3 sm:mx-5 lg:rounded-md dark:bg-gray-50">
+      <div className="space-y-2">
+      <a rel="noopener noreferrer" href="#" className=" text-lg font-semibold sm:text-xl">{title}</a>
+      <p className="text-xs dark:text-gray-600 text-primary"> {user?.family_name} pitched in   <a rel="noopener noreferrer" href="#" className="text-xs hover:underline">{amount}/= for { userName}</a>
+      </p>
+      </div>
+      <div className="dark:text-gray-800">
+      <div>    {jsonContent && <RenderToJson data={jsonContent} />}
+      </div>
+      {imageString && (
+        
+        <Image
+        src={imageString}
+        alt="Picture of the author"
+        sizes="100vw"
+        width={0}
+        height={0}
+        style={{
+          width: '100%',
+          height: 'auto',
+        }}
+        className='rounded-xl border border-secondary'
+        />
+      )}
+      </div>
+      </div>
+      </div>
+      </div>
+      
+      {/* <h1 className='text-lg font-bold my-3'>{title}</h1>
+      
+      {jsonContent && <RenderToJson data={jsonContent} />}
+      
+      {imageString && (
+        <Image
+        src={imageString}
+        alt="Post Image"
+        width={600}
+        height={300}
+        className="w-full h-[60vh] cover rounded-xl"
+        />
+      )} */}
+      
+      {/* <RenderToJson data={jsonContent} />  */}
+      
+      
+      </div>
+      
+      {/* {imageString ? (
+        <Image
+        src={imageString}
+        alt="Post Image"
+        width={600}
+        height={300}
+        className="w-full h-full"
+        />
+      ) : (
+        <RenderToJson data={jsonContent} />
+      )} */}
+      
+      {/* {imageString ? (
+        <div>
+        <Image
+        src={imageString}
+        alt="Post Image"
+        width={600}
+        height={300}
+        className="w-full h-full"
+        />
+        {<RenderToJson data={jsonContent} />}
+        </div>
+      ) : (
+        <div>
+        {textContent && <RenderToJson data={textContent} />}
+        </div>
+      )} */}
+      
+      
+      </div>
+      <div>
+      <div className="flex flex-wrap pb-2 border-b border-primary dark:border-gray-400 gap-2 text-baseline">
+      <div className="flex gap-2">
+      <a
+      rel="noopener noreferrer"
+      href="#"
+      className="px-2 py-1 rounded-sm hover:underline "
+      >
+      <div className="flex gap-2 whitespace-nowrap rounded-full pb-0.5 text-xs text-lime-700 hover:text-primary">
+      <form action={handleVote}>
+      <input className="hidden" name='voteDirection' value='LOVE' readOnly />
+      {id && (
+        <input className="hidden" name='requestId' value={id} readOnly/>
       )}
       <LOVE />
       </form>
@@ -143,13 +219,15 @@ export async function RequestCard({
       </a>
       <a
       rel="noopener noreferrer"
-      href="#"
+      href={`/request/${id}`}
       className="px-3 py-1 rounded-sm hover:underline"
       >
-      <div className="flex gap-2 whitespace-nowrap rounded-full pb-0.5 text-xs text-lime-700 hover:text-primary">
+      
+      <div className="flex whitespace-nowrap rounded-full pb-0.5 text-xs text-lime-700 hover:text-primary">
+      <Button size='icon' variant='outline' asChild>
       <MessageCircleHeart />
-      <p className='text-muted-foreground text-sm hover:text-primary'> 5 messages
-      </p>
+      </Button>
+      {commentCount} messages
       </div>
       
       </a>
@@ -158,12 +236,15 @@ export async function RequestCard({
       
       <a
       rel="noopener noreferrer"
-      href="#"
+      href={`/request/${id}`}
       className="px-2 py-2 rounded-sm hover:underline "
       >
       <div className="flex gap-2 whitespace-nowrap rounded-full pb-0.5 text-xs text-lime-700 hover:text-primary">
+      <Button size='icon' variant='outline'>
       <Bookmark />
-      1
+      </Button>
+      <p className='xs'>1</p>
+      
       </div>
       </a>
       
@@ -197,8 +278,8 @@ export async function RequestCard({
       </div>
       </div>
       <div className="space-y-1 flex flex-col items-center justify-between w-full md:flex-row md:items-center">
-      <span className="whitespace-nowrap rounded-full bg-purple-100 px-2.5 py-0.5 text-xs text-purple-700 dark:bg-slate-800 dark:text-slate-50 mt-2 p-3">
-      12 People Have Donated
+      <span className="whitespace-nowrap rounded-full bg-purple-100 px-3.5 py-0.5 text-xs text-purple-700 dark:bg-slate-800 dark:text-slate-50 mt-2">
+      12 folks chipped in
       <div className="flex flex-col items-center justify-center">
       <div className="flex flex-row -space-x-4">
       <Image
@@ -259,13 +340,13 @@ export async function RequestCard({
     <div className='mt-5 h-px absolute bottom-5 right-5'>
     <Dialog>
     <DialogTrigger asChild>
-    <Button variant="default">Donate</Button>
+    <Button variant="default">Click Here to Help</Button>
     </DialogTrigger>
     <DialogContent className="sm:max-w-6xl">
     <DialogHeader>
     <DialogTitle className="text-primary mx-auto">SELECT AN AMOUNT</DialogTitle>
     <DialogDescription>
-    <MpesaPay />
+    <MpesaPay requestId={id} />
     </DialogDescription>
     </DialogHeader>
     <DialogFooter>
@@ -274,19 +355,18 @@ export async function RequestCard({
     cancel
     </Button>
     </DialogClose>
-    <Button type="submit" className="ml-auto">
-    Donate
-    </Button>
-    </DialogFooter>
-    </DialogContent>
-    </Dialog>
-    </div>
-    </div>
-    </Card>
-    
-    </div>
-    )
-  }
+    {/* <Button type="submit" className="ml-auto">
+    Send { } to {userName}
+  </Button> */}
+  </DialogFooter>
+  </DialogContent>
+  </Dialog>
+  </div>
+  </div>
+  </Card>
   
-  
-  
+  </div>
+)
+}
+
+

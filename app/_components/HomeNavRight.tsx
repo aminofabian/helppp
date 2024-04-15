@@ -24,12 +24,12 @@ export default function HomeNavRight() {
     height={40}
     
     />
-    <h2 className="text-xl font-semibold tracking-wide">Welcome to Fitrii Homepage </h2>
+    <h2 className="text-xl font-semibold tracking-wide">Invest in Humanity </h2>
     
     <div className="flex flex-col">
     </div>
     </div>
-    <p className="dark:text-gray-800">Mauris et lorem at elit tristique dignissim et ullamcorper elit. In sed feugiat mi. Etiam ut lacinia dui.</p>
+    <p className="dark:text-gray-800">Spreading Kindness, One Act at a Time: Join Us in Making a Difference Today!.</p>
     <Separator className='my-5' /> 
     <div className='flex flex-col justify-center flex-shrink gap-y-5'>
     <Button asChild>
@@ -41,7 +41,7 @@ export default function HomeNavRight() {
     
     <Button variant='outline' asChild>
     <Link href='/c/create'>
-    Start a Fundraiser
+    Create You Own Help Community
     </Link>
     </Button>
     </div>
