@@ -1,5 +1,6 @@
 import CommentForm from '@/app/_components/CommentForm';
 import { RequestCard } from '@/app/_components/RequestCard';
+import Slider from '@/app/_components/Slider';
 import CommunityDescriptionForm from '@/app/c/_CommunityComponents/CommunityDescriptionForm';
 import prisma from '@/app/lib/db';
 import { Button } from '@/components/ui/button';
@@ -93,7 +94,8 @@ export default async function Request({params}: {params: {id: string}}) {
     <div className="container mx-auto">
     <div className="flex flex-col lg:flex-row items-center justify-between">
     <h2 className="text-center text-4xl tracking-tighter font-bold"> {Math.floor(700 / data?.amount * 100)}% 
-    <br  className="sm:hidden" /> Pitched In
+    <br className="sm:hidden" /> Covered
+    <Slider amount={data?.amount} />
     </h2>
     <div className="space-x-2 text-center py-2 lg:py-0">
     <span>    <p className='text-xs'> Created By: <a href={`/u/${data.User?.userName}`}>u/{data.User?.userName}</a> </p></span>
@@ -120,7 +122,8 @@ export default async function Request({params}: {params: {id: string}}) {
     </div>
     <div className='my-10'>
     <RequestCard
-    key={data.id}
+            key={data.id}
+            userId={data.User?.userId}
     title={data.title}
     id={data.id}
     amount={data.amount}
@@ -158,7 +161,7 @@ export default async function Request({params}: {params: {id: string}}) {
       alt='user image'
       className='border p-3 rounded-full h-10 w-10'
       />
-      <p className=''>{item.text}</p>
+      <p className='tracking-wider'>{item.text}</p>
       </div>
       <p className='text-xs my-3 font-bold'>By <a href={`/u/${data.User?.id}`}>{item.User?.userName}</a> </p>
       <p className='ml-auto text-sm'> {item.createdAt.toDateString()} </p>

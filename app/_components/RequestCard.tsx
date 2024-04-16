@@ -42,6 +42,7 @@ export async function RequestCard({
   userName,
   communityName,
   pointsUsed,
+  userId,
   voteCount1,
   commentCount,
   voteCount2 }: {
@@ -49,6 +50,7 @@ export async function RequestCard({
     
     id: string
     title: string
+    userId: string
     amount: number
     textContent: any
     jsonContent: any
@@ -72,9 +74,9 @@ export async function RequestCard({
     return (
       <div>
       <Card className="w-full mx-auto space-y-7 border border-secondary rounded-md relative pr-3 my-10 py-5 px-2" >
-      <div className='flex flex-col justify-center w-full' key={id}>
-      <h1 className='font-normal mx-5 my-2 text-sm'> c/ <Link href={`/c/${communityName}`} className='text-primary'>{communityName}</Link> </h1>
-      <div className="md:tracking md:text-sm ml-auto absolute top-3 right-3 px-5 py-2 rounded-md mr-2">
+      <div className='flex flex-col justify-center w-full flex-warp h-20' key={id}>
+      <h1 className='hidden sm:block font-normal mx-5 my-2 text-sm w-fit'> c/ <Link href={`/c/${communityName}`} className='text-primary'>{communityName}</Link> </h1>
+      <div className="md:tracking md:text-sm ml-auto absolute top-3 right-3 px-5 py-2 rounded-md mx-2">
       <Counter deadline={deadline} createdAt={createdAt} />
       </div>
       </div>
@@ -93,7 +95,9 @@ export async function RequestCard({
       /><span className='relative border border-secondary rounded-full text-xs text-white bg-primary top-4 right-4 h-4 w-4 self-center text-center'>3</span>
       </div>
       <div className="text-sm flex hover:text-primary cursor-pointer">
+      <a href={`/user/${userId}`}>
       {userName}
+      </a>
       <span className="inline-flex items-center justify-center rounded-full bg-purple-100 py-0.5 text-purple-700 dark:bg-slate-800 dark:text-slate-50 dark:border-slate-50">
       
       <BadgeCheck className="pr-2" />
@@ -123,7 +127,7 @@ export async function RequestCard({
       </p>
       </div>
       <div className="dark:text-gray-800">
-      <div>    {jsonContent && <RenderToJson data={jsonContent} />}
+      <div className='tracking-normal mt-2'>    {jsonContent && <RenderToJson data={jsonContent} />}
       </div>
       {imageString && (
         

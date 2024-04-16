@@ -150,7 +150,7 @@ export async function createRequest({ jsonContent }: { jsonContent: JSONContent 
     }
 
     try {
-      await prisma.request.create({
+      const data = await prisma.request.create({
         data: {
           title: title,
           imageString: imageUrl ?? undefined,
@@ -162,7 +162,7 @@ export async function createRequest({ jsonContent }: { jsonContent: JSONContent 
           deadline: isoDateString,
         },
       });
-      return redirect('/')
+      return redirect(`/request/${data.id}`)
     } catch (e) {
       throw e;
     }

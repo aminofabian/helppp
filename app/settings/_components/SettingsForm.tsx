@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { updateUsername } from '@/app/actions'
-import SubmitButton from '@/app/_components/SubmitButtons'
+import { SubmitButton } from '@/app/_components/SubmitButtons'
 import { useFormState } from 'react-dom';
 import { useToast } from "@/components/ui/use-toast"
 import { CheckIcon, ExclamationTriangleIcon } from '@radix-ui/react-icons'
@@ -54,6 +54,5 @@ export default function SettingsForm({ username }: { username: string | null | u
     </div>
     
     </form>
-    )
-  }
-  
+  )
+}

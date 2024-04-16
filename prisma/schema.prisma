@@ -12,13 +12,20 @@ generator client {
 
 model User {
   id                String @id @unique
-  email             String
+  email             String @unique
   firstName         String
   lastName          String
   imageUrl          String?
   userName          String    @unique
   createdCommunities Community[]
   Comment Comment[]
+
+  giverTransactions     Transaction[] @relation("GiverRelation")
+  receiverTransactions  Transaction[] @relation("ReceiverRelation")
+
+  wallet    Wallet?
+
+
 
   donations          Donation[]
 
@@ -124,6 +131,27 @@ model Donation {
 
 
 }
+
+model Transaction {
+  id         String   @id @default(cuid())
+  giver      User     @relation(name: "GiverRelation", fields: [giverId], references: [id])
+  giverId    String
+  receiver   User     @relation(name: "ReceiverRelation", fields: [receiverId], references: [id])
+  receiverId String
+  amount     Float
+  timestamp  DateTime @default(now())
+}
+
+model Wallet {
+  id        String   @id @default(cuid())
+  user      User?    @relation(fields: [userId], references: [id])
+  userId    String @unique
+  balance   Float    @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+}
+
 
 
 

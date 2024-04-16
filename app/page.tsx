@@ -11,7 +11,6 @@ import { Suspense } from "react";
 import SuspenseCard from "./_components/SuspenseCard";
 
 
-
 export default function Home({
   searchParams,
 }: {

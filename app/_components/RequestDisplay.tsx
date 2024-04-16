@@ -65,6 +65,7 @@ export async function ShowItems({ searchParams }: { searchParams: { page: string
       createdAt={request.createdAt}
       updatedAt={request.updatedAt}
       deadline={request.deadline}
+      userId={request.User?.id}
       userName={request.User?.userName as string}
       communityName={request.communityName as string}
       pointsUsed={request.pointsUsed}
