@@ -1,0 +1,40 @@
+name: Node.js CI
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: self-hosted
+    strategy:
+      matrix:
+        node-version: [20.13.1]
+
+    env: 
+      KINDE_CLIENT_ID: ${{secrets.KINDE_CLIENT_ID}}
+      KINDE_CLIENT_SECRET: ${{secrets.KINDE_CLIENT_SECRET}}
+      KINDE_ISSUER_URL: ${{secrets.KINDE_ISSUER_URL}}
+      KINDE_SITE_URL: ${{secrets.KINDE_SITE_URL}}
+      KINDE_POST_LOGOUT_REDIRECT_URL: ${{secrets.KINDE_POST_LOGOUT_REDIRECT_URL}}
+      KINDE_POST_LOGIN_REDIRECT_URL: ${{secrets.KINDE_POST_LOGIN_REDIRECT_URL}}
+      DATABASE_URL: ${{secrets.DATABASE_URL}}
+      DIRECT_URL: ${{secrets.DIRECT_URL}}
+      UPLOADTHING_SECRET: ${{secrets.UPLOADTHING_SECRET}}
+      UPLOADTHING_APP_ID: ${{secrets.UPLOADTHING_APP_ID}}
+      SAFARICOM_CONSUMER_SECRET: ${{secrets.SAFARICOM_CONSUMER_SECRET}}
+      SAFARICOM_CONSUMER_KEY: ${{secrets.SAFARICOM_CONSUMER_KEY}}
+      PASS_KEY: ${{secrets.PASS_KEY}}
+      BUSINESS_SHORT_CODE: ${{secrets.BUSINESS_SHORT_CODE}}
+      MPESA_CALLBACK_URL: ${{secrets.MPESA_CALLBACK_URL}}
+      PORT: ${{secrets.PORT}}
+      
+    steps:
+    - uses: actions/checkout@v4
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+    - run: npm ci
+    - run: npm run build --if-present
