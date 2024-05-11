@@ -67,7 +67,8 @@ async function getData(name: string, searchParam: string) {
             },
             User: {
               select: {
-                userName: true
+                userName: true,
+                id: true,
                 
                 
               }
@@ -140,8 +141,9 @@ export default async function ShowItems({ params, searchParams }: { searchParams
     
     {data?.requests?.map((request) => (
       <div  className='container my-2'>
-        <RequestCard
+      <RequestCard
       textContent={request.textContent}
+      userId={request.User?.id as string}
       key={request.id}
       id={request.id}
       communityName={data.name}
