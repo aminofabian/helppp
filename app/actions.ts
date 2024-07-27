@@ -3,10 +3,15 @@
 import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
 import { redirect } from "next/navigation";
 import prisma from "./lib/db";
-import { Prisma, TypeOfVote } from "@prisma/client";
+import { Prisma, TypeOfVote, NotificationType } from "@prisma/client";
 import { JSONContent } from "@tiptap/react";
 import { revalidatePath } from "next/cache";
-import { mpesa } from './mpesaone/mpesa'
+import { mpesa } from './mpesaone/mpesa';
+import { uuid } from 'uuidv4';
+import crypto from 'crypto';
+
+
+
 
 
 
@@ -122,7 +127,7 @@ export async function updateCommunityDescription(prevState: any, formData: FormD
 }
 
 
-export async function createRequest({ jsonContent }: { jsonContent: JSONContent | null }, formData: FormData) {
+export async function createRequest(formData: FormData) {
   const { getUser } = getKindeServerSession();
   const user = await getUser();
   if (!user) {
@@ -132,92 +137,127 @@ export async function createRequest({ jsonContent }: { jsonContent: JSONContent 
   const title = formData.get('title') as string;
   const imageUrl = formData.get('imageUrl') as string | null;
   const amount = Number(formData.get('amount'));
-  const pointsUsed = Number(amount) / 40;
+  const pointsUsed = Number(formData.get('pointsUsed'));
   const deadlineString = formData.get('deadline') as string;
+  const jsonContent = JSON.parse(formData.get('jsonContent') as string);
+
   const deadline = new Date(deadlineString);
-  if (!isNaN(deadline.getTime())) {
-    const isoDateString = deadline.toISOString();
+  if (isNaN(deadline.getTime())) {
+    // Handle invalid date
+    return redirect('/invalid-date');
+  }
 
+  const isoDateString = deadline.toISOString();
+  const communityName = formData.get('communityName') as string;
 
-    const community = await prisma.community.findUnique({
-      where: {
-        name: formData.get('communityName') as string,
+  const community = await prisma.community.findUnique({
+    where: { name: communityName },
+  });
+
+  if (!community) {
+    return redirect('/community-not-found');
+  }
+
+  try {
+    const data = await prisma.request.create({
+      data: {
+        title: title,
+        imageString: imageUrl ?? undefined,
+        amount: amount,
+        pointsUsed: pointsUsed, // Make sure this line is included
+        Community: { connect: { id: community.id } },
+        User: { connect: { id: user.id } },
+        textContent: jsonContent,
+        deadline: isoDateString,
       },
     });
-
-    if (!community) {
-      return redirect('/community-not-found');
-    }
-
-    try {
-      const data = await prisma.request.create({
-        data: {
-          title: title,
-          imageString: imageUrl ?? undefined,
-          amount: amount,
-          pointsUsed: pointsUsed,
-          Community: { connect: { id: community.id } },
-          User: { connect: { id: user.id } },
-          textContent: jsonContent ?? undefined,
-          deadline: isoDateString,
-        },
-      });
-      return redirect(`/request/${data.id}`)
-    } catch (e) {
-      throw e;
-    }
+    return redirect(`/request/${data.id}`);
+  } catch (e) {
+    console.error(e);
+    throw e;
   }
 }
 
 export async function handleVote(formData: FormData) {
-  const { getUser } = getKindeServerSession();
-  const user = await getUser();
-  if (!user) {
-    return redirect('/api/auth/login');
-  }
+  try {
+    const { getUser } = getKindeServerSession();
+    const user = await getUser();
+    if (!user) {
+      console.log("User not authenticated");
+      return redirect('/api/auth/login');
+    }
 
-  const requestId = formData.get('requestId') as string;
-  const voteDirection = formData.get('voteDirection') as TypeOfVote;
+    const requestId = formData.get('requestId') as string;
+    const voteDirection = formData.get('voteDirection') as TypeOfVote;
 
-  const vote = await prisma.vote.findFirst({
-    where: {
-      requestId: requestId,
-      userId: user.id,
-    },
-  });
+    console.log(`Vote attempt: requestId=${requestId}, direction=${voteDirection}, userId=${user.id}`);
 
-  if (vote) {
-    if (vote.voteType === voteDirection) {
-      await prisma.vote.delete({
-        where: {
-          id: vote.id
-        },
-      });
-      return revalidatePath('/');
+    const vote = await prisma.vote.findFirst({
+      where: {
+        requestId: requestId,
+        userId: user.id,
+      },
+    });
+
+    console.log("Existing vote:", vote);
+
+    const request = await prisma.request.findUnique({ where: { id: requestId } });
+    console.log("Request:", request);
+
+    if (!request) {
+      console.log("Request not found");
+      return;
+    }
+
+    if (vote) {
+      if (vote.voteType === voteDirection) {
+        await prisma.vote.delete({
+          where: {
+            id: vote.id
+          },
+        });
+        console.log("Vote deleted");
+      } else {
+        await prisma.vote.update({
+          where: {
+            id: vote.id
+          },
+          data: {
+            voteType: voteDirection,
+          }
+        });
+        console.log("Vote updated");
+      }
     } else {
-      await prisma.vote.update({
-        where: {
-          id: vote.id
-        },
+      await prisma.vote.create({
         data: {
           voteType: voteDirection,
+          userId: user.id,
+          requestId: requestId
         }
       });
-      return revalidatePath('/');
+      console.log("New vote created");
     }
-  } else {
-    await prisma.vote.create({
-      data: {
-        voteType: voteDirection,
-        userId: user.id,
-        requestId: requestId
-      }
-    });
-    return revalidatePath('/');
+
+    // Create or update notification for all vote actions
+    if (request.userId !== user.id) {
+      await createNotification(
+        'LIKE',
+        request.userId,
+        user.id,
+        requestId
+      );
+      console.log("Notification created/updated");
+    } else {
+      console.log("Notification not created: user voted on their own request");
+    }
+
+    console.log("Revalidating path");
+    revalidatePath('/');
+  } catch (error) {
+    console.error("Error in handleVote:", error);
   }
 }
-
-
 
 export async function createComment(formData: FormData) {
   const { getUser } = getKindeServerSession();
@@ -251,35 +291,55 @@ export async function handleMpesa(formData: FormData) {
   const amount = Number(formData.get('amount'));
   const phoneNumber = formData.get('phoneNumber') as string;
   const requestId = formData.get('requestId') as string;
-  const invoice: string = `fit${Date.now()}`;
-  const status: string = 'Unpaid';
+  const invoice: string = crypto.createHash('sha256').update(`fitri${Date.now()}${Math.floor(Math.random() * 1000000)}${uuid()}`).digest('hex').substring(0, 10).toUpperCase();
 
   try {
     // Call the M-Pesa API to initiate the payment
     const response = await mpesa(phoneNumber, amount, invoice);
 
     // Handle the response from M-Pesa
-    if (response.success) {
-      // Payment was successful
-      // Update the status of the donation to 'Paid' in your database
+    if (response.ResponseCode === "0") {
+      // Payment was initiated successfully
       await prisma.donation.create({
         data: {
           amount: amount,
           userId: user.id,
           phoneNumber: phoneNumber,
           requestId: requestId,
-          // @ts-ignore
           invoice: invoice,
-          status: 'Paid',
+          status: 'Pending', // Change to 'Paid' when you receive confirmation
         },
       });
+      return { success: true, message: 'Payment initiated successfully' };
     } else {
-      // Payment failed
-      // Handle the error (e.g., display an error message to the user)
-      console.error('M-Pesa payment failed:', response.error);
+      // Payment initiation failed
+      console.error('M-Pesa payment failed:', response.ResponseDescription);
+      return { success: false, message: response.ResponseDescription };
     }
   } catch (error) {
     // Handle any errors that occur during the payment process
     console.error('Error processing M-Pesa payment:', error);
+    return { success: false, message: 'An error occurred while processing the payment' };
   }
 }
+
+async function createNotification(type: NotificationType, recipientId: string, issuerId: string, requestId?: string) {
+  try {
+    console.log("Creating notification:", { type, recipientId, issuerId, requestId });
+    const notification = await prisma.notification.create({
+      data: {
+        type,
+        recipientId,
+        issuerId,
+        requestId,
+      },
+    });
+    console.log("Notification created:", notification);
+    return notification;
+  } catch (error) {
+    console.error("Error creating notification:", error);
+    throw error;
+  }
+}
+
+

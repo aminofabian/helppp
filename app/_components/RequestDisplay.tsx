@@ -4,6 +4,12 @@ import prisma from "../lib/db";
 import { RequestCard } from './RequestCard';
 import Pagination from './Pagination';
 
+
+
+
+
+
+
 async function getData(searchParam: string) {
   const [count, data] = await prisma.$transaction([
     prisma.request.count(),
@@ -24,7 +30,7 @@ async function getData(searchParam: string) {
           select: {
             id: true,
             text: true,
-          }
+          },
         },
         User: {
           select: {
@@ -37,8 +43,8 @@ async function getData(searchParam: string) {
       },
       orderBy: {
         createdAt: 'desc',
-      }
-    })
+      },
+    }),
   ]);
   
   const currentDate = new Date();

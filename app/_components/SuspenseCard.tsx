@@ -8,6 +8,5 @@ export default function SuspenseCard() {
     <Skeleton className="w-full h-[400px] rounded-lg my-5" />
     <Skeleton className="w-full h-[400px] rounded-lg my-5" />
     </div>
-    )
-  }
-  
+  )
+}

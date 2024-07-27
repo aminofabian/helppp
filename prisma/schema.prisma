@@ -3,7 +3,7 @@ datasource db {
   provider          = "postgresql"
   url               = env("DATABASE_URL")
   directUrl         = env("DIRECT_URL")
-  relationMode = "prisma"
+  relationMode      = "prisma"
 }
 
 generator client {
@@ -11,49 +11,68 @@ generator client {
 }
 
 model User {
-  id                String @id @unique
+  id                String @id @default(uuid())
   email             String @unique
   firstName         String
   lastName          String
+  phone             String? 
   imageUrl          String?
-  userName          String    @unique
+  userName          String @unique
   createdCommunities Community[]
-  Comment Comment[]
-
+  memberships       CommunityMember[]
+  Comment           Comment[]
   giverTransactions     Transaction[] @relation("GiverRelation")
   receiverTransactions  Transaction[] @relation("ReceiverRelation")
+  wallet            Wallet?
+  payments          Payment[]
+  donations         Donation[]
+  requests          Request[]
+  love              Vote[]
+  points            Points[]
+  level             Int      @default(1)
+  recievedNotifications Notification[] @relation("Recepient")
+  issuedNotifications   Notification[] @relation("Issuer")
+  createdAt         DateTime @default(now())
+  totalDonated      Float @default(0)
+  donationCount     Int @default(0)
+  Circle            Circle[]
+  CircleMember      CircleMember[]
+  CircleContribution CircleContribution[]
+  CircleHelpRequest CircleHelpRequest[]
 
-  wallet    Wallet?
-
-
-
-  donations          Donation[]
-
-  requests         Request[]
-  love Vote[]
-
-  points                Float           @default(0)
-
-
-  createdAt DateTime @default(now())
+  @@map("users")
+  @@index([id]) // Add this line to create an index on id
 }
 
 model Community {
   id          String @id @default(uuid())
   name        String @unique
   description String?
-
   creatorId String?
-
   User                User?     @relation(fields: [userId], references: [id])  
   userId              String?
-
   requests     Request[]
-
-
+  memberships CommunityMember[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  totalDonations Float @default(0) 
+  successfulRequests Int @default(0) 
 
+  @@index([userId]) // Add this line to create an index on userId
+}
+
+model CommunityMember {
+  id          String   @id @default(uuid())
+  userId      String
+  communityId String
+  user        User     @relation(fields: [userId], references: [id])
+  community   Community @relation(fields: [communityId], references: [id])
+  createdAt   DateTime @default(now())
+  totalDonated Float @default(0)
+
+  @@unique([userId, communityId])
+  @@index([userId]) // Add this line to create an index on userId
+  @@index([communityId]) // Add this line to create an index on communityId
 }
 
 model Request {
@@ -62,33 +81,28 @@ model Request {
   textContent Json?
   imageString String?
   deadline DateTime @default(now()) 
-
-
   donations Donation[]
-
+  payments Payment[]
   amount Int
   pointsUsed Float
-
   Comment Comment[]
-
   Community Community? @relation(fields: [communityName], references: [name])
   communityName String?
-
   User  User? @relation(fields: [userId], references: [id])
   userId String
-
   Vote Vote[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  linkedNotifications Notification[]
+  status String? 
 
-
-createdAt DateTime @default(now())
-updatedAt DateTime @updatedAt
-
-
+  @@index([userId]) // Add this line to create an index on userId
+  @@index([communityName]) // Add this line to create an index on communityName
 }
 
 enum TypeOfVote {
-LOVE
-SUSPISION
+  LOVE
+  SUSPISION
 }
 
 model Vote {
@@ -102,34 +116,42 @@ model Vote {
 
   voteType TypeOfVote
 
+  @@index([requestId]) // Add this line to create an index on requestId
+  @@index([userId]) // Add this line to create an index on userId
 }
 
 model Comment {
-id String @id @default(uuid())
-text String
-createdAt DateTime @default(now())
+  id String @id @default(uuid())
+  text String
+  createdAt DateTime @default(now())
 
-User User? @relation(fields: [userId], references: [id])
-userId String?
+  User User? @relation(fields: [userId], references: [id])
+  userId String?
 
-Request  Request? @relation(fields: [requestId], references: [id])
-requestId String? 
+  Request  Request? @relation(fields: [requestId], references: [id])
+  requestId String? 
+
+  @@index([userId]) // Add this line to create an index on userId
+  @@index([requestId]) // Add this line to create an index on requestId
 }
 
 model Donation {
   id        String   @id @default(cuid())
-  User      User?     @relation(fields: [userId], references: [id])
+  User      User?    @relation(fields: [userId], references: [id])
   userId    String
-  Request   Request?  @relation(fields: [requestId], references: [id])
+  Request   Request? @relation(fields: [requestId], references: [id])
   requestId String
   amount    Float
   createdAt DateTime @default(now())
-  phoneNumber String
-
+  phoneNumber String?
+  payment   Payment?
   invoice   String
-  status     String
+  status    String
+  mpesaReceiptNumber String?
+  transactionDate    DateTime?
 
-
+  @@index([userId]) // Add this line to create an index on userId
+  @@index([requestId]) // Add this line to create an index on requestId
 }
 
 model Transaction {
@@ -140,6 +162,9 @@ model Transaction {
   receiverId String
   amount     Float
   timestamp  DateTime @default(now())
+
+  @@index([giverId]) // Add this line to create an index on giverId
+  @@index([receiverId]) // Add this line to create an index on receiverId
 }
 
 model Wallet {
@@ -150,9 +175,145 @@ model Wallet {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@index([userId]) // Add this line to create an index on userId
+}
+
+model Payment {
+  id                 String   @id @default(cuid())
+  merchantRequestID  String
+  checkoutRequestID  String
+  resultCode         String
+  resultDesc         String
+  amount             Float
+  userts             DateTime
+  user               User     @relation(fields: [userId], references: [id])
+  userId             String
+  request            Request? @relation(fields: [requestId], references: [id])
+  requestId          String?
+  donation           Donation? @relation(fields: [donationId], references: [id])
+  donationId         String?   @unique
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  points             Points?
+  mpesaReceiptNumber String?
+  phoneNumber        String?
+  transactionDate    DateTime?
+
+  @@index([userId]) // Add this line to create an index on userId
+  @@index([requestId]) // Add this line to create an index on requestId
+}
+
+model Points {
+  id        String   @id @default(cuid())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  amount    Int      
+  payment   Payment  @relation(fields: [paymentId], references: [id])
+  paymentId String   @unique
+  createdAt DateTime @default(now())
+
+  @@index([userId]) // Add this line to create an index on userId
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  recipientId String
+  recipient User @relation("Recepient", fields: [recipientId], references: [id], onDelete: Cascade)
+  issuerId String
+  issuer User @relation("Issuer", fields: [issuerId], references: [id], onDelete: Cascade)
+  requestId String?
+  request Request? @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  type NotificationType
+  read Boolean @default(false)
+  createdAt DateTime @default(now())
+
+  @@map("notifications")
+  @@index([recipientId]) // Add this line to create an index on recipientId
+  @@index([issuerId]) // Add this line to create an index on issuerId
+  @@index([requestId]) // Add this line to create an index on requestId
+}
+
+enum NotificationType {
+  LIKE
+  COMMENT
+  NEWREQUEST
+  DONATION
+  JOIN
+  FOLLOW
+}
+
+model Circle {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  ownerId     String
+  owner       User     @relation(fields: [ownerId], references: [id])
+  members     CircleMember[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  helpRequests CircleHelpRequest[]
+  contributions CircleContribution[]
+
+  @@index([ownerId]) // Add this line to create an index on ownerId
+}model CircleMember {
+  id        String   @id @default(uuid())
+  circleId  String
+  userId    String
+  circle    Circle   @relation(fields: [circleId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+  
+  @@unique([circleId, userId])
 }
 
 
+model CircleHelpRequest {
+  id          String   @id @default(uuid())
+  circleId    String
+  circle      Circle   @relation(fields: [circleId], references: [id])
+  requesterId String
+  requester   User     @relation(fields: [requesterId], references: [id])
+  title       String
+  description String
+  amount      Float?
+  status      RequestStatus @default(PENDING)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
+  @@index([circleId])
+  @@index([requesterId])
+}
+
+model CircleContribution {
+  id        String   @id @default(uuid())
+  circleId  String
+  circle    Circle   @relation(fields: [circleId], references: [id])
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  amount    Float
+  createdAt DateTime @default(now())
+
+  @@index([circleId])
+  @@index([userId])
+}
+
+enum CircleStatus {
+  ACTIVE
+  INACTIVE
+  ARCHIVED
+}
+
+enum CircleRole {
+  ADMIN
+  MODERATOR
+  MEMBER
+}
+
+enum RequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  FULFILLED
+}
 
 

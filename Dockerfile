@@ -1,3 +1,35 @@
+# FROM node:18-alpine
+
+# WORKDIR /app
+
+# # Copy package files and install dependencies
+# COPY package*.json ./
+# RUN npm install
+
+# # Copy Prisma files and generate Prisma client
+# COPY prisma ./prisma/
+# RUN npx prisma generate
+
+# # Copy the rest of the application files
+# COPY . .
+
+# # Ensure the build output is standalone
+# RUN npm run build
+
+# EXPOSE 3000
+
+# # Use the standalone server.js to start the application
+# CMD ["node", ".next/standalone/server.js"]
+
+
+
+
+
+
+
+
+
+
 FROM node:18-alpine AS base
 
 # Install dependencies only when needed

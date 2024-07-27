@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { RegisterLink, LoginLink, LogoutLink } from "@kinde-oss/kinde-auth-nextjs/components";
 import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
 import UserDropDown  from "./UserDropDown";
+import MenuBar from './MenuBar';
 
 async function Navbar() {
   const { getUser } = getKindeServerSession();
@@ -33,19 +34,18 @@ async function Navbar() {
     <div className='flex gap-8 baseline'>
     {user ? (
       <UserDropDown userImage={user.picture || '/user.svg'} />
-      ) : (
-        <div>
-        <RegisterLink><Button variant='ghost'>Sign Up</Button></RegisterLink>
-        <LoginLink><Button className='dark:text-secondary'>Log In</Button></LoginLink>
-        </div>
-        )}
-        <div>
-        <ModeToggle />
-        </div>
-        
-        </div>
-        </nav>
-        )
-      }
-      
-      export default Navbar
+    ) : (
+      <div>
+      <RegisterLink><Button variant='ghost'>Sign Up</Button></RegisterLink>
+      <LoginLink><Button className='dark:text-secondary'>Log In</Button></LoginLink>
+      </div>
+    )}
+    <div>
+    <ModeToggle />
+    </div>
+    </div>
+    </nav>
+  )
+}
+
+export default Navbar

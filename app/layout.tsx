@@ -4,6 +4,7 @@ import "./globals.css";
 import Navbar from "@/app/_components/Navbar";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { Toaster } from "@/components/ui/toaster"
+import MenuBar from "./_components/MenuBar";
 
 
 const inter = Jost ({ subsets: ["latin"] });
@@ -20,7 +21,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning={true}>
-    <body className={inter.className} >
+    <body className={`flex min-h-screen flex-col ${inter.className}`} >
     <ThemeProvider
     attribute="class"
     defaultTheme="system"
@@ -33,7 +34,7 @@ export default function RootLayout({
     </div>
     <Toaster />
     </ThemeProvider>
-    
+    <MenuBar className='sticky bottom-0 flex w-full justify-evenly border-t bg-card p-3 sm:hidden'/>
     </body>
     </html>
   );
