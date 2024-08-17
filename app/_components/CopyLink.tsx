@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/components/ui/use-toast';
-import { Share } from 'lucide-react'
+import { Share, ShareIcon } from 'lucide-react'
 import React from 'react'
 
 export default function CopyLink({ id }: { id: string }) {
@@ -12,19 +12,22 @@ export default function CopyLink({ id }: { id: string }) {
     toast({
       title: 'Copied!',
       description: 'Link copied to clipboard',
-      duration: 2000,
+      duration: 5000,
     })
   }
   
   
   return (
     <div className='flex'>
-    <Button variant='outline' size='icon'
+    <Button 
     onClick={copyToClipboard}
+    variant="secondary"
+    size="sm"
+    className="bg-green-100 hover:bg-green-200 text-green-700"
     >
-    <Share className='h-5 w-5 text-primary text-muted-foreground hover:text-primary cursor-pointer' />
+    <ShareIcon className="w-4 h-4" />
     </Button>
-    <p className='text-muted-foreground hover: hover:text-primary text-xs ml-1'>Share</p>
+    
     </div>
   )
 }

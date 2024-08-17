@@ -2,7 +2,6 @@
 import React, { useState } from 'react';
 import { Card, CardFooter, CardHeader } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Button } from '@/components/ui/button';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -12,10 +11,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { TipTapEditor } from '@/app/_components/TipTapEditor';
 import { SubmitButton } from '@/app/_components/SubmitButtons';
-import { UploadDropzone } from '@/app/_components/Uploadthing';
 import { JSONContent } from '@tiptap/react';
 import { useToast } from "@/components/ui/use-toast";
-
 
 export function CreateRequestForm({createRequest, communityGuidelines, params }) {
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
@@ -29,6 +26,7 @@ export function CreateRequestForm({createRequest, communityGuidelines, params })
   const [customTime, setCustomTime] = useState('');
   const [deadline, setDeadline] = useState('');
   const [currentTab, setCurrentTab] = useState<number>(0);
+  const [file, setFile] = useState(null);
   
   const { toast } = useToast();
   
@@ -95,10 +93,53 @@ export function CreateRequestForm({createRequest, communityGuidelines, params })
     setCurrentTab((prevTab) => prevTab + 1);
   };
   
+  const handleFileChange = (e) => {
+    setFile(e.target.files[0]);
+  };
+  
+  const handleFileUpload = async () => {
+    if (!file) return;
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    try {
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setImageUrl(`/uploads/${file.name}`);
+        toast({
+          title: "Upload Successful",
+          description: "Your image has been uploaded successfully.",
+          variant: "default",
+        });
+      } else {
+        throw new Error('Upload failed');
+      }
+    } catch (error) {
+      console.error("Error uploading file:", error);
+      toast({
+        title: "Upload Error",
+        description: "An error occurred while uploading your image. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+  
   const createRequestFitrii = async (formData: FormData) => {
     try {
+      // If you have an image, the imageUrl will now be a local path
+      if (imageUrl) {
+        formData.append('imageUrl', imageUrl);
+      }
+      
       // Perform the form submission
       await createRequest(formData);
+      
       // Show a success toast notification
       toast({
         title: "Request Created",
@@ -118,21 +159,17 @@ export function CreateRequestForm({createRequest, communityGuidelines, params })
     }
   };
   
-  return (
-    
+  return (    
     <div className="my-5">
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-8">
     <div className="h-fit rounded-lg bg-secondary lg:col-span-2 my-2 py-5">
     <h1 className='font-semibold mx-5 my-5'> c/ <Link href={`/c/${params.id}`} className='text-primary'>{params.id}</Link> </h1>
     
     <Tabs defaultValue="time" className="w-full px-5">
-    
-    
     <TabsList className='grid w-full grid-cols-4'>
     <TabsTrigger value='time'>
     <TextIcon className='mr-2' />
     <div className='flex flex-row w-full justify-between'>
-    
     Time
     <ArrowBigRightDash className='relative top-0 r-100'/>
     </div>
@@ -141,7 +178,6 @@ export function CreateRequestForm({createRequest, communityGuidelines, params })
     <TabsTrigger value='requestAmount'>    
     <VideoIcon className='mr-2' />
     <div className='flex flex-row w-full justify-between'>
-    
     Amount
     <ArrowBigRightDash className='relative top-0 r-100'/>
     </div>
@@ -157,19 +193,15 @@ export function CreateRequestForm({createRequest, communityGuidelines, params })
     
     <TabsTrigger value='Request'>
     <div className='flex flex-row w-full justify-between'>
-    
     Text
     <ListEnd className='relative top-0 r-100'/>
     </div>
     </TabsTrigger>
-    
-    
     </TabsList>
+    
     <TabsContent value='Request'>
     <Card>
     <form action={createRequestFitrii}>
-    
-    
     <input type='hidden' name='imageUrl' value={imageUrl ?? undefined}/>
     <input type='hidden' name='communityName' value={params.id} /> 
     <input type='hidden' name='amount' value={selectedAmount ?? undefined} />
@@ -185,62 +217,79 @@ export function CreateRequestForm({createRequest, communityGuidelines, params })
     <div className='ml-auto'>
     <SubmitButton ButtonName='Publish Request' />
     </div>
-    
     </CardFooter>
-    
-    
     </form>
-    
-    
-    
-    
     </Card>
-    
-    
     </TabsContent>
+    
     <TabsContent value='image'>
     <Card>
     <CardHeader>
-    </CardHeader>
     {imageUrl === null ? (
-      <UploadDropzone
-      className='ut-button:bg-primary ut-label:text-primary ut-readying:bg-primary/20 ut-button:ut-uploading:bg-primary/50 ut-button:ut-uploading:after:bg-primary'
-      endpoint='imageUploader'
-      onClientUploadComplete={(res) => {
-        setImageUrl(res[0].url)
+      <div>
+      <input 
+      type="file" 
+      onChange={async (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          setFile(file);
+          const formData = new FormData();
+          formData.append('file', file);
+          
+          try {
+            const response = await fetch('/api/upload', {
+              method: 'POST',
+              body: formData,
+            });
+            
+            if (response.ok) {
+              const data = await response.json();
+              setImageUrl(`/uploads/${file.name}`);
+              toast({
+                title: "Upload Successful",
+                description: "Your image has been uploaded successfully.",
+                variant: "default",
+              });
+            } else {
+              throw new Error('Upload failed');
+            }
+          } catch (error) {
+            console.error("Error uploading file:", error);
+            toast({
+              title: "Upload Error",
+              description: "An error occurred while uploading your image. Please try again.",
+              variant: "destructive",
+            });
+          }
+        }
       }}
-      onUploadError={(error: Error) => {
-        toast({
-          title: 'Authorized',
-          description: "You Must be Logged in to Upload an Image or Complete the Request Form",
-          variant: "destructive",
-        })
-      }} />
+      accept="image/*" 
+      />
+      </div>
     ) : (
       <div className="flex justify-center">
-      <Image src={imageUrl}
-      alt="Image"
-      sizes="100dvw"
+      <Image 
+      src={imageUrl}
+      alt="Uploaded Image"
+      width={200}
+      height={120}
       style={{
-        width: '300',
+        objectFit: 'cover',
+        width: '100%',
         height: 'auto',
+        maxHeight: '500px'
       }}
-      width={500}
-      height={300}
-      
-      className="w-full h-80 rounded-lg" />
+      className="rounded-lg"
+      />
       </div>
-      
     )}  
+    </CardHeader>
     </Card>
-    
-    
     </TabsContent>
     
     <TabsContent value='requestAmount'>
     <Card>
     <CardHeader>
-    
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_120px] lg:gap-8">
     <div className="h-fit rounded-lg bg-gray-200">
     <div className="grid grid-cols-3 md:grid-cols-5 gap-5 justify-between mx-5 my-5">
@@ -248,7 +297,7 @@ export function CreateRequestForm({createRequest, communityGuidelines, params })
       <button
       key={index}
       onClick={() => handleAmountSelect(number, index)}
-      className={` px-4 py-2 text-sm overflow-ellipsis ${selectedButtonIndex === index ? 'bg-primary text-[#d4e6d4]' : 'bg-secondary'} text-[#298126] rounded border-lime-200 hover:scale-105`}
+      className={`px-4 py-2 text-sm overflow-ellipsis ${selectedButtonIndex === index ? 'bg-primary text-[#d4e6d4]' : 'bg-secondary'} text-[#298126] rounded border-lime-200 hover:scale-105`}
       >
       {number}
       </button>
@@ -282,23 +331,13 @@ export function CreateRequestForm({createRequest, communityGuidelines, params })
     </div>
     </div>
     </div>
-    
-    
-    
-    
     </CardHeader>
-    
     </Card>
-    
-    
     </TabsContent>
     
     <TabsContent value='time'>
     <Card>
     <CardHeader>
-    {/* Time */}
-    
-    
     <div>
     <h1 className='text-lg font-bold mx-auto mb-5'>For How Long Do You Want the Request to Run?</h1>
     <div className="grid grid-cols-2 gap-4 lg:grid-cols-3 lg:gap-5">
@@ -333,6 +372,8 @@ export function CreateRequestForm({createRequest, communityGuidelines, params })
     <div className='container h-full flex flex-col justify-center items-center'>
     <h2 className='text-xs text-primary border font-semibold justify-center items-center my-3 px-3 rounded-md ring-1 ring-primary'>
     Deadline: {deadline}
+    
+    
     </h2>
     
     {/* <Button

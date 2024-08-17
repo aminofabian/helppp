@@ -48,7 +48,7 @@ export const mpesa = async (phoneNumber: string, amount: number, reference: stri
     return redirect('/api/auth/login');
   }
 
-  const userName: string | null = `${user.given_name} ${user.family_name} (Ref No FIT${reference})`; // Concatenate given name and family name
+  const ref: string | null = `${user.given_name} ${user.family_name} (Ref No FIT${reference})`; // Concatenate given name and family name
 
   try {
     const token = await generateToken();
@@ -67,7 +67,7 @@ export const mpesa = async (phoneNumber: string, amount: number, reference: stri
       PartyB: mpesaConfig.shortcode,
       PhoneNumber: `254${phoneNumber.replace(/^0/, '')}`,
       CallBackURL: mpesaConfig.callbackUrl,
-      AccountReference: userName,
+      AccountReference: ref,
       TransactionDesc: 'Payment for goods/services',
     };
 

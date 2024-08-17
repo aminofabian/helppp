@@ -6,24 +6,32 @@ interface DateDifferenceProps {
   createdAt: Date;
 }
 
-const DateDifference: React.FC<DateDifferenceProps> = ({ deadline, createdAt }) => {
-  const calculateTimeLeft = () => {
-    const difference = +new Date() - +new Date(createdAt);
-    let timeLeft = {};
+interface TimeLeft {
+  days: number;
+  hours: number;
+  minutes: number;
+  seconds: number;
+}
+
+export const DateDifference: React.FC<DateDifferenceProps> = ({ deadline, createdAt }) => {
+  const calculateTimeLeft = (): TimeLeft => {
+    const now = new Date();
+    const createdDate = new Date(createdAt);
+    const difference = now.getTime() - createdDate.getTime();
     
-    if (difference > 0) {
-      timeLeft = {
-        days: Math.floor(difference / (1000 * 60 * 60 * 24)),
-        hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
-        minutes: Math.floor((difference / 1000 / 60) % 60),
-        seconds: Math.floor((difference / 1000) % 60)
-      };
-    }
+    console.log('Now:', now);
+    console.log('Created At:', createdDate);
+    console.log('Difference (ms):', difference);
     
-    return timeLeft as { days?: number, hours?: number, minutes?: number, seconds?: number };
+    return {
+      days: Math.floor(difference / (1000 * 60 * 60 * 24)),
+      hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
+      minutes: Math.floor((difference / 1000 / 60) % 60),
+      seconds: Math.floor((difference / 1000) % 60)
+    };
   };
   
-  const [timeLeft, setTimeLeft] = useState(calculateTimeLeft());
+  const [timeLeft, setTimeLeft] = useState<TimeLeft>(calculateTimeLeft());
   
   useEffect(() => {
     const timer = setInterval(() => {
@@ -31,39 +39,40 @@ const DateDifference: React.FC<DateDifferenceProps> = ({ deadline, createdAt }) 
     }, 1000);
     
     return () => clearInterval(timer);
-  }, []);
+  }, [createdAt]);
   
-  let displayValue, unit;
+  useEffect(() => {
+    console.log('Time Left:', timeLeft);
+  }, [timeLeft]);
   
-  if (timeLeft.days && timeLeft.days >= 1) {
+  let displayValue: number;
+  let unit: string;
+  
+  if (timeLeft.days > 0) {
     displayValue = timeLeft.days;
     unit = 'd';
-  } else if (timeLeft.hours && timeLeft.hours >= 1) {
+  } else if (timeLeft.hours > 0) {
     displayValue = timeLeft.hours;
     unit = 'h';
-  } else if (timeLeft.minutes && timeLeft.minutes >= 1) {
+  } else if (timeLeft.minutes > 0) {
     displayValue = timeLeft.minutes;
     unit = 'min';
   } else {
-    displayValue = timeLeft.seconds || 0;
-    unit = 'sec';
+    displayValue = timeLeft.seconds;
+    unit = 'secs';
   }
   
   const countdownStyle = { '--v': displayValue.toString() } as React.CSSProperties;
-  
   return (
     <div>
-    <div className="flex gap-1 text-center auto-cols-max text-xs px-3 rounded-md">
-    <div className="flex bg-neutral rounded-box text-neutral-content">
-    <span className="countdown font-mono text-xs">
-    <span style={countdownStyle}>{displayValue}</span>
+    <div className="flex gap-1 text-center auto-cols-max text-xs px-3 rounded-md lowercase text-primary hover:text-secondary cursor-pointer">
+    <div className="flex">
+    <span className="font-mono text-xs ">
+    {displayValue}
     </span>
     {unit} ago
     </div>
     </div>
     </div>
-    );
-  };
-  
-  export default DateDifference;
-  
+  )
+};

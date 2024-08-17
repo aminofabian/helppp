@@ -1,9 +1,16 @@
 import CreatePostCard from "./_components/CreatePostCard";
 import HomeNavRight from "./_components/HomeNavRight";
-import { ShowItems } from "./_components/RequestDisplay";
 import { Suspense } from "react";
-import SuspenseCard from "./_components/SuspenseCard";
 import RightNavHome from "./_components/RightNavHome";
+
+
+import dynamic from 'next/dynamic';
+import SuspenseCard from "./_components/SuspenseCard";
+
+// Dynamically import ShowItems
+const ShowItems = dynamic(() => import("./_components/ShowItems").then(mod => mod.ShowItems), {
+  ssr: false,
+});
 
 export default function Home({ searchParams }: { searchParams: { page: string } }) {
   return (
@@ -16,8 +23,8 @@ export default function Home({ searchParams }: { searchParams: { page: string } 
     
     <div className="h-fit rounded-lg lg:col-span-2 order-2">
     <CreatePostCard />
-    <Suspense fallback={<SuspenseCard />} key={searchParams.page}>
-    <ShowItems searchParams={searchParams} />
+    <Suspense fallback={<SuspenseCard />}>
+    <ShowItems />
     </Suspense>
     </div>
     

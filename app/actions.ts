@@ -7,7 +7,7 @@ import { Prisma, TypeOfVote, NotificationType } from "@prisma/client";
 import { JSONContent } from "@tiptap/react";
 import { revalidatePath } from "next/cache";
 import { mpesa } from './mpesaone/mpesa';
-import { uuid } from 'uuidv4';
+import { v4 as uuidv4 } from 'uuid';
 import crypto from 'crypto';
 
 
@@ -291,7 +291,7 @@ export async function handleMpesa(formData: FormData) {
   const amount = Number(formData.get('amount'));
   const phoneNumber = formData.get('phoneNumber') as string;
   const requestId = formData.get('requestId') as string;
-  const invoice: string = crypto.createHash('sha256').update(`fitri${Date.now()}${Math.floor(Math.random() * 1000000)}${uuid()}`).digest('hex').substring(0, 10).toUpperCase();
+  const invoice: string = crypto.createHash('sha256').update(`fitri${Date.now()}${Math.floor(Math.random() * 1000000)}${uuidv4()}`).digest('hex').substring(0, 10).toUpperCase();
 
   try {
     // Call the M-Pesa API to initiate the payment

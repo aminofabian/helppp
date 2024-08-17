@@ -9,7 +9,6 @@ interface TimeLeft {
   seconds: number;
 }
 
-
 const Counter: React.FC<{ deadline: Date; createdAt: Date; }> = ({ deadline, createdAt }) => {
   const calculateTimeLeft = (): TimeLeft => {
     const difference = +new Date(deadline) - +new Date();
@@ -40,40 +39,42 @@ const Counter: React.FC<{ deadline: Date; createdAt: Date; }> = ({ deadline, cre
   });
   
   useEffect(() => {
-    setTimeLeft(calculateTimeLeft()); // Calculate initial timeLeft after component mounts on client
+    setTimeLeft(calculateTimeLeft());
     const timer = setInterval(() => {
-      setTimeLeft(calculateTimeLeft()); // Update timeLeft every second
+      setTimeLeft(calculateTimeLeft());
     }, 1000);
     
-    return () => clearInterval(timer); // Cleanup timer on component unmount
+    return () => clearInterval(timer);
   }, [deadline, createdAt]);
+  
+  const textColorClass = timeLeft.days < 3 ? 'text-red-500' : 'text-primary';
   
   return (
     <>
-    <div className={`flex gap-1 text-center auto-cols-max text-xs ${timeLeft.days < 3 ? 'text-red-500 border border-red-500 px-3 rounded-md' : 'border border-primary px-3 rounded-md'}`}>
-    <div className={`flex flex-col p-1 bg-neutral rounded-box text-neutral-content`}>
+    <div className={`flex gap-1 text-center auto-cols-max uppercase text-xs ${timeLeft.days < 3 ? 'text-red-500 border border-red-500 px-3 rounded-md' : 'border border-primary px-3 rounded-md uppercase text-xs'}`}>
+    <div className={`flex flex-col p-1 ${textColorClass}`}>
     <div className="countdown font-mono text-xs">
     <div style={{ '--value': timeLeft.days } as React.CSSProperties}>{timeLeft.days}</div>
     </div>
     days
     </div>
-    <div className="flex flex-col p-1 bg-neutral rounded-box text-neutral-content">
+    <div className={`flex flex-col p-1 ${textColorClass}`}>
     <div className="countdown font-mono text-xs">
     <div style={{ '--value': timeLeft.hours } as React.CSSProperties}>{timeLeft.hours}</div>
     </div>
     hours
     </div>
-    <div className="flex flex-col p-1 bg-neutral rounded-box text-neutral-content">
+    <div className={`flex flex-col p-1 ${textColorClass}`}>
     <div className="countdown font-mono text-xs">
-    <div className='text-xs' style={{ '--value': timeLeft.minutes as unknown as number } as React.CSSProperties}>{timeLeft.minutes}</div>
+    <div style={{ '--value': timeLeft.minutes as unknown as number } as React.CSSProperties}>{timeLeft.minutes}</div>
     </div>
-    min
+    mins
     </div>
-    <div className="flex flex-col p-1 bg-neutral rounded-box text-neutral-content">
+    <div className={`flex flex-col p-1 ${textColorClass}`}>
     <div className="countdown font-mono text-xs">
     <div style={{ '--value': timeLeft.seconds } as React.CSSProperties}>{timeLeft.seconds}</div>
     </div>
-    sec
+    secs
     </div>
     </div>
     </>
