@@ -1,11 +1,7 @@
 import { writeFile } from 'fs/promises';
 import { join } from 'path';
 
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
+export const runtime = 'nodejs'; // Add this line
 
 export async function POST(req) {
   const formData = await req.formData();
@@ -27,5 +23,6 @@ export async function POST(req) {
   return new Response(JSON.stringify({ done: 'ok', path: '/uploads/' + file.name }), {
     status: 200,
     headers: { 'Content-Type': 'application/json' },
-  });
+    }
+  );
 }
