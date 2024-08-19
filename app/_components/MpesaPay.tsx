@@ -52,7 +52,7 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [email, setEmail] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [paymentMethod, setPaymentMethod] = useState('Mpesa');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('Mpesa');
   
   useEffect(() => {
     if (selectedAmount) {
@@ -119,6 +119,7 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
       try {
         const result = await handleMpesa(formData);
         if (result.success) {
+          // Handle successful Mpesa payment
         } else {
           setError(result.message);
         }
@@ -129,20 +130,32 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
       const script = document.createElement('script');
       script.src = 'https://js.paystack.co/v1/inline.js';
       script.onload = () => {
-        const handler = window.PaystackPop.setup({
+        const handler = (window as any).PaystackPop.setup({
           key: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY!,
           email: email,
           amount: (selectedAmount || 0) * 100,
           currency: 'KES',
+          ref: `${Date.now()}`, // Generate a unique reference
           callback: function (response: any) {
+            // Handle successful payment
+            console.log('Payment successful:', response);
           },
           onClose: function () {
+            // Handle payment window close
+            console.log('Payment window closed');
+          },
+          onError: function (error: any) {
+            // Handle payment error
+            console.error('Payment error:', error);
+            setError('An error occurred during payment. Please try again.');
           }
         });
         handler.openIframe();
       };
       document.body.appendChild(script);
     } else {
+      // Handle other payment methods (e.g., PayPal)
+      setError('This payment method is not yet implemented.');
     }
   };
   
