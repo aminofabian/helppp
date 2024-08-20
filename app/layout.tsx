@@ -10,8 +10,27 @@ import MenuBar from "./_components/MenuBar";
 const inter = Jost ({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Fitrii",
-  description: "Community-based Support Network",
+  title: "Fitrii - Building a World of Mutual Support",
+  description: "Fitrii is a global network fostering reciprocal kindness. Give help, get help - join our movement to create a world where compassion is the norm and community support is just a tap away.",
+  keywords: ["Fitrii", "Humanitarin", "community support", "mutual aid", "kindness network", "social impact", "help exchange", "compassion movement"],
+  authors: [{ name: "Fitrii Team" }],
+  openGraph: {
+    title: "Fitrii - Cultivating a World of Reciprocal Kindness",
+    description: "Join Fitrii in building a global community where the kindness you give is the kindness you can count on receiving. Together, we're making help tangible and accessible for everyone.",
+    images: [{ url: "/images/fitrii-og-image.jpg" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Fitrii - Your Community-Powered Support Network",
+    description: "Imagine a world where every hand reaches out to help. That's Fitrii - join us in creating a global network of givers and receivers.",
+    images: ["/images/fitrii-twitter-image.jpg"],
+  },
+  viewport: "width=device-width, initial-scale=1",
+  robots: "index, follow",
+  alternates: {
+    canonical: "https://www.fitrii.com",
+  },
+  category: "Social Impact",
 };
 
 export default function RootLayout({
