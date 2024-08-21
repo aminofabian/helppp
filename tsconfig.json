@@ -21,6 +21,6 @@
       "@/*": ["./*"]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "app/_components/Counter.tsx", "app/c/[id]/create/page.tsx", "app/community-denied", "app/_components/(circles)/add-member", "app/api/upload/route.js", "app/_components/createRequestFitrii.jsx"],
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "app/_components/Counter.tsx", "app/c/[id]/create/page.tsx", "app/community-denied", "app/_components/(circles)/add-member", "app/api/upload/route.js", "app/_components/createRequestFitrii.tsx"],
   "exclude": ["node_modules"]
 }
