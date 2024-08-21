@@ -10,7 +10,7 @@ import MenuBar from "./_components/MenuBar";
 const inter = Jost ({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Fitrii - Building a World of Mutual Support",
+  title: "Fitrii™  - Building a World of Mutual Support",
   description: "Fitrii is a global network fostering reciprocal kindness. Give help, get help - join our movement to create a world where compassion is the norm and community support is just a tap away.",
   keywords: ["Fitrii", "Humanitarin", "community support", "mutual aid", "kindness network", "social impact", "help exchange", "compassion movement"],
   authors: [{ name: "Fitrii Team" }],
