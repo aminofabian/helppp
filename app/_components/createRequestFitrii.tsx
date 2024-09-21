@@ -1,8 +1,21 @@
-const createRequestFitrii = async (formData: FormData) => {
+import { toast } from '@/components/ui/use-toast';
+import { createRequest } from '../actions';
+
+
+interface CreateRequestParams {
+  formData: FormData;
+  imageUrl?: string | File;
+}
+
+const createRequestFitrii = async ({ formData, imageUrl }: CreateRequestParams) => {
   try {
-    // If you have an image, the imageUrl will now be a local path
+    // If you have an image, add it to the FormData
     if (imageUrl) {
-      formData.append('imageUrl', imageUrl);
+      if (typeof imageUrl === 'string') {
+        formData.append('imageUrl', imageUrl);
+      } else if (imageUrl instanceof File) {
+        formData.append('imageUrl', imageUrl, imageUrl.name);
+      }
     }
     
     // Perform the form submission
@@ -26,3 +39,5 @@ const createRequestFitrii = async (formData: FormData) => {
     });
   }
 };
+
+export default createRequestFitrii;

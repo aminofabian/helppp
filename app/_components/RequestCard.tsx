@@ -19,23 +19,28 @@ interface RequestCardProps {
   id: string;
   title: string;
   amount: number;
-  jsonContent?: any; // Consider using a more specific type if possible
+  jsonContent?: any;
+  textContent?: any; 
   imageString?: string;
   createdAt: string | Date;
   deadline: string | Date;
+  updatedAt?: Date | string; // Add this line
   userName: string;
   communityName: string;
   userId: string;
   voteCount1: number;
   voteCount2: number;
-  commentCount: number;
-  level: number;
+  level?: number;
+  commentCount?: number; // Add this line
+  pointsUsed?: number; // Add this line
+  
 }
 
 export function RequestCard({
   id,
   title,
   amount,
+  textContent,
   jsonContent,
   imageString,
   createdAt,
@@ -45,8 +50,9 @@ export function RequestCard({
   userId,
   voteCount1,
   voteCount2,
-  commentCount,
-  level,
+  commentCount=0,
+  pointsUsed, 
+  level = 1, 
 }: RequestCardProps) {
   const config = genConfig() 
   

@@ -1,26 +1,31 @@
-{
-  "compilerOptions": {
-    "lib": ["dom", "dom.iterable", "esnext"],
-    "allowJs": true,
-    "skipLibCheck": true,
-    "strict": true,
-    "noEmit": true,
-    "esModuleInterop": true,
-    "module": "esnext",
-    "moduleResolution": "bundler",
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "jsx": "preserve",
-    "incremental": true,
-    "plugins": [
-      {
-        "name": "next"
-      }
-    ],
-    "paths": {
-      "@/*": ["./*"]
+{"compilerOptions": {
+  "target": "es5",
+  "lib": ["dom", "dom.iterable", "esnext"],
+  "allowJs": true,
+  "skipLibCheck": true,
+  "strict": true,
+  "forceConsistentCasingInFileNames": true,
+  "noEmit": true,
+  "esModuleInterop": true,
+  "module": "esnext",
+  "moduleResolution": "bundler",
+  "resolveJsonModule": true,
+  "isolatedModules": true,
+  "jsx": "preserve",
+  "incremental": true,
+  "plugins": [
+    {
+      "name": "next"
     }
+  ],
+  "paths": {
+    "@/*": ["./*"]
   },
+  "noImplicitAny": true,
+  "useDefineForClassFields": true,
+  "strictNullChecks": true,
+  "strictFunctionTypes": true
+},
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "app/_components/Counter.tsx", "app/c/[id]/create/page.tsx", "app/community-denied", "app/_components/(circles)/add-member", "app/api/upload/route.js", "app/_components/createRequestFitrii.tsx"],
   "exclude": ["node_modules"]
 }

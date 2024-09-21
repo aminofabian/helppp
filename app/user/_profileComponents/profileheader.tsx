@@ -5,16 +5,19 @@ interface PHProps {
   firstName: string
   lastName: string
   email: string
-  points: number
   imageUrl: string
+  points: { id: string; userId: string; amount: number; paymentId: string; createdAt: Date; }[];
 }
 
 export default function ProfileHeader({userName, firstName, lastName, email, points, imageUrl}: PHProps) {
+  // Calculate total points
+  const totalPoints = points.reduce((sum, point) => sum + point.amount, 0);
+  
   return (
     <div>
     <div className="max-w-md p-8 sm:flex sm:space-x-6 dark:bg-gray-50 dark:text-gray-800 flex-shrink">
     <div className="flex-shrink-0 w-full mb-6 h-44 sm:h-32 sm:w-32 sm:mb-0">
-    <img src={imageUrl} alt="" className="object-cover object-center w-full h-full rounded-full" />
+    <img src={imageUrl} alt={`${firstName} ${lastName}`} className="object-cover object-center w-full h-full rounded-full" />
     </div>
     <div className="flex flex-col space-y-4">
     <div>
@@ -29,17 +32,18 @@ export default function ProfileHeader({userName, firstName, lastName, email, poi
     <span className="dark:text-gray-600">{email}</span>
     </span>
     <span className="flex items-center space-x-2">
-    {points} Points
-    190 Requests Made
-    200 Donations
-    Jan 7, 2023 Cake day
-    <span className="">{points}</span>
+    <span className="font-bold">{totalPoints} Points</span>
+    {/* You may want to replace these hardcoded values with actual data */}
+    <span>190 Requests Made</span>
+    <span>200 Donations</span>
+    </span>
+    <span className="flex items-center space-x-2">
+    {/* You may want to replace this with the actual user join date */}
+    <span>Jan 7, 2023 Cake day</span>
     </span>
     </div>
     </div>
     </div>
-    
-    
     </div>
   )
 }

@@ -1,5 +1,5 @@
 'use client'
-import React, { useState } from 'react';
+import React, { useState, ChangeEvent } from 'react';
 import { Card, CardFooter, CardHeader } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import Image from 'next/image';
@@ -14,24 +14,43 @@ import { SubmitButton } from '@/app/_components/SubmitButtons';
 import { JSONContent } from '@tiptap/react';
 import { useToast } from "@/components/ui/use-toast";
 
-export function CreateRequestForm({createRequest, communityGuidelines, params }) {
+interface CommunityGuideline {
+  id: number;
+  text: string;
+}
+
+interface CreateRequestFormProps {
+  createRequest: (formData: FormData) => Promise<void>;
+  communityGuidelines: CommunityGuideline[];
+  params: {
+    id: string;
+  };
+}
+
+interface Interval {
+  label: string;
+  value: string;
+  days: number;
+}
+
+export function CreateRequestForm({ createRequest, communityGuidelines, params }: CreateRequestFormProps) {
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
   const [selectedButtonIndex, setSelectedButtonIndex] = useState<number | null>(null);
-  const [editMode, setEditMode] = useState(false);
+  const [editMode, setEditMode] = useState<boolean>(false);
   const [pointsUsed, setPointsUsed] = useState<number | null>(null);
-  const [imageUrl, setImageUrl] = useState<null | string>(null);
-  const [json, setJson] = useState<null | JSONContent>(null);
-  const [title, setTitle] = useState<null | string>(null);
-  const [selectedInterval, setSelectedInterval] = useState(null);
-  const [customTime, setCustomTime] = useState('');
-  const [deadline, setDeadline] = useState('');
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [json, setJson] = useState<JSONContent | null>(null);
+  const [title, setTitle] = useState<string | null>(null);
+  const [selectedInterval, setSelectedInterval] = useState<string | null>(null);
+  const [customTime, setCustomTime] = useState<string>('');
+  const [deadline, setDeadline] = useState<string>('');
   const [currentTab, setCurrentTab] = useState<number>(0);
-  const [file, setFile] = useState(null);
+  const [file, setFile] = useState<File | null>(null);
   
   const { toast } = useToast();
   
-  const numbers = [50, 100, 150, 200, 500, 1000, 2000, 5000, 10000, 100000];
-  const intervals = [
+  const numbers: number[] = [50, 100, 150, 200, 500, 1000, 2000, 5000, 10000, 100000];
+  const intervals: Interval[] = [
     { label: '1 Day', value: '1 day', days: 1 },
     { label: '2 Days', value: '2 days', days: 2 },
     { label: '3 Days', value: '3 days', days: 3 },
@@ -53,7 +72,7 @@ export function CreateRequestForm({createRequest, communityGuidelines, params })
     setEditMode(true);
   };
   
-  const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (event: ChangeEvent<HTMLInputElement>) => {
     setSelectedAmount(parseInt(event.target.value));
   };
   
@@ -75,7 +94,7 @@ export function CreateRequestForm({createRequest, communityGuidelines, params })
     }
   };
   
-  const handleCustomTimeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleCustomTimeChange = (event: ChangeEvent<HTMLInputElement>) => {
     setCustomTime(event.target.value);
     setDeadline('');
   };
@@ -93,32 +112,35 @@ export function CreateRequestForm({createRequest, communityGuidelines, params })
     setCurrentTab((prevTab) => prevTab + 1);
   };
   
-  const handleFileChange = (e) => {
-    setFile(e.target.files[0]);
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      setFile(e.target.files[0]);
+    }
   };
   
   const handleFileUpload = async () => {
     if (!file) return;
     
-    const formData = new FormData();
-    formData.append('file', file);
-    
     try {
-      const response = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/octet-stream", // Send raw file data
+          "X-Filename": file.name, // Pass the file name in a custom header
+        },
+        body: file, // Send the file directly
       });
       
       if (response.ok) {
-        const data = await response.json();
-        setImageUrl(`/uploads/${file.name}`);
+        const { fileUrl } = await response.json();
+        setImageUrl(fileUrl);
         toast({
           title: "Upload Successful",
           description: "Your image has been uploaded successfully.",
           variant: "default",
         });
       } else {
-        throw new Error('Upload failed');
+        throw new Error("Upload failed");
       }
     } catch (error) {
       console.error("Error uploading file:", error);
@@ -129,28 +151,22 @@ export function CreateRequestForm({createRequest, communityGuidelines, params })
       });
     }
   };
-  
   const createRequestFitrii = async (formData: FormData) => {
     try {
-      // If you have an image, the imageUrl will now be a local path
       if (imageUrl) {
         formData.append('imageUrl', imageUrl);
       }
       
-      // Perform the form submission
       await createRequest(formData);
       
-      // Show a success toast notification
       toast({
         title: "Request Created",
         description: "Your request has been successfully created.",
         variant: "default",
       });
     } catch (error) {
-      // Handle any errors that occur during the form submission
       console.error("Error creating request:", error);
       
-      // Show an error toast notification
       toast({
         title: "Error",
         description: "An error occurred while creating your request. Please try again.",
@@ -210,7 +226,7 @@ export function CreateRequestForm({createRequest, communityGuidelines, params })
     <input type='hidden' name='deadline' value={deadline ?? undefined} />
     <CardHeader>
     <Label>Title</Label>
-    <Input required name='title' placeholder='Enter the Title of Your Request Here' value={title ?? ''} onChange ={(e)=>setTitle(e.target.value)} />
+    <Input required name='title' placeholder='Enter the Title of Your Request Here' value={title ?? ''} onChange={(e) => setTitle(e.target.value)} />
     <TipTapEditor setJson={setJson} json={json} />    
     </CardHeader>
     <CardFooter>
@@ -230,7 +246,7 @@ export function CreateRequestForm({createRequest, communityGuidelines, params })
       <input 
       type="file" 
       onChange={async (e) => {
-        const file = e.target.files[0];
+        const file = e.target.files?.[0];
         if (file) {
           setFile(file);
           const formData = new FormData();
@@ -344,8 +360,7 @@ export function CreateRequestForm({createRequest, communityGuidelines, params })
     {intervals.map((interval, index) => (
       <button
       key={index}
-      onClick={() => handleIntervalSelect(interval.value)}
-      className={`mr-2 px-5 py-1 text-${selectedInterval === interval.value ? 'secondary' : 'primary'} border border-slate-500 rounded-lg text-xs flex-shrink space-x-3 bg-${selectedInterval === interval.value ? 'primary' : 'secondary'}`}
+      onClick={() => handleIntervalSelect(interval.value)}      className={`mr-2 px-5 py-1 text-${selectedInterval === interval.value ? 'secondary' : 'primary'} border border-slate-500 rounded-lg text-xs flex-shrink space-x-3 bg-${selectedInterval === interval.value ? 'primary' : 'secondary'}`}
       >
       {interval.label}
       </button>
@@ -376,74 +391,52 @@ export function CreateRequestForm({createRequest, communityGuidelines, params })
     
     </h2>
     
-    {/* <Button
-      onClick={() => {
-      if (selectedAmount && title && json) { // Ensure title is not null
-      const formData = new FormData();
-      formData.append('imageUrl', imageUrl ?? '');
-      formData.append('communityName', params.id);
-      formData.append('amount', selectedAmount.toString());
-      formData.append('pointsUsed', pointsUsed?.toString() ?? '');
-      formData.append('deadline', deadline);
-      formData.append('title', title); // Add title to form data
-      
-      createRequestFitrii(formData);
-      } else {
-      alert('Please fill in all the required fields.');
-      }
-      }}
-      className="px-6 py-2 font-medium bg-primary text-white w-fit transition-all shadow-[3px_3px_0px_orange] hover:shadow-none hover:translate-x-[3px] hover:translate-y-[3px] rounded-md"
-      >
-      Submit Request
-      </Button> */}
-      
+    
+    </div>
+    </div>
+    </div>
+    
+    
+    
+    </CardHeader> 
+    </Card> 
+    </TabsContent>
+    
+    
+    
+    
+    </Tabs>
+    
+    </div>
+    <div className="rounded-lg bg-secondary w-full">
+    <Card className='flex flex-col p-4'>
+    <div className='flex items-center'>
+    <Image
+    src={'/help.png'}
+    width={100}
+    height={100}
+    alt={'help'}
+    />
+    <h1 className='text-lg text-center font-bold gap-x-2 text-balance'> Posting Your Help Request on Fitrii</h1>
+    </div>
+    
+    <Separator className='my-5' />
+    
+    {communityGuidelines.map((item) => (
+      <div key={item.id}>
+      <div className='flex flex-col gap-y-5 mt-5 mx-5'>
+      <div className='text-sm'>
+      <span className='font-semibold'>{item.id}.</span>  {item.text}
       
       </div>
+      <Separator />
       </div>
       </div>
-      
-      
-      
-      </CardHeader> 
-      </Card> 
-      </TabsContent>
-      
-      
-      
-      
-      </Tabs>
-      
-      </div>
-      <div className="rounded-lg bg-secondary w-full">
-      <Card className='flex flex-col p-4'>
-      <div className='flex items-center'>
-      <Image
-      src={'/help.png'}
-      width={100}
-      height={100}
-      alt={'help'}
-      />
-      <h1 className='text-lg text-center font-bold gap-x-2 text-balance'> Posting Your Help Request on Fitrii</h1>
-      </div>
-      
-      <Separator className='my-5' />
-      
-      {communityGuidelines.map((item) => (
-        <div key={item.id}>
-        <div className='flex flex-col gap-y-5 mt-5 mx-5'>
-        <div className='text-sm'>
-        <span className='font-semibold'>{item.id}.</span>  {item.text}
-        
-        </div>
-        <Separator />
-        </div>
-        </div>
-      ))}
-      </Card>
-      </div>
-      </div>
-      </div>
-      
-    );
-  }
-  
+    ))}
+    </Card>
+    </div>
+    </div>
+    </div>
+    
+  );
+}

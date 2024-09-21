@@ -33,11 +33,8 @@ async function getData(id: string) {
                   userName: true, 
                 }
               }
-              
             }
-            
           }
-          
         }
       }
     }
@@ -48,7 +45,6 @@ async function getData(id: string) {
   return data;
 }
 
-
 export default async function UserProfile({ params }: { params: { id: string } }) {
   const data = await getData(params.id);
   const { getUser } = getKindeServerSession();
@@ -57,11 +53,11 @@ export default async function UserProfile({ params }: { params: { id: string } }
   if (!user) {
     return redirect('/api/auth/login');
   }
+  
   return (
     <div className="grid grid-cols-1 gap-2 lg:grid-cols-4 lg:gap-8 my-5">
     <div className="h-fit rounded-lg bg-gray-200">
     <HomeNavRight />
-    
     </div>
     <div className="h-fit rounded-lg bg-gray-200 lg:col-span-2  flex justify-center order-last md:order-2">
     <ProfileHeader
@@ -70,9 +66,10 @@ export default async function UserProfile({ params }: { params: { id: string } }
     lastName={data?.lastName || ''}
     email={data?.email || ''}
     imageUrl={data?.imageUrl || ''}
-    points={data?.points}
+    points={data?.points || []}
     />
     </div>
+    
     <div className="h-fit rounded-lg bg-gray-200 flex flex-col items-center justify-center w-full gap-y-5 order-2 md:order-last">
     <div className="items-center divide-x rounded dark:bg-violet-600 dark:text-gray-100 border border-secondary w-full flex justify-center mx-3">
     vERIFIED <button type="button" className="px-2 py-2"> <Verified className='text-primary' /> 

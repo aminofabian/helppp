@@ -1,9 +1,24 @@
+'use client'
+
 import Image from 'next/image';
 
-const JoinCircleModal = ({ isOpen, onClose, circleData }) => {
+interface CircleData {
+  name: string;
+  creatorName: string;
+  creatorImage: string;
+}
+
+interface JoinCircleModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  circleData: CircleData;
+}
+
+const JoinCircleModal: React.FC<JoinCircleModalProps> = ({ isOpen, onClose, circleData }) => {
   if (!isOpen) return null;
   
   return (
+    
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
     <div className="bg-white rounded-lg max-w-md w-full overflow-hidden">
     <div className="bg-green-500 p-6 relative">

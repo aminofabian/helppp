@@ -1,3 +1,4 @@
+'use client';
 import prisma from '@/app/lib/db';
 import { Button } from '@/components/ui/button';
 import { Card, CardTitle } from '@/components/ui/card';

@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.redirect(
     process.env.NODE_ENV === "development"
-      ? "http://l/"
+      ? "http://localhost:3000/"
       : "https://fitrii.com/"
   );
 }
