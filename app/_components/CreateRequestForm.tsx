@@ -13,6 +13,8 @@ import { TipTapEditor } from '@/app/_components/TipTapEditor';
 import { SubmitButton } from '@/app/_components/SubmitButtons';
 import { JSONContent } from '@tiptap/react';
 import { useToast } from "@/components/ui/use-toast";
+import Avatar from 'react-nice-avatar'
+
 
 interface CommunityGuideline {
   id: number;
@@ -108,49 +110,41 @@ export function CreateRequestForm({ createRequest, communityGuidelines, params }
     }
   };
   
-  const handleNextTab = () => {
-    setCurrentTab((prevTab) => prevTab + 1);
-  };
   
-  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      setFile(e.target.files[0]);
-    }
-  };
-  
-  const handleFileUpload = async () => {
-    if (!file) return;
-    
-    try {
-      const response = await fetch("/api/upload", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/octet-stream", // Send raw file data
-          "X-Filename": file.name, // Pass the file name in a custom header
-        },
-        body: file, // Send the file directly
-      });
+  const handleFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const formData = new FormData();
+      formData.append('file', file);
       
-      if (response.ok) {
-        const { fileUrl } = await response.json();
-        setImageUrl(fileUrl);
-        toast({
-          title: "Upload Successful",
-          description: "Your image has been uploaded successfully.",
-          variant: "default",
+      try {
+        const response = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
         });
-      } else {
-        throw new Error("Upload failed");
+        
+        if (response.ok) {
+          const data = await response.json();
+          setImageUrl(data.fileUrl);
+          toast({
+            title: "Upload Successful",
+            description: "Your image has been uploaded successfully.",
+            variant: "default",
+          });
+        } else {
+          throw new Error('Upload failed');
+        }
+      } catch (error) {
+        console.error("Error uploading file:", error);
+        toast({
+          title: "Upload Error",
+          description: "An error occurred while uploading your image. Please try again.",
+          variant: "destructive",
+        });
       }
-    } catch (error) {
-      console.error("Error uploading file:", error);
-      toast({
-        title: "Upload Error",
-        description: "An error occurred while uploading your image. Please try again.",
-        variant: "destructive",
-      });
     }
   };
+  
   const createRequestFitrii = async (formData: FormData) => {
     try {
       if (imageUrl) {
@@ -245,40 +239,7 @@ export function CreateRequestForm({ createRequest, communityGuidelines, params }
       <div>
       <input 
       type="file" 
-      onChange={async (e) => {
-        const file = e.target.files?.[0];
-        if (file) {
-          setFile(file);
-          const formData = new FormData();
-          formData.append('file', file);
-          
-          try {
-            const response = await fetch('/api/upload', {
-              method: 'POST',
-              body: formData,
-            });
-            
-            if (response.ok) {
-              const data = await response.json();
-              setImageUrl(`/uploads/${file.name}`);
-              toast({
-                title: "Upload Successful",
-                description: "Your image has been uploaded successfully.",
-                variant: "default",
-              });
-            } else {
-              throw new Error('Upload failed');
-            }
-          } catch (error) {
-            console.error("Error uploading file:", error);
-            toast({
-              title: "Upload Error",
-              description: "An error occurred while uploading your image. Please try again.",
-              variant: "destructive",
-            });
-          }
-        }
-      }}
+      onChange={handleFileChange}
       accept="image/*" 
       />
       </div>
