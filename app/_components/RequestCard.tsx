@@ -3,7 +3,7 @@
 import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { BadgeCheck, BookmarkIcon, MessageCircleIcon } from 'lucide-react';
+import { BadgeCheck, BookmarkIcon, Clock, MessageCircleIcon, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogClose, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -55,12 +55,13 @@ export function RequestCard({
   level = 1,
 }: RequestCardProps) {
   return (
-    <Card className="w-full mx-auto space-y-4 sm:space-y-7 border border-secondary rounded-lg shadow-md relative my-5 sm:my-10 p-3 sm:p-6 transition-all duration-300 hover:shadow-lg">
-    <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2 sm:mb-4'>
-    <h1 className='text-sm font-medium mb-2 sm:mb-0'>
-    <Link href={`/c/${communityName}`} className='text-primary hover:underline uppercase text-xs'>c/{communityName.replace(/_/g, ' ')}</Link>
-    </h1>
-    <div className="text-sm font-extralight bg-gray-100 dark:bg-gray-800 px-3 py-1 rounded-full">
+    <Card className="w-full mx-auto space-y-4 border border-primary/20 rounded-lg shadow-md relative my-5 sm:my-10 p-4 sm:p-6 transition-all duration-300 hover:shadow-lg bg-white dark:bg-gray-800">
+    <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4'>
+    <Link href={`/c/${communityName}`} className='text-primary hover:underline uppercase text-xs font-semibold'>
+    c/{communityName.replace(/_/g, ' ')}
+    </Link>
+    <div className="text-xs font-medium bg-primary/10 text-primary px-3 py-1 rounded-full flex items-center mt-2 sm:mt-0">
+    <Clock className="w-4 h-4 mr-1" />
     <Counter 
     deadline={new Date(deadline)} 
     createdAt={new Date(createdAt)} 
@@ -70,15 +71,15 @@ export function RequestCard({
     
     <div className="flex items-center space-x-3 mb-4">
     <div className="relative inline-block">
-    <ClientAvatar className="w-10 h-10" />
-    <span className='absolute bottom-0 right-0 bg-primary text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center border-2 border-white z-10'>{level || 1}</span>
+    <ClientAvatar className="w-12 h-12 border-2 border-primary rounded-full" />
+    <span className='absolute bottom-0 right-0 bg-primary text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center border-2 border-white z-10'>{level || 1}</span>
     </div>
     
     <div className="flex flex-col">
-    <Link href={`/user/${userId}`} className="text-base sm:text-sm font-light hover:text-primary">
+    <Link href={`/user/${userId}`} className="text-sm font-medium hover:text-primary transition-colors">
     {userName}
     </Link>
-    <div className="flex items-center text-xs sm:text-sm text-gray-500">
+    <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
     <BadgeCheck className="w-4 h-4 mr-1 text-primary" />
     <DateDifference 
     createdAt={new Date(createdAt)} 
@@ -88,10 +89,10 @@ export function RequestCard({
     </div>
     </div>
     
-    <Link href={`/request/${id}`} className="block mb-2 sm:mb-4">
-    <h2 className="text-md sm:text-md font-semibold mb-1 sm:mb-2 hover:text-primary transition-colors capitalize">{title}</h2>
-    <p className="text-xs text-gray-600">
-    Someone pitched in {amount}/= for {userName}
+    <Link href={`/request/${id}`} className="block mb-4 group">
+    <h2 className="text-lg font-semibold mb-2 group-hover:text-primary transition-colors capitalize">{title}</h2>
+    <p className="text-sm text-gray-600 dark:text-gray-400">
+    Someone pitched in <span className="font-semibold text-primary">{amount}/=</span> for {userName}
     </p>
     </Link>
     
@@ -102,15 +103,15 @@ export function RequestCard({
       width={350}
       height={150}
       layout="responsive"
-      className='rounded-lg border border-secondary mb-2 sm:mb-4'
+      className='rounded-lg border border-primary/20 mb-4'
       />
     )}
     
-    <div className="mb-1 sm:mb-1 tracking-wide leading-7 text-xs dark:text-slate-100">
+    <div className="mb-4 tracking-wide leading-7 text-sm dark:text-gray-300">
     {jsonContent && <RenderToJson data={jsonContent} />}
     </div>
     
-    <div className="flex flex-wrap justify-between items-center mb-3 sm:mb-6 pb-2 sm:pb-4 border-b border-gray-200 dark:border-gray-700">
+    <div className="flex flex-wrap justify-between items-center mb-6 pb-4 border-b border-gray-200 dark:border-gray-700">
     <VoteButtons
     initialVoteCount1={voteCount1}
     initialVoteCount2={voteCount2}
@@ -119,13 +120,13 @@ export function RequestCard({
     
     <div className="flex space-x-2 mt-2 sm:mt-0">
     <Link href={`/request/${id}`} passHref>
-    <Button size='sm' variant='secondary' className="flex items-center space-x-1">
+    <Button size='sm' variant='outline' className="flex items-center space-x-1 hover:bg-primary/10">
     <MessageCircleIcon className="w-4 h-4" />
     <span>{commentCount}</span>
     </Button>
     </Link>
     
-    <Button variant="secondary" size="sm">
+    <Button variant="outline" size="sm" className="hover:bg-primary/10">
     <BookmarkIcon className="w-4 h-4" />
     </Button>
     
@@ -133,22 +134,23 @@ export function RequestCard({
     </div>
     </div>
     
-    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-3 sm:mb-6">
+    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
     <div className="flex items-center mb-2 sm:mb-0">
-    <span className="text-xs font-medium mr-2">12 folks chipped in</span>
-    <div className="flex -space-x-2">
+    <Users className="w-5 h-5 text-primary mr-2" />
+    <span className="text-sm font-medium">12 folks chipped in</span>
+    <div className="flex -space-x-2 ml-2">
     <div className="flex items-center justify-center w-8 h-8 text-xs font-semibold text-white bg-primary rounded-full border-2 border-white">
     +3
     </div>
     </div>
     </div>
-    <span className="text-sm font-medium bg-primary text-white px-3 py-1 rounded-full">
-    Amount Requested: {amount}
+    <span className="text-sm font-medium bg-primary text-white px-4 py-1 rounded-full">
+    Amount Requested: {amount}/=
     </span>
     </div>
     
-    <div className="mb-3 sm:mb-6">
-    <h3 className="text-base sm:text-lg font-semibold mb-2">Progress</h3>
+    <div className="mb-6">
+    <h3 className="text-lg font-semibold mb-2 text-primary">Progress</h3>
     <div className="flex items-center justify-between mb-2">
     <span className="text-sm font-medium">KES 700 raised</span>
     <span className="text-sm font-medium">KES {amount} target</span>
@@ -159,18 +161,18 @@ export function RequestCard({
     <div className="text-center">
     <Dialog>
     <DialogTrigger asChild>
-    <Button variant="default" className="w-full">Help Now</Button>
+    <Button variant="default" className="w-full bg-primary hover:bg-primary-dark text-white font-semibold py-2 px-4 rounded-full transition-colors duration-300">Help Now</Button>
     </DialogTrigger>
     <DialogContent className="sm:max-w-6xl">
     <DialogHeader>
-    <DialogTitle className="text-primary mx-auto">SELECT AN AMOUNT</DialogTitle>
+    <DialogTitle className="text-primary mx-auto text-2xl font-bold">SELECT AN AMOUNT</DialogTitle>
     <DialogDescription>
     <MpesaPay requestId={id} />
     </DialogDescription>
     </DialogHeader>
     <DialogFooter>
     <DialogClose>
-    <Button type="button" variant="outline">
+    <Button type="button" variant="outline" className="hover:bg-primary/10">
     Cancel
     </Button>
     </DialogClose>
