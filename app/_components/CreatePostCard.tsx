@@ -1,17 +1,15 @@
+import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card'
-import { ImageDown } from 'lucide-react';
+import { Card } from '@/components/ui/card';
+import { ImageDown, Plus, ChevronDown } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import React from 'react';
-
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { ChevronDownIcon } from '@radix-ui/react-icons'
+} from "@/components/ui/dropdown-menu";
 
 const fakeCommunities = [
   "Kenya Helpers Association",
@@ -28,39 +26,57 @@ const fakeCommunities = [
 
 export default function CreatePostCard() {
   return (
-    <Card className='flex items-center border-primary bg-gradient-to-r from-background to-secondary p-2'>
-    <Image src="/fitrii.png"
+    <Card className="overflow-hidden bg-gradient-to-r from-primary/5 to-primary/10 dark:from-primary/10 dark:to-primary/20 shadow-md">
+    <div className="flex items-center p-3 space-x-4">
+    <Image 
+    src="/fitrii.png"
     alt="Fitrii Logo"
-    width={30}
-    height={35}
-    className="m-3"
+    width={40}
+    height={40}
+    className="rounded-full"
     />
-    <div className='flex w-full'>
+    <div className='flex-grow'>
     <DropdownMenu>
     <DropdownMenuTrigger asChild>
-    <Button variant="outline" className="w-full mr-5 justify-between bg-background hover:bg-secondary text-foreground font-semibold py-2 px-4 border border-input rounded shadow">
+    <Button 
+    variant="outline" 
+    className="w-full justify-between bg-white dark:bg-gray-800 hover:bg-primary/5 dark:hover:bg-primary/20 text-primary font-semibold py-2 px-4 border border-primary/20 rounded-full shadow transition duration-300 ease-in-out"
+    >
     Create a Help Request
-    <ChevronDownIcon className="ml-2 h-4 w-4" />
+    <ChevronDown className="ml-2 h-4 w-4" />
     </Button>
     </DropdownMenuTrigger>
-    <DropdownMenuContent className="w-64 p-2 bg-popover rounded-lg shadow-lg">
+    <DropdownMenuContent className="w-64 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-primary/20">
     {fakeCommunities.map((community, index) => (
-      <DropdownMenuItem key={index} className='my-1 rounded-md hover:bg-accent'>
-      <Link href={`/c/${community.toLowerCase().replace(/ /g, '_')}/create`} className='w-full p-2 text-popover-foreground font-medium'>
+      <DropdownMenuItem key={index} className='my-1 rounded-md hover:bg-primary/10 dark:hover:bg-primary/20 transition duration-300 ease-in-out'>
+      <Link href={`/c/${community.toLowerCase().replace(/ /g, '_')}/create`} className='w-full p-2 text-primary font-medium'>
       {community}
       </Link>
       </DropdownMenuItem>
     ))}
     </DropdownMenuContent>
     </DropdownMenu>
-    <div className='mr-1 flex flex-row'>
-    <Button variant='outline' size='icon' className='border-secondary mr-2 hover:bg-secondary' asChild>
+    </div>
+    <div className='flex space-x-2'>
+    <Button 
+    variant='outline' 
+    size='icon' 
+    className='border-primary/20 hover:bg-primary/10 dark:hover:bg-primary/20 text-primary rounded-full transition duration-300 ease-in-out' 
+    asChild
+    >
     <Link href='/c/kenya_helpers_association/create'>
-    <ImageDown className='h-4 w-4 text-primary' />
+    <ImageDown className='h-4 w-4' />
     </Link>
+    </Button>
+    <Button 
+    variant='default'
+    size='icon' 
+    className='bg-primary hover:bg-primary-dark text-white rounded-full transition duration-300 ease-in-out'
+    >
+    <Plus className='h-4 w-4' />
     </Button>
     </div>
     </div>
     </Card>
-  )
+  );
 }
