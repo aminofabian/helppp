@@ -17,7 +17,7 @@ async function Navbar() {
     <Link href='/' >
     
     <Image
-    src="/logo.svg"
+    src="/fitrii-logo.png"
     alt="Logo"
     width={100}
     height={100}
