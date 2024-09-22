@@ -17,7 +17,7 @@ export default function Home({ searchParams }: { searchParams: { page: string } 
     <div className="container my-10">
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-4 lg:gap-8">
     
-    <div className="h-fit rounded-lg border border-primary floating hidden md:block order-last">
+    <div className="h-fit rounded-lg border border-green-50 floating hidden md:block order-last">
     <RightNavHome />
     </div>
     
@@ -28,7 +28,7 @@ export default function Home({ searchParams }: { searchParams: { page: string } 
     </Suspense>
     </div>
     
-    <div className="h-fit rounded-lg sticky">
+    <div className="h-fit rounded-lg sticky shadow-lg border-green-50 p-5">
     <HomeNavRight />
     </div>
     

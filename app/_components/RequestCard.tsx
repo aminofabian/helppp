@@ -53,7 +53,7 @@ export function RequestCard({
   pointsUsed,
 }: RequestCardProps) {
   return (
-    <Card className="w-full max-w-xl mx-auto border border-primary/20 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-300 bg-white dark:bg-gray-800 overflow-hidden my-5">
+    <Card className="w-full max-w-xl mx-auto border border-green-50/20 rounded-lg shadow-md hover:shadow-md transition-shadow duration-300 bg-white dark:bg-gray-800 overflow-hidden my-5">
     <div className="p-4">
     <div className="flex justify-between items-center mb-2">
     <Link href={`/c/${communityName}`} className="text-primary hover:underline text-xs font-semibold">
