@@ -173,7 +173,7 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
       <button
       key={index}
       onClick={() => handleAmountSelect(number)}
-      className={`px-4 py-2 text-sm ${
+      className={`px-4 py-2 text-sm w-fit mx-2 ${
         selectedAmount === number
         ? 'bg-primary text-white'
         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
