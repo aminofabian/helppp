@@ -162,7 +162,7 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
   };
   
   return (
-    <div className="bg-gradient-to-r from-secondary to-primary p-6 rounded-lg shadow-lg max-w-3xl mx-auto">
+    <div className="bg-gradient-to-r from-secondary to-primary p-6 rounded-lg shadow-lg max-w-4xl mx-auto">
     <PaymentMethodSelector selectedMethod={paymentMethod} onSelect={setPaymentMethod} />
     
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-[3fr_2fr]">
