@@ -135,7 +135,7 @@ export function RequestCard({
     <DialogTrigger asChild>
     <Button variant="default" className="w-full bg-primary hover:bg-primary-dark text-white font-semibold py-2 rounded-none">Help Now</Button>
     </DialogTrigger>
-    <DialogContent className="sm:max-w-md">
+    <DialogContent className="w-full">
     <DialogHeader>
     <DialogTitle>Contribute to this request</DialogTitle>
     <DialogDescription>

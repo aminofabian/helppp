@@ -2,6 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { handleMpesa } from '../actions';
 import { useFormStatus } from 'react-dom';
+import { CreditCard, Phone, Mail } from 'lucide-react';
+
 
 type PaymentMethod = 'Mpesa' | 'Paystack' | 'PayPal';
 
@@ -160,71 +162,72 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
   };
   
   return (
-    <div className="bg-gradient-to-r from-secondary to-primary p-6 rounded-lg shadow-lg">
+    <div className="bg-gradient-to-r from-secondary to-primary p-6 rounded-lg shadow-lg max-w-3xl mx-auto">
     <PaymentMethodSelector selectedMethod={paymentMethod} onSelect={setPaymentMethod} />
     
-    <div className="grid grid-cols-1 gap-4 lg:grid-cols-[2fr_1fr] lg:gap-8">
-    <div className="h-fit rounded-lg bg-white shadow-md p-4">
-    <div className="grid grid-cols-3 md:grid-cols-4 gap-5 justify-between">
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[3fr_2fr]">
+    <div className="bg-white rounded-lg shadow-md p-6">
+    <h3 className="text-lg font-semibold mb-4">Select Amount</h3>
+    <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
     {numbers.map((number, index) => (
       <button
       key={index}
       onClick={() => handleAmountSelect(number)}
-      className="px-4 py-2 bg-primary text-white rounded-full transition-all hover:bg-secondary hover:shadow-md"
+      className={`px-4 py-2 text-sm ${
+        selectedAmount === number
+        ? 'bg-primary text-white'
+        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+      } rounded-lg transition-all`}
       >
       {number}
       </button>
     ))}
     </div>
     <div className="mt-4">
-    <button onClick={handleEditClick} className="w-full px-4 py-2 bg-primary text-white rounded-full transition-all hover:bg-orange-500 hover:shadow-md">
-    Add a Custom Amount
-    </button>
-    </div>
-    <div className="mt-4">
     <input
     type="number"
-    className="w-full px-6 py-2 font-medium bg-gray-100 text-gray-700 rounded-full transition-all focus:ring-2 focus:ring-secondary outline-none"
+    className="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-lg transition-all focus:ring-2 focus:ring-primary outline-none"
     value={customAmount}
     onChange={handleInputChange}
     placeholder="Enter Custom Amount"
     />
     </div>
-    <div className="mt-4">
+    <div className="mt-4 relative">
     <input
     type="tel"
     placeholder="Enter Phone Number"
     name='phoneNumber'
-    className="w-full px-6 py-2 font-medium bg-gray-100 text-gray-700 rounded-full transition-all focus:ring-2 focus:ring-secondary outline-none"
+    className="w-full pl-10 pr-4 py-2 bg-gray-100 text-gray-700 rounded-lg transition-all focus:ring-2 focus:ring-primary outline-none"
     value={phoneNumber}
     onChange={handlePhoneChange}
     />
+    <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
     </div>
     {paymentMethod === 'Paystack' && (
-      <div className="mt-4">
+      <div className="mt-4 relative">
       <input
       type="email"
       placeholder="Enter Email Address"
       name='email'
-      className="w-full px-6 py-2 font-medium bg-gray-100 text-gray-700 rounded-full transition-all focus:ring-2 focus:ring-secondary outline-none"
+      className="w-full pl-10 pr-4 py-2 bg-gray-100 text-gray-700 rounded-lg transition-all focus:ring-2 focus:ring-primary outline-none"
       value={email}
       onChange={handleEmailChange}
       />
+      <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
       </div>
     )}
     </div>
-    <div className="h-fit rounded-lg bg-gradient-to-br from-primary to-purple-200 w-full p-4">
-    <div className="container h-full flex flex-col justify-center items-center">
-    <h2 className="text-2xl text-primary border border-secondary font-semibold justify-center items-center my-3 px-3 py-1 rounded-full">
+    <div className="bg-gradient-to-br from-primary to-purple-200 rounded-lg p-6 flex flex-col justify-center items-center">
+    <CreditCard size={48} className="text-white mb-4" />
+    <h2 className="text-3xl text-white font-bold mb-2">
     {selectedAmount ? `${selectedAmount}/=` : '0/='}
     </h2>
-    <p className="text-sm text-secondary mt-2">
+    <p className="text-sm text-white/80">
     {selectedAmount ? `${selectedAmount / 50} points` : '0 points'}
     </p>
     </div>
     </div>
-    </div>
-    <form onSubmit={handleSubmit} className='w-full my-5 flex flex-col'>
+    <form onSubmit={handleSubmit} className='w-full mt-6'>
     {error && <p className="text-red-500 mb-2">{error}</p>}
     
     {paymentMethod === 'Mpesa' ? (
@@ -233,7 +236,7 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
       <SubmitButton ButtonName={`Pay ${selectedAmount || 0}/= With Paystack`} />
     ) : (
       <button 
-      className="px-6 py-2 font-medium bg-gray-400 text-white w-full rounded-md"
+      className="px-6 py-3 font-medium bg-gray-400 text-white w-full rounded-lg"
       disabled
       >
       {paymentMethod} - Coming Soon
