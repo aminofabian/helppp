@@ -85,8 +85,8 @@ export function RequestCard({
       <Image
       src={imageString}
       alt="Request image"
-      width={300}
-      height={150}
+      width={200}
+      height={100}
       layout="responsive"
       className="rounded-md mb-2"
       />
