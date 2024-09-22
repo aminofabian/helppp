@@ -12,15 +12,15 @@ async function Navbar() {
   const { getUser } = getKindeServerSession();
   const user = await getUser();
   return (
-    <nav className='container h-[10dvh] flex justify-between items-center border-b'>
+    <nav className='container h-[10dvh] flex justify-between items-center border-b my-5'>
     
     <Link href='/' >
     
     <Image
     src="/fitrii-logo.png"
     alt="Logo"
-    width={100}
-    height={100}
+    width={200}
+    height={200}
     
     className=' rounded-full p-2
     text-slate-500

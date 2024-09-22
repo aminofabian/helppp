@@ -13,7 +13,6 @@ import { TipTapEditor } from '@/app/_components/TipTapEditor';
 import { SubmitButton } from '@/app/_components/SubmitButtons';
 import { JSONContent } from '@tiptap/react';
 import { useToast } from "@/components/ui/use-toast";
-import Avatar from 'react-nice-avatar'
 
 
 interface CommunityGuideline {
