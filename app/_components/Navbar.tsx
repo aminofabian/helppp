@@ -31,6 +31,14 @@ async function Navbar() {
     '
     />
     </Link>
+    <div className="flex-grow flex justify-center">
+    <input 
+    type="text" 
+    placeholder="Search..." 
+    className="w-1/3 px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+    />
+    </div>
+    
     <div className='flex gap-8 baseline'>
     {user ? (
       <UserDropDown userImage={user.picture || '/user.svg'} />
