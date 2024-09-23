@@ -14,6 +14,9 @@ export const metadata: Metadata = {
   description: "Fitrii is a global network fostering reciprocal kindness. Give help, get help - join our movement to create a world where compassion is the norm and community support is just a tap away.",
   keywords: ["Fitrii", "Humanitarin", "community support", "mutual aid", "kindness network", "social impact", "help exchange", "compassion movement"],
   authors: [{ name: "Fitrii Team" }],
+  verification: {
+    google: "MWk5_1aM0dp4fM0fJv3DU4dkqbHPZnbkrWD_4fC4dNA",
+  }
 };
 
 export default function RootLayout({
