@@ -116,13 +116,13 @@ export default async function HomeNavRight() {
     </Dialog>
     </div>
     
-    <div className="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg">
-    <div className="text-xs text-gray-600 dark:text-gray-400 uppercase mb-1">Current balance</div>
-    <div className="text-2xl font-bold text-gray-800 dark:text-gray-200">{wallet ? `${wallet.balance} KES` : '0 KES'}</div>
+    <div className="bg-green-50 dark:bg-gray-700 p-4 rounded-lg">
+    <div className="text-xs text-primary dark:text-gray-400 uppercase mb-1">Current balance</div>
+    <div className="text-2xl font-bold text-primary dark:text-gray-200">{wallet ? `${wallet.balance} KES` : '0 KES'}</div>
     <div className="mt-3 grid grid-cols-2 gap-2">
     <Dialog>
     <DialogTrigger asChild>
-    <Button variant="outline" className="w-full">Withdrawal</Button>
+    <Button variant="outline" className="w-full lowercase text-xs text-primary">Withdraw</Button>
     </DialogTrigger>
     <DialogContent>
     <DialogHeader>
@@ -133,7 +133,7 @@ export default async function HomeNavRight() {
     </DialogHeader>
     </DialogContent>
     </Dialog>
-    <Button variant="outline" className="w-full">Deposit</Button>
+    <Button variant="outline" className="w-full lowercase text-xs text-primary">Deposit</Button>
     </div>
     </div>
     </div>
@@ -147,10 +147,10 @@ export default async function HomeNavRight() {
     Create a Help Request
     </Link>
     </Button>
-    <Button variant='outline' className="w-full border-primary text-primary hover:bg-purple-100" asChild>
+    <Button variant='outline' className="w-full border-green-50 shadow-md text-primary hover:bg-green-100" asChild>
     <Link href='/c/create'>
-    <Users className="w-4 h-4 mr-2" />
-    Create Your Own Help Community
+    <Users className="w-4 h-4 mr-2 text-xs" />
+    Create a Community
     </Link>
     </Button>
     </div>
