@@ -7,11 +7,12 @@ import { Card } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogClose, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import Slider from './Slider';
 import Counter from './Counter';
-import { DateDifference } from "./DateDifference";
 import CopyLink from './CopyLink';
 import MpesaPay from './MpesaPay';
 import { VoteButtons } from './VoteButtons';
 import { ClientAvatar } from './ClientAvatar';
+import RenderToJson from './RenderToJson';
+
 
 interface RequestCardProps {
   id: string;
@@ -52,8 +53,11 @@ export function RequestCard({
   commentCount = 0,
   pointsUsed,
 }: RequestCardProps) {
+  
+  
+  
   return (
-    <Card className="w-full max-w-xl mx-auto border border-green-50/20 rounded-lg shadow-md hover:shadow-md transition-shadow duration-300 bg-white dark:bg-gray-800 overflow-hidden my-5">
+    <Card className="w-full max-w-xl mx-auto border border-green-50/20 rounded-lg shadow-lg hover:shadow-md transition-shadow duration-300 bg-white dark:bg-gray-800 overflow-hidden my-10">
     <div className="p-4">
     <div className="flex justify-between items-center mb-2">
     <Link href={`/c/${communityName}`} className="text-primary hover:underline text-xs font-semibold">
@@ -75,7 +79,9 @@ export function RequestCard({
     <div className="flex items-center space-x-2 mb-2">
     <ClientAvatar className="w-6 h-6 rounded-full" />
     <Link href={`/user/${userId}`} className="text-sm hover:text-primary transition-colors">
-    {userName}
+    <p className="text-sm text-gray-600 dark:text-gray-400">
+    {userName} pitched in <span className="font-semibold text-primary">{amount}/=</span> for {userName}
+    </p>
     </Link>
     <BadgeCheck className="w-4 h-4 text-primary" />
     <span className="text-xs bg-primary/10 text-primary px-1 py-0.5 rounded">Lvl {level}</span>
@@ -85,12 +91,14 @@ export function RequestCard({
       <Image
       src={imageString}
       alt="Request image"
-      width={200}
-      height={100}
+      width={100}
+      height={50}
       layout="responsive"
       className="rounded-md mb-2"
       />
     )}
+    
+    {jsonContent && <RenderToJson data={jsonContent} />}
     
     <div className="flex justify-between items-center mb-2">
     <VoteButtons

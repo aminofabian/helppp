@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { getKindeServerSession } from '@kinde-oss/kinde-auth-nextjs/server';
 import prisma from '../lib/db';
-import { Wallet, CreditCard, Users } from 'lucide-react';
+import { CreditCard, Users } from 'lucide-react';
 
 import {
   Dialog,
