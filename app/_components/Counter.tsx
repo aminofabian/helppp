@@ -51,7 +51,7 @@ const Counter: React.FC<{ deadline: Date; createdAt: Date; }> = ({ deadline, cre
   
   return (
     <>
-    <div className={`flex gap-1 text-center auto-cols-max uppercase text-xs ${timeLeft.days < 3 ? 'text-red-500 border border-red-500 px-3 rounded-md' : 'border border-primary px-3 rounded-md uppercase text-xs'}`}>
+    <div className={`flex gap-1 text-center auto-cols-max lowercase text-xs ${timeLeft.days < 3 ? 'text-orange-500 border border-orange-50 bg:orange-50 px-3 rounded-md' : 'border border-green-50 bg:green-50 px-3 rounded-md lowercase text-xs'}`}>
     <div className={`flex flex-col p-1 ${textColorClass}`}>
     <div className="countdown font-mono text-xs">
     <div style={{ '--value': timeLeft.days } as React.CSSProperties}>{timeLeft.days}</div>

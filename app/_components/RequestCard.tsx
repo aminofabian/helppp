@@ -75,18 +75,17 @@ export function RequestCard({
     <Link href={`/request/${id}`} className="block group">
     <h2 className="text-base font-semibold mb-1 group-hover:text-primary transition-colors line-clamp-2">{title}</h2>
     </Link>
-    
     <div className="flex items-center space-x-2 mb-2">
     <ClientAvatar className="w-6 h-6 rounded-full" />
     <Link href={`/user/${userId}`} className="text-sm hover:text-primary transition-colors">
     <p className="text-sm text-gray-600 dark:text-gray-400">
-    {userName} pitched in <span className="font-semibold text-primary">{amount}/=</span> for {userName}
+    {userName}
     </p>
     </Link>
     <BadgeCheck className="w-4 h-4 text-primary" />
     <span className="text-xs bg-primary/10 text-primary px-1 py-0.5 rounded">Lvl {level}</span>
     </div>
-    
+    <p className='text-xs'>Joe pitched in <span className="font-semibold text-primary text-xs">{amount}/=</span> for {userName}</p>
     {imageString && (
       <Image
       src={imageString}
