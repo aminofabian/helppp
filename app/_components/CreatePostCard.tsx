@@ -43,7 +43,7 @@ export default function CreatePostCard() {
     className="w-full justify-between bg-white dark:bg-gray-800 hover:bg-primary/5 dark:hover:bg-primary/20 text-primary font-semibold py-2 px-4 border border-primary/20 rounded-full shadow transition duration-300 ease-in-out"
     >
     Create a Help Request
-    <ChevronDown className="ml-2 h-4 w-4" />
+    <ChevronDown className="ml-2 h-4 w-4 bg-green-50 rounded-full" />
     </Button>
     </DropdownMenuTrigger>
     <DropdownMenuContent className="w-64 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-primary/20">
