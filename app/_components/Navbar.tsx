@@ -31,18 +31,18 @@ async function Navbar() {
     <input
     type="text"
     placeholder="Search..."
-    className="w-full py-2 pl-10 pr-4 text-xs text-gray-700 bg-white border border-gray-300 rounded-full
-                    focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/50 focus:ring-opacity-50
+    className="w-full py-2 pl-10 pr-4 text-sm text-gray-700 bg-white border border-gray-300 rounded-full
+                    focus:outline-none focus:border-primary focus:border focus:ring-1 focus:ring-primary/50
                     dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:focus:border-primary
                     transition-all duration-300 ease-in-out
                     placeholder-transparent
                     shadow-sm hover:shadow-md focus:shadow-lg
                     transform group-focus-within:scale-102"
     />
-    <span className="absolute left-10 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm pointer-events-none
+    <label htmlFor="search" className="absolute left-10 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm pointer-events-none
                          transition-all duration-300 group-focus-within:opacity-0 group-focus-within:-translate-y-full">
     Search...
-    </span>
+    </label>
     </div>
     
     <div className='flex gap-8 baseline'>
