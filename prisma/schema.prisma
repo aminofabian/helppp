@@ -150,6 +150,7 @@ model Donation {
   status    String
   mpesaReceiptNumber String?
   transactionDate    DateTime?
+  linkedNotifications Notification[]
 
   @@index([userId]) // Add this line to create an index on userId
   @@index([requestId]) // Add this line to create an index on requestId
@@ -227,11 +228,15 @@ model Notification {
   type NotificationType
   read Boolean @default(false)
   createdAt DateTime @default(now())
+  donationId String?
+donation Donation? @relation(fields: [donationId], references: [id], onDelete: Cascade)
 
   @@map("notifications")
-  @@index([recipientId]) // Add this line to create an index on recipientId
-  @@index([issuerId]) // Add this line to create an index on issuerId
-  @@index([requestId]) // Add this line to create an index on requestId
+  @@index([recipientId]) 
+  @@index([issuerId]) 
+  @@index([requestId]) 
+    @@index([donationId]) 
+
 }
 
 enum NotificationType {
