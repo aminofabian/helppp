@@ -310,7 +310,9 @@ export async function handleMpesa(formData: FormData) {
           status: 'Pending', // Change to 'Paid' when you receive confirmation
         },
       });
-      return { success: true, message: 'Payment initiated successfully' };
+      console.log(response, 'this is the rspone')
+      console.log(response.CheckoutRequestID, 'eeh vile umezoea')
+      return { success: true, message: 'Payment initiated successfully', response };
     } else {
       // Payment initiation failed
       console.error('M-Pesa payment failed:', response.ResponseDescription);
