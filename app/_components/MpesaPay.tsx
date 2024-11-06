@@ -371,31 +371,43 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
             isLoading={isLoading}
             onClick={handleSubmit}
           />
-        ) : (
+        ) : 
+        
+        
+        (
           <>
-
-            {paypalClientId && (
+            {paypalClientId ? (
               <PayPalScriptProvider
                 options={{
                   clientId: paypalClientId,
                   intent: "capture",
                   currency: "USD",
-                  components: "buttons"
+                  components: "buttons",
                 }}
               >
                 <PayPalButtonWrapper
                   onPaymentSuccess={handlePaymentSuccess}
-                  selectedAmount={parseFloat(customAmount || '0')}
-                  onPaymentError={(error) => console.error('Payment error:', error)}
+                  selectedAmount={parseFloat(customAmount || "0")}
+                  onPaymentError={(error) => console.error("Payment error:", error)}
                   setErrorMessage={setErrorMessage}
                   errorMessage={errorMessage}
                 />
               </PayPalScriptProvider>
+            ) : (
+              // Loading spinner for when PayPal client ID is unavailable
+              <div className="flex items-center justify-center h-32">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-blue-500 border-solid border-opacity-50"></div>
+                <p className="ml-4 text-gray-500">Loading payment options...</p>
+              </div>
             )}
-
           </>
-
-        )}
+        )
+        
+        
+        
+        
+        
+        }
       </div>
     </div>
   );

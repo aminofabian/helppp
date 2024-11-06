@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { PayPalButtons } from "@paypal/react-paypal-js";
 import { CreateOrderData, CreateOrderActions, OnApproveData, OnApproveActions } from "@paypal/paypal-js";
 import { handlePayPalPayment } from '../actions';
@@ -20,6 +20,14 @@ const PayPalButtonWrapper: React.FC<PayPalButtonWrapperProps> = ({
   setErrorMessage,
   errorMessage
 }) => {
+
+  const [isPayPalReady, setIsPayPalReady] = useState(false);
+
+  useEffect(() => {
+    // Set a small timeout to simulate PayPalButtons loading (optional)
+    const timer = setTimeout(() => setIsPayPalReady(true), 500);
+    return () => clearTimeout(timer);
+  }, []);
 
  
     interface AmountValidationProps {
@@ -121,7 +129,7 @@ const onApprove = async (data: OnApproveData, actions: OnApproveActions) => {
   return (
     <div className="w-full max-w-md mx-auto p-4 bg-white rounded-lg shadow-md">
      
-      <div className="paypal-button-container">
+      {/* <div className="paypal-button-container">
           <PayPalButtons
           forceReRender={[selectedAmount]}
             createOrder={onCreateOrder}
@@ -136,7 +144,31 @@ const onApprove = async (data: OnApproveData, actions: OnApproveActions) => {
               label: "donate"
             }}
           />
+        </div> */}
+        <div className="paypal-button-container">
+      {isPayPalReady ? (
+        <PayPalButtons
+          forceReRender={[selectedAmount]}
+          createOrder={onCreateOrder}
+          onApprove={onApprove}
+          onError={(err) => {
+            onPaymentError(err instanceof Error ? err : new Error("Unknown PayPal error occurred"));
+          }}
+          style={{
+            layout: "vertical",
+            color: "gold",
+            shape: "rect",
+            label: "donate",
+          }}
+        />
+      ) : (
+        // Loading spinner for when the PayPal button is not ready
+        <div className="flex items-center justify-center h-32">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-blue-500 border-opacity-50"></div>
+          <p className="ml-4 text-gray-500">Loading PayPal button...</p>
         </div>
+      )}
+    </div>
     </div>
   );
 };
