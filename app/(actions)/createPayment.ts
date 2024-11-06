@@ -21,7 +21,8 @@ export async function createPayment(
       request: { connect: { id: donation.requestId } },
       mpesaReceiptNumber: mpesaReceiptNumber,
       phoneNumber: phoneNumber,
-      transactionDate: transactionDate
+      transactionDate: transactionDate,
+      paymentMethod: callbackData.PaymentMethod // Add this line
     }
   });
 }

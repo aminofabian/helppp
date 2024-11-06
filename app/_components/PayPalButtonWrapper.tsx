@@ -129,22 +129,6 @@ const onApprove = async (data: OnApproveData, actions: OnApproveActions) => {
   return (
     <div className="w-full max-w-md mx-auto p-4 bg-white rounded-lg shadow-md">
      
-      {/* <div className="paypal-button-container">
-          <PayPalButtons
-          forceReRender={[selectedAmount]}
-            createOrder={onCreateOrder}
-            onApprove={onApprove}
-            onError={(err) => {
-              onPaymentError(err instanceof Error ? err : new Error("Unknown PayPal error occurred"));
-            }}
-            style={{
-              layout: "vertical",
-              color: "gold",
-              shape: "rect",
-              label: "donate"
-            }}
-          />
-        </div> */}
         <div className="paypal-button-container">
       {isPayPalReady ? (
         <PayPalButtons

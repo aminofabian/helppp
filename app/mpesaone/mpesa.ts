@@ -39,7 +39,7 @@ export const mpesa = async (phoneNumber: string, amount: number, reference: stri
 
   if (!user) {
     console.log('User not found, redirecting to login.');
-    return redirect('/api/auth/login'); // Watch for potential redirect loop here
+    return redirect('/api/auth/login'); 
   }
 
   const ref: string | null = `${user.given_name} ${user.family_name} (Ref No FIT${reference})`; // Concatenate given name and family name
