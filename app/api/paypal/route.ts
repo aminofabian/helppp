@@ -1,5 +1,5 @@
 export async function GET(request: Request): Promise<Response> {
-    const clientId = process.env.PAYPAL_CLIENT_ID!;
+    const clientId = process.env.PAYPAL_CLIENT_ID;
 
     if (!clientId) {
         return new Response(JSON.stringify({ error: "PAYPAL_CLIENT_ID is not set" }), {

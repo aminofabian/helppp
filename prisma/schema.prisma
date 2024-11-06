@@ -223,7 +223,7 @@ model Points {
   paymentId String   @unique
   createdAt DateTime @default(now())
 
-  @@index([userId]) // Add this line to create an index on userId
+  @@index([userId]) 
 }
 
 model Notification {
@@ -332,5 +332,3 @@ enum RequestStatus {
   REJECTED
   FULFILLED
 }
-
-
