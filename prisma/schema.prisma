@@ -200,10 +200,19 @@ model Payment {
   mpesaReceiptNumber String?
   phoneNumber        String?
   transactionDate    DateTime?
+  paymentMethod      PaymentMethod
 
-  @@index([userId]) // Add this line to create an index on userId
-  @@index([requestId]) // Add this line to create an index on requestId
+  @@index([userId]) 
+  @@index([requestId]) 
+  @@index([paymentMethod])
 }
+
+enum PaymentMethod {
+  MPESA
+  PAYSTACK
+  PAYPAL
+}
+
 
 model Points {
   id        String   @id @default(cuid())
@@ -229,13 +238,13 @@ model Notification {
   read Boolean @default(false)
   createdAt DateTime @default(now())
   donationId String?
-donation Donation? @relation(fields: [donationId], references: [id], onDelete: Cascade)
+  donation Donation? @relation(fields: [donationId], references: [id], onDelete: Cascade)
 
   @@map("notifications")
   @@index([recipientId]) 
   @@index([issuerId]) 
   @@index([requestId]) 
-    @@index([donationId]) 
+  @@index([donationId]) 
 
 }
 
@@ -261,7 +270,9 @@ model Circle {
   contributions CircleContribution[]
 
   @@index([ownerId]) // Add this line to create an index on ownerId
-}model CircleMember {
+}
+
+model CircleMember {
   id        String   @id @default(uuid())
   circleId  String
   userId    String

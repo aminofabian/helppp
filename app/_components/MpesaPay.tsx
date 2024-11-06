@@ -5,6 +5,9 @@ import { CreditCard, Phone, Mail, Loader2 } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 import { stkPushQuery } from '../(actions)/stkPushQuery';
 import PaymentSuccess from './Success';
+import PayPalButtonWrapper from './PayPalButtonWrapper';
+import { PayPalScriptProvider } from '@paypal/react-paypal-js';
+
 
 type PaymentMethod = 'Mpesa' | 'Paystack' | 'PayPal';
 
@@ -79,6 +82,8 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ ButtonName, isLoading, onCl
     const [stkQueryLoading, setStkQueryLoading] = useState(false);
     const [errorMessage, setErrorMessage] = useState("");
      const [success, setSuccess] = useState(false);
+     const [paypalClientId, setPaypalClientId] = useState<string | null>(null);
+
     
     useEffect(() => {
       if (selectedAmount) {
@@ -126,8 +131,21 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ ButtonName, isLoading, onCl
     };
 
 
-   
+   // paypal api client id
+useEffect(() => {
+  const fetchPaypalClientId = async () => {
+    const response = await fetch('/api/paypal');
+    const data = await response.json();
+    setPaypalClientId(data.clientId);
+  };
+  fetchPaypalClientId();
+ }, [])
 
+
+ const handlePaymentSuccess = (orderId: string) => {
+  toast.success('Payment successful!');
+  setSuccess(true);
+}
 
 
 
@@ -288,23 +306,28 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ ButtonName, isLoading, onCl
       ))}
       </div>
       <div className="mb-4">
-      <input
+       
+          <input
       type="number"
       className="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-lg transition-all focus:ring-2 focus:ring-primary outline-none"
       value={customAmount}
       onChange={handleInputChange}
       placeholder="Enter Custom Amount"
       />
+         
+      
       </div>
       <div className="mb-4 relative">
-      <input
-      type="tel"
-      placeholder="Enter Phone Number"
-      name='phoneNumber'
-      className="w-full pl-10 pr-4 py-2 bg-gray-100 text-gray-700 rounded-lg transition-all focus:ring-2 focus:ring-primary outline-none"
-      value={phoneNumber}
-      onChange={handlePhoneChange}
-      />
+      {paymentMethod !== "PayPal" && (<>
+  <input
+    type="tel"
+    placeholder="Enter Phone Number"
+    name="phoneNumber"
+    className="w-full pl-10 pr-4 py-2 bg-gray-100 text-gray-700 rounded-lg transition-all focus:ring-2 focus:ring-primary outline-none"
+    value={phoneNumber}
+    onChange={handlePhoneChange}
+  />
+  </>)}
       <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
       </div>
       {paymentMethod === 'Paystack' && (
@@ -350,12 +373,29 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ ButtonName, isLoading, onCl
         onClick={handleSubmit}
         />
       ) : (
-        <button 
-        className="px-6 py-3 font-medium bg-gray-400 text-white w-full rounded-lg"
-        disabled
-        >
-        {paymentMethod} - Coming Soon
-        </button>
+        <>
+        
+        {paypalClientId && (
+    <PayPalScriptProvider
+      options={{
+        clientId: paypalClientId,
+        intent: "capture",
+        currency: "USD",
+        components: "buttons"
+      }}
+    >
+      <PayPalButtonWrapper
+        onPaymentSuccess={handlePaymentSuccess}
+        selectedAmount={parseFloat(customAmount || '0')}
+        onPaymentError={(error) => console.error('Payment error:', error)}
+        setErrorMessage={setErrorMessage}
+        errorMessage={errorMessage}
+      />
+    </PayPalScriptProvider>
+  )}
+
+        </>
+
       )}
       </div>
       </div>

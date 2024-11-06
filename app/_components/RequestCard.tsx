@@ -149,7 +149,10 @@ export function RequestCard({
     Choose an amount to contribute
     </DialogDescription>
     </DialogHeader>
+
+    
     <MpesaPay requestId={id} />
+  
     <DialogFooter>
     <DialogClose asChild>
     <Button type="button" variant="outline">Cancel</Button>

@@ -3,7 +3,7 @@
 import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
 import { redirect } from "next/navigation";
 import prisma from "./lib/db";
-import { Prisma, TypeOfVote, NotificationType } from "@prisma/client";
+import { Prisma, TypeOfVote, NotificationType, PaymentMethod } from "@prisma/client";
 import { JSONContent } from "@tiptap/react";
 import { revalidatePath } from "next/cache";
 import { mpesa } from './mpesaone/mpesa';
@@ -307,7 +307,7 @@ export async function handleMpesa(formData: FormData) {
           phoneNumber: phoneNumber,
           requestId: requestId,
           invoice: invoice,
-          status: 'Pending', // Change to 'Paid' when you receive confirmation
+          status: 'Pending', 
         },
       });
       console.log(response, 'this is the rspone')
@@ -345,3 +345,49 @@ async function createNotification(type: NotificationType, recipientId: string, i
 }
 
 
+
+
+export async function handlePayPalPayment(formData: FormData) {
+  const { getUser } = getKindeServerSession();
+  const user = await getUser();
+
+  if (!user) {
+    return redirect('/api/auth/login');
+  }
+
+  const paymentId = formData.get('id') as string;
+  const amount = parseFloat(formData.get('amount') as string);
+  const createTime = formData.get('create_time') as string;
+  const payerEmail = formData.get('payer_email') as string;
+  const payerName = formData.get('payer_name') as string;
+  const requestId = formData.get('requestId') as string;
+
+  const invoiceId = `PAYPAL_${paymentId}`;
+
+  try {
+    const paymentRecord = await prisma.payment.create({
+      data: {
+        id: paymentId,
+        amount: amount,
+        userId: user.id,
+        requestId: requestId || undefined,
+        donationId: undefined,
+        createdAt: new Date(createTime),
+        updatedAt: new Date(),
+        phoneNumber: null,
+        paymentMethod: PaymentMethod.PAYPAL,
+        mpesaReceiptNumber: invoiceId,
+        resultCode: 'COMPLETED',
+        resultDesc: `Paid by ${payerName} (${payerEmail})`,
+        merchantRequestID: '',
+        checkoutRequestID: '',
+        userts: new Date(),
+      }
+    });
+
+    return { success: true, message: 'Payment processed successfully', paymentRecord };
+  } catch (error) {
+    console.error('Error processing PayPal payment:', error);
+    return { success: false, message: 'An error occurred while processing the PayPal payment' };
+  }
+}
