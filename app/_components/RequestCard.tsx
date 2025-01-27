@@ -120,30 +120,61 @@ export function RequestCard({
 
           {/* Contribution Info */}
           <div className="bg-white dark:bg-gray-800 rounded-xl p-5 mb-6 shadow-sm border border-gray-100 dark:border-gray-700">
-            <div className="flex justify-between items-start mb-4">
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
-                  Goal Amount
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              {/* Contributed Amount */}
+              <div className="space-y-1">
+                <p className="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-primary/80" />
+                  Contributed
+                </p>
+                <p className="text-2xl font-bold text-primary">
+                  KES 700
+                  <span className="text-sm font-normal opacity-70 ml-1">/=</span>
+                </p>
+              </div>
+              
+              {/* Goal Amount */}
+              <div className="space-y-1">
+                <p className="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-secondary/80" />
+                  Goal
                 </p>
                 <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                   KES {amount.toLocaleString()}
                   <span className="text-sm font-normal text-gray-500 ml-1">/=</span>
                 </p>
               </div>
-              <div className="text-right">
-                <span className="inline-block px-3 py-1 bg-primary/10 text-primary text-sm font-medium rounded-full">
-                  {Math.round((amount / 10000) * 100)}% funded
-                </span>
-                <p className="text-xs text-gray-500 mt-1">of KES 10,000 goal</p>
+            </div>
+
+            {/* Progress Bar */}
+            <div className="space-y-2 mb-4">
+              <div className="relative mb-4">
+                <Slider contributed={700} total={amount} />
+                <div className="absolute -top-1 left-0 w-full h-8 bg-gradient-to-t from-transparent to-white/20 dark:to-black/20 pointer-events-none" />
+              </div>
+              <div className="flex justify-between items-center">
+                <div className="px-3 py-1 bg-primary/10 text-primary text-sm font-medium rounded-full">
+                  {((700 / amount) * 100).toFixed(1)}% funded
+                </div>
+                {amount - 700 > 0 ? (
+                  <div className="flex items-center gap-1.5 px-3 py-1 bg-orange-50 dark:bg-orange-500/10 rounded-full">
+                    <span className="w-1.5 h-1.5 rounded-full bg-orange-500/80" />
+                    <span className="text-xs text-orange-600 dark:text-orange-400 font-medium">
+                      KES {(amount - 700).toLocaleString()}/= remaining
+                    </span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1.5 px-3 py-1 bg-green-50 dark:bg-green-500/10 rounded-full">
+                    <span className="w-1.5 h-1.5 rounded-full bg-green-500/80" />
+                    <span className="text-xs text-green-600 dark:text-green-400 font-medium">
+                      KES {Math.abs(amount - 700).toLocaleString()}/= excessive
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
             
-            <div className="relative mb-4">
-              <Slider amount={amount} />
-              <div className="absolute -top-1 left-0 w-full h-8 bg-gradient-to-t from-transparent to-white/20 dark:to-black/20 pointer-events-none" />
-            </div>
-            
-            <div className="flex justify-between items-center text-sm">
+            <div className="flex justify-between items-center text-sm border-t border-gray-100 dark:border-gray-700 pt-4">
               <div className="flex items-center gap-2">
                 <div className="p-1.5 bg-primary/10 rounded-full">
                   <Users className="w-4 h-4 text-primary" />
