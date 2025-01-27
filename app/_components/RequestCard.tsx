@@ -1,3 +1,5 @@
+'use client';
+
 import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -33,6 +35,7 @@ interface RequestCardProps {
   level?: number;
   commentCount?: number;
   pointsUsed?: number;
+  isOwner?: boolean;
 }
 
 export function RequestCard({
@@ -53,6 +56,7 @@ export function RequestCard({
   level = 1,
   commentCount = 0,
   pointsUsed,
+  isOwner = false,
 }: RequestCardProps) {
   return (
     <Card className="w-full max-w-xl mx-auto border-0 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-b from-white to-gray-50/50 dark:from-gray-800 dark:to-gray-900/50 overflow-hidden my-6">
@@ -60,6 +64,32 @@ export function RequestCard({
         {/* Decorative Elements */}
         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary/80 via-primary to-secondary/80" />
         <div className="absolute top-1 left-0 w-full h-px bg-white/20" />
+        
+        {/* Fully Funded Badge */}
+        {amount - 700 <= 0 && (
+          <div className="absolute -right-12 top-6 rotate-45 z-10">
+            <div className="bg-[#DB0000] text-white px-12 py-1 text-sm font-semibold shadow-lg">
+              Fully Funded
+            </div>
+          </div>
+        )}
+
+        {/* Owner's Cashout Button - Only visible to owner when fully funded */}
+        {isOwner && amount - 700 <= 0 && (
+          <div className="absolute top-4 left-4 z-10">
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="flex items-center gap-2 px-4 py-2 bg-[#DB0000] text-white rounded-full font-medium shadow-lg hover:shadow-xl hover:bg-[#c50000] transition-all"
+            >
+              <span className="relative flex h-3 w-3 mr-1">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-white"></span>
+              </span>
+              Cashout Available
+            </motion.button>
+          </div>
+        )}
         
         <div className="p-6">
           {/* Header Section */}
@@ -287,14 +317,36 @@ export function RequestCard({
         <DialogTrigger asChild>
           <Button 
             variant="default" 
-            className="w-full bg-gradient-to-r from-primary to-secondary hover:opacity-90 text-white font-semibold py-4 rounded-none transition-all group relative overflow-hidden"
+            className={`w-full font-semibold py-4 rounded-none transition-all group relative overflow-hidden
+              ${amount - 700 <= 0 
+                ? 'bg-[#DB0000] hover:bg-[#c50000]'
+                : 'bg-gradient-to-r from-primary to-secondary hover:opacity-90'
+              } text-white`}
+            disabled={amount - 700 <= 0}
           >
             <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10" />
             <span className="relative flex items-center gap-2 justify-center">
-              Support {userName.split(' ')[0]} 
-              <span className="text-xs opacity-80 group-hover:opacity-100 transition-opacity">
-                • Every Shilling Counts
-              </span>
+              {amount - 700 <= 0 ? (
+                <>
+                  <span className="flex items-center gap-2">
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
+                    </span>
+                    Goal Achieved!
+                  </span>
+                  <span className="text-xs opacity-80 group-hover:opacity-100 transition-opacity">
+                    • Request Completed
+                  </span>
+                </>
+              ) : (
+                <>
+                  Support {userName.split(' ')[0]} 
+                  <span className="text-xs opacity-80 group-hover:opacity-100 transition-opacity">
+                    • Every Shilling Counts
+                  </span>
+                </>
+              )}
             </span>
           </Button>
         </DialogTrigger>
