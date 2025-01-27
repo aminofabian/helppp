@@ -6,6 +6,26 @@ import prisma from '@/app/lib/db';
 import HomeNavRight from '@/app/_components/HomeNavRight';
 import { Verified, Heart, HandHeart, Trophy, Activity, Calendar, HelpCircle, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "../../../components/ui/table";
+
+type RequestFromDB = {
+  id: string;
+  title: string;
+  textContent: any;
+  amount: number;
+  status: string | null;
+  createdAt: Date;
+  donations: {
+    amount: number;
+  }[];
+}
 
 async function getData(id: string) {
   const data = await prisma.user.findUnique({
@@ -35,8 +55,19 @@ async function getData(id: string) {
       requests: {
         select: {
           id: true,
+          title: true,
+          textContent: true,
           amount: true,
-          status: true
+          status: true,
+          createdAt: true,
+          donations: {
+            select: {
+              amount: true
+            }
+          }
+        },
+        orderBy: {
+          createdAt: 'desc'
         }
       },
       donations: {
@@ -78,7 +109,26 @@ export default async function UserProfile({ params }: { params: { id: string } }
   }
 
   // Calculate total amount requested
-  const totalRequested = data.requests.reduce((acc, req) => acc + req.amount, 0);
+  const totalRequested = data.requests.reduce((acc: number, req: RequestFromDB) => acc + req.amount, 0);
+  
+  // Get status color based on request status
+  const getStatusColor = (status: string | null) => {
+    switch ((status || 'pending').toLowerCase()) {
+      case 'pending':
+        return 'text-yellow-500 bg-yellow-100 dark:bg-yellow-900/20';
+      case 'completed':
+        return 'text-green-500 bg-green-100 dark:bg-green-900/20';
+      case 'rejected':
+        return 'text-red-500 bg-red-100 dark:bg-red-900/20';
+      default:
+        return 'text-gray-500 bg-gray-100 dark:bg-gray-900/20';
+    }
+  };
+
+  // Calculate total amount donated for a request
+  const getTotalDonated = (request: RequestFromDB) => {
+    return request.donations.reduce((acc: number, donation) => acc + donation.amount, 0);
+  };
   
   return (
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-4 lg:gap-8 my-5">
@@ -92,19 +142,89 @@ export default async function UserProfile({ params }: { params: { id: string } }
         {/* Profile Header */}
         <div className="bg-gray-100 dark:bg-gray-800 rounded-xl p-6">
           <ProfileHeader
-            userName={data?.userName || ''}
-            firstName={data?.firstName || ''}
-            lastName={data?.lastName || ''}
-            email={data?.email || ''}
-            imageUrl={data?.imageUrl || ''}
-            level={data?.level || 1}
-            totalDonated={data?.totalDonated || 0}
-            donationCount={data?.donationCount || 0}
-            requestCount={data?.requests?.length || 0}
-            walletBalance={data?.wallet?.balance || 0}
-            createdAt={data?.createdAt}
-            points={data?.points || []}
+            userName={data.userName}
+            firstName={data.firstName}
+            lastName={data.lastName}
+            email={data.email}
+            imageUrl={data.imageUrl || ''}
+            points={data.points}
+            totalDonated={data.totalDonated}
+            donationCount={data.donationCount}
+            requestCount={data.requests.length}
+            walletBalance={data.wallet?.balance || 0}
+            createdAt={data.createdAt}
+            level={data.level}
           />
+        </div>
+
+        {/* Help Requests Table */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Help Requests</h3>
+            <HelpCircle className="w-5 h-5 text-gray-400" />
+          </div>
+          
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[50px]">#</TableHead>
+                  <TableHead>Title & Description</TableHead>
+                  <TableHead>Target Amount</TableHead>
+                  <TableHead>Donated</TableHead>
+                  <TableHead>Progress</TableHead>
+                  <TableHead>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {data.requests.slice(0, 5).map((request: RequestFromDB, index: number) => {
+                  const amountDonated = getTotalDonated(request);
+                  return (
+                    <TableRow key={request.id}>
+                      <TableCell className="font-medium">{index + 1}</TableCell>
+                      <TableCell className="max-w-[200px]">
+                        <p className="font-medium text-sm">{request.title}</p>
+                        <p className="truncate text-xs text-muted-foreground">
+                          {typeof request.textContent === 'object' && request.textContent?.content?.[0]?.content?.[0]?.text || 'No description provided'}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(request.createdAt).toLocaleDateString()}
+                        </p>
+                      </TableCell>
+                      <TableCell>KES {request.amount.toLocaleString()}</TableCell>
+                      <TableCell>KES {amountDonated.toLocaleString()}</TableCell>
+                      <TableCell className="w-[100px]">
+                        <div className="h-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-emerald-500" 
+                            style={{ 
+                              width: `${Math.min((amountDonated / request.amount) * 100, 100)}%` 
+                            }}
+                          />
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {Math.round((amountDonated / request.amount) * 100)}%
+                        </p>
+                      </TableCell>
+                      <TableCell>
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(request.status)}`}>
+                          {request.status || 'Pending'}
+                        </span>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+          
+          {data.requests.length > 5 && (
+            <div className="mt-4 flex justify-end">
+              <Button variant="outline" size="sm">
+                View All Requests
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* Recent Activity */}
