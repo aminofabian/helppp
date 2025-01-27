@@ -79,11 +79,8 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('Mpesa');
   const [isLoading, setIsLoading] = useState(false);
   const [stkQueryLoading, setStkQueryLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
   const [success, setSuccess] = useState(false);
-  const [paypalClientId, setPaypalClientId] = useState<string | null>(null);
-
-
+  
   useEffect(() => {
     if (selectedAmount) {
       setCustomAmount(selectedAmount.toString());
@@ -129,44 +126,14 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
     return true;
   };
 
-
-  // paypal api client id
-  useEffect(() => {
-    const fetchPaypalClientId = async () => {
-      const response = await fetch('/api/paypal');
-      const data = await response.json();
-      setPaypalClientId(data.clientId);
-    };
-    fetchPaypalClientId();
-  }, [])
-
-
-  const handlePaymentSuccess = (orderId: string) => {
-    toast.success('Payment successful!');
-    setSuccess(true);
-  }
-
-
-
-  // Keep track of polling state
-  var reqcount = 0;
-
   const stkPushQueryWithIntervals = async (CheckoutRequestID: string) => {
     console.log(CheckoutRequestID, 'are you working')
     const timer = setInterval(async () => {
-      reqcount += 1;
-      if (reqcount === 15) {
-        clearInterval(timer);
-        setStkQueryLoading(false);
-        setIsLoading(false);
-        toast.error("You took too long to pay");
-      }
       const { data, error } = await stkPushQuery(CheckoutRequestID);
       console.log(data, 'hii ndo kitu imekua ikisumbua');
 
       if (error) {
         if (error.response.data.errorCode !== "500.001.1001") {
-          setStkQueryLoading(false);
           setIsLoading(false);
           toast.error(error?.response?.data?.errorMessage);
         }
@@ -175,27 +142,20 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
       if (data) {
         if (data.ResultCode === "0") {
           clearInterval(timer);
-          setStkQueryLoading(false);
           setIsLoading(false);
-          setSuccess(true);
+          toast.success("An MPesa prompt will appear on your phone. Enter your PIN to complete the payment.", {
+            duration: 5000,
+            position: "top-center",
+          });
         } else {
           clearInterval(timer);
-          setStkQueryLoading(false);
           setIsLoading(false);
           toast.error(data?.ResultDesc);
         }
       }
     }, 2000);
-
-  }
-
-
-
-
-
-
-
-
+  };
+  
   const handleSubmit = async () => {
     if (!validateForm()) return;
 
@@ -213,12 +173,6 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
         console.log(result, 'result from handleMpesa');
 
         if (result.success && result.response.CheckoutRequestID) {
-          toast.success("An MPesa prompt will appear on your phone. Enter your PIN to complete the payment.", {
-            duration: 5000,
-            position: "top-center",
-          });
-
-          setIsLoading(true);
           stkPushQueryWithIntervals(result.response.CheckoutRequestID);
         } else if (!result.success) {
           toast.error(result.message || "Failed to initiate payment", {
@@ -226,16 +180,12 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
             position: "top-center",
           });
           setIsLoading(false);
-          setErrorMessage(result.message || "Failed to initiate payment");
+          setError(result.message || "Failed to initiate payment");
         } else {
           setIsLoading(false);
-          setErrorMessage("An unexpected error occurred");
+          setError("An unexpected error occurred");
         }
-      }
-
-
-
-      else if (paymentMethod === 'Paystack') {
+      } else if (paymentMethod === 'Paystack') {
         const script = document.createElement('script');
         script.src = 'https://js.paystack.co/v1/inline.js';
         script.onload = () => {
@@ -270,147 +220,219 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
   };
 
   return (
-    <div className="bg-gradient-to-r from-secondary to-primary p-6 rounded-lg shadow-lg max-w-4xl mx-auto">
-      <Toaster />
-      <PaymentMethodSelector selectedMethod={paymentMethod} onSelect={setPaymentMethod} />
-
-
-
-
-      {stkQueryLoading ? (
-
-
-        <div>Loading...</div>
-
-      ) : success ? (
-        <PaymentSuccess />
-      ) : (
-
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[3fr_2fr]">
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h3 className="text-lg font-semibold mb-4">Select Amount</h3>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-              {numbers.map((number, index) => (
-                <button
-                  key={index}
-                  onClick={() => handleAmountSelect(number)}
-                  className={`px-4 py-2 text-xs w-fit ${selectedAmount === number
-                      ? 'bg-primary text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    } rounded-lg transition-all`}
-                >
-                  {number}
-                </button>
-              ))}
-            </div>
-            <div className="mb-4">
-
-              <input
-                type="number"
-                className="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-lg transition-all focus:ring-2 focus:ring-primary outline-none"
-                value={customAmount}
-                onChange={handleInputChange}
-                placeholder="Enter Custom Amount"
-              />
-
-
-            </div>
-            <div className="mb-4 relative">
-              {paymentMethod !== "PayPal" && (<>
-                <input
-                  type="tel"
-                  placeholder="Enter Phone Number"
-                  name="phoneNumber"
-                  className="w-full pl-10 pr-4 py-2 bg-gray-100 text-gray-700 rounded-lg transition-all focus:ring-2 focus:ring-primary outline-none"
-                  value={phoneNumber}
-                  onChange={handlePhoneChange}
-                />
-              <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-
-              </>)}
-            </div>
-            {paymentMethod === 'Paystack' && (
-              <div className="mb-4 relative">
-                <input
-                  type="email"
-                  placeholder="Enter Email Address"
-                  name='email'
-                  className="w-full pl-10 pr-4 py-2 bg-gray-100 text-gray-700 rounded-lg transition-all focus:ring-2 focus:ring-primary outline-none"
-                  value={email}
-                  onChange={handleEmailChange}
-                />
-                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-              </div>
-            )}
-          </div>
-          <div className="bg-gradient-to-br from-primary to-purple-200 rounded-lg p-6 flex flex-col justify-center items-center">
-            <CreditCard size={48} className="text-white mb-4" />
-            <h2 className="text-3xl text-white font-bold mb-2">
-              {selectedAmount ? `${selectedAmount}/=` : '0/='}
-            </h2>
-            <p className="text-sm text-white/80">
-              {selectedAmount ? `${selectedAmount / 50} points` : '0 points'}
-            </p>
-          </div>
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-2 z-50">
+      <div className="w-full max-w-3xl bg-white rounded-2xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom duration-300">
+        {/* Header - Made more compact */}
+        <div className="bg-gradient-to-r from-primary to-secondary p-4">
+          <h2 className="text-xl font-bold text-center text-white mb-3">
+            Complete Your Payment
+          </h2>
+          <PaymentMethodSelector selectedMethod={paymentMethod} onSelect={setPaymentMethod} />
         </div>
 
-      )}
+        <div className="p-4">
+          <div className="grid lg:grid-cols-[1.2fr_0.8fr] gap-4">
+            {/* Left Column */}
+            <div className="space-y-4">
+              {/* Amount Selection */}
+              <div>
+                <h3 className="text-base font-semibold text-gray-800 mb-2 flex items-center gap-2">
+                  <span className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs">1</span>
+                  Choose Amount
+                </h3>
+                <div className="grid grid-cols-3 gap-2">
+                  {numbers.map((number) => (
+                    <button
+                      key={number}
+                      onClick={() => handleAmountSelect(number)}
+                      className={`
+                        relative h-[68px] group
+                        ${selectedAmount === number 
+                          ? 'bg-gradient-to-br from-primary to-secondary'
+                          : 'bg-white hover:bg-gray-50'
+                        }
+                        rounded-xl transition-all duration-300
+                        overflow-hidden
+                        ${selectedAmount === number 
+                          ? 'shadow-md ring-1 ring-primary'
+                          : 'shadow-sm hover:shadow border border-gray-100'
+                        }
+                      `}
+                    >
+                      {/* Decorative Elements - Made smaller */}
+                      <div className="absolute inset-0 bg-grid-pattern opacity-5" />
+                      <div className={`
+                        absolute top-0 left-0 w-full h-0.5
+                        ${selectedAmount === number ? 'bg-white/20' : 'bg-primary/10'}
+                      `} />
+                      
+                      {/* Content Container */}
+                      <div className="relative h-full flex items-center justify-center">
+                        {/* Left Circle Decoration */}
+                        <div className={`
+                          absolute left-1.5 top-1/2 -translate-y-1/2 w-1 h-1 rounded-full
+                          ${selectedAmount === number ? 'bg-white/40' : 'bg-primary/20'}
+                        `} />
+                        
+                        {/* Main Content - Reduced font sizes */}
+                        <div className="text-center px-2">
+                          <div className={`
+                            text-base font-bold leading-none mb-1
+                            ${selectedAmount === number ? 'text-white' : 'text-gray-700'}
+                          `}>
+                            {number.toLocaleString()}
+                            <span className={`
+                              text-xs ml-0.5 font-medium
+                              ${selectedAmount === number ? 'text-white/70' : 'text-gray-400'}
+                            `}>
+                              KES
+                            </span>
+                          </div>
+                          <div className={`
+                            text-[9px] font-medium leading-none
+                            ${selectedAmount === number ? 'text-white/70' : 'text-primary'}
+                          `}>
+                            {number/50} pts
+                          </div>
+                        </div>
 
+                        {/* Right Circle Decoration */}
+                        <div className={`
+                          absolute right-1.5 top-1/2 -translate-y-1/2 w-1 h-1 rounded-full
+                          ${selectedAmount === number ? 'bg-white/40' : 'bg-primary/20'}
+                        `} />
+                      </div>
 
-
-
-
-
-
-      <div className='w-full mt-6'>
-        {error && <p className="text-red-500 mb-2">{error}</p>}
-
-        {paymentMethod === 'Mpesa' || paymentMethod === 'Paystack' ? (
-          <SubmitButton
-            ButtonName={`Pay ${selectedAmount || 0}/= With ${paymentMethod}`}
-            isLoading={isLoading}
-            onClick={handleSubmit}
-          />
-        ) : 
-        
-        
-        (
-          <>
-            {paypalClientId ? (
-              <PayPalScriptProvider
-                options={{
-                  clientId: paypalClientId,
-                  intent: "capture",
-                  currency: "USD",
-                  components: "buttons",
-                }}
-              >
-                <PayPalButtonWrapper
-                  onPaymentSuccess={handlePaymentSuccess}
-                  selectedAmount={parseFloat(customAmount || "0")}
-                  onPaymentError={(error) => console.error("Payment error:", error)}
-                  setErrorMessage={setErrorMessage}
-                  errorMessage={errorMessage}
-                />
-              </PayPalScriptProvider>
-            ) : (
-              // Loading spinner for when PayPal client ID is unavailable
-              <div className="flex items-center justify-center h-32">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-blue-500 border-solid border-opacity-50"></div>
-                <p className="ml-4 text-gray-500">Loading payment options...</p>
+                      {/* Bottom Line Decoration */}
+                      <div className={`
+                        absolute bottom-0 left-1/2 -translate-x-1/2 w-8 h-0.5 rounded-full
+                        ${selectedAmount === number ? 'bg-white/20' : 'bg-primary/10'}
+                      `} />
+                    </button>
+                  ))}
+                </div>
               </div>
-            )}
-          </>
-        )
-        
-        
-        
-        
-        
-        }
+
+              {/* Payment Details */}
+              <div>
+                <h3 className="text-base font-semibold text-gray-800 mb-2 flex items-center gap-2">
+                  <span className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs">2</span>
+                  Enter Details
+                </h3>
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-600 mb-1.5">Amount</label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        className="w-full h-11 pl-4 pr-16 bg-gray-50 text-gray-700 rounded-lg
+                                  focus:ring-2 focus:ring-primary/20 outline-none text-sm
+                                  border border-gray-200 focus:border-primary/30"
+                        value={customAmount}
+                        onChange={handleInputChange}
+                        placeholder="Enter amount"
+                      />
+                      <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
+                        KES
+                      </span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-600 mb-1.5">Phone Number</label>
+                    <div className="relative">
+                      <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-primary" size={16} />
+                      <input
+                        type="tel"
+                        placeholder="Enter your phone number"
+                        name='phoneNumber'
+                        className="w-full h-11 pl-11 pr-4 bg-gray-50 text-gray-700 rounded-lg
+                                  focus:ring-2 focus:ring-primary/20 outline-none text-sm
+                                  border border-gray-200 focus:border-primary/30"
+                        value={phoneNumber}
+                        onChange={handlePhoneChange}
+                      />
+                    </div>
+                  </div>
+
+                  {paymentMethod === 'Paystack' && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-600 mb-1.5">Email Address</label>
+                      <div className="relative">
+                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-primary" size={16} />
+                        <input
+                          type="email"
+                          placeholder="Enter your email address"
+                          name='email'
+                          className="w-full h-11 pl-11 pr-4 bg-gray-50 text-gray-700 rounded-lg
+                                    focus:ring-2 focus:ring-primary/20 outline-none text-sm
+                                    border border-gray-200 focus:border-primary/30"
+                          value={email}
+                          onChange={handleEmailChange}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Right Column - Made more compact */}
+            <div className="bg-gray-50 rounded-xl p-4">
+              <div className="bg-gradient-to-br from-primary to-secondary rounded-lg p-4 mb-4">
+                <div className="text-center">
+                  <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <CreditCard size={24} className="text-white" />
+                  </div>
+                  <div className="text-3xl text-white font-bold mb-1">
+                    {selectedAmount ? selectedAmount.toLocaleString() : '0'}
+                    <span className="text-xl ml-1">KES</span>
+                  </div>
+                  <p className="text-white/80 text-sm">
+                    {selectedAmount ? `${selectedAmount / 50} points` : '0 points'}
+                  </p>
+                </div>
+              </div>
+
+              {error && (
+                <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-4 rounded-lg">
+                  <p className="text-red-700 text-sm">{error}</p>
+                </div>
+              )}
+
+              {paymentMethod === 'Mpesa' || paymentMethod === 'Paystack' ? (
+                <SubmitButton 
+                  ButtonName={`Complete Payment`}
+                  isLoading={isLoading}
+                  onClick={handleSubmit}
+                />
+              ) : (
+                <button 
+                  className="w-full py-4 font-bold bg-gray-400 text-white rounded-xl
+                           opacity-75 cursor-not-allowed"
+                  disabled
+                >
+                  {paymentMethod} - Coming Soon
+                </button>
+              )}
+
+              <p className="text-xs text-gray-500 text-center mt-4">
+                By completing this payment, you agree to our terms of service
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
 };
 
 export default MpesaPay;
+
+<style jsx>{`
+  .bg-grid-pattern {
+    background-image: linear-gradient(to right, rgba(0,0,0,0.05) 1px, transparent 1px),
+                      linear-gradient(to bottom, rgba(0,0,0,0.05) 1px, transparent 1px);
+    background-size: 8px 8px;
+  }
+`}</style>
