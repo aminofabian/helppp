@@ -68,7 +68,7 @@ export function RequestCard({
         {/* Fully Funded Badge */}
         {amount - 700 <= 0 && (
           <div className="absolute -right-12 top-6 rotate-45 z-10">
-            <div className="bg-[#DB0000] text-white px-12 py-1 text-sm font-semibold shadow-lg">
+            <div className="bg-[#00262f] text-white px-12 py-1 text-sm font-semibold shadow-lg">
               Fully Funded
             </div>
           </div>
@@ -80,7 +80,7 @@ export function RequestCard({
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="flex items-center gap-2 px-4 py-2 bg-[#DB0000] text-white rounded-full font-medium shadow-lg hover:shadow-xl hover:bg-[#c50000] transition-all"
+              className="flex items-center gap-2 px-4 py-2 bg-[#00262f] text-white rounded-full font-medium shadow-lg hover:shadow-xl hover:bg-[#003a47] transition-all"
             >
               <span className="relative flex h-3 w-3 mr-1">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
@@ -319,7 +319,7 @@ export function RequestCard({
             variant="default" 
             className={`w-full font-semibold py-4 rounded-none transition-all group relative overflow-hidden
               ${amount - 700 <= 0 
-                ? 'bg-[#DB0000] hover:bg-[#c50000]'
+                ? 'bg-[#00262f] hover:bg-[#003a47]'
                 : 'bg-gradient-to-r from-primary to-secondary hover:opacity-90'
               } text-white`}
             disabled={amount - 700 <= 0}
