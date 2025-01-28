@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { getKindeServerSession } from '@kinde-oss/kinde-auth-nextjs/server';
 import prisma from '../lib/db';
-import { CreditCard, Users } from 'lucide-react';
+import { CreditCard, Users, Trophy, HandHeart, Star, Activity } from 'lucide-react';
+import { Progress } from "@/components/ui/progress";
 
 import {
   Dialog,
@@ -27,6 +28,28 @@ export async function getWalletData(userId: string) {
     },
   });
   return wallet;
+}
+
+async function getUserStats(userId: string) {
+  const stats = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      level: true,
+      totalDonated: true,
+      donationCount: true,
+      points: {
+        select: {
+          amount: true,
+        }
+      },
+      _count: {
+        select: {
+          requests: true,
+        }
+      }
+    }
+  });
+  return stats;
 }
 
 export default async function HomeNavRight() {
@@ -75,6 +98,12 @@ export default async function HomeNavRight() {
   }
   
   const wallet = await getWalletData(user.id);
+  const stats = await getUserStats(user.id);
+  
+  const totalPoints = stats?.points.reduce((sum, point) => sum + point.amount, 0) || 0;
+  const nextLevel = ((stats?.level || 1) + 1) * 1000;
+  const progress = (totalPoints / nextLevel) * 100;
+
   return (
     <div className="max-w-md mx-auto">
     <Card className="overflow-hidden bg-white dark:bg-gray-800 shadow-lg rounded-lg">
@@ -94,6 +123,40 @@ export default async function HomeNavRight() {
       "there"
     )}...
     </h1>
+    
+    <div className="bg-gradient-to-r from-primary/5 to-primary/10 p-4 rounded-lg space-y-2">
+    <div className="flex items-center justify-between">
+    <div className="flex items-center gap-2">
+    <Trophy className="w-5 h-5 text-amber-500" />
+    <span className="font-semibold">Level {stats?.level || 1}</span>
+    </div>
+    <div className="text-sm text-muted-foreground">
+    {totalPoints} / {nextLevel} XP
+    </div>
+    </div>
+    <Progress value={progress} className="h-2" />
+    </div>
+    
+    <div className="grid grid-cols-2 gap-4">
+    <div className="bg-emerald-50 dark:bg-emerald-900/20 p-3 rounded-lg">
+    <div className="flex items-center gap-2 mb-1">
+    <HandHeart className="w-4 h-4 text-emerald-500" />
+    <span className="text-sm text-gray-600 dark:text-gray-400">Total Given</span>
+    </div>
+    <p className="text-lg font-semibold text-emerald-600 dark:text-emerald-400">
+    KES {stats?.totalDonated?.toLocaleString() || '0'}
+    </p>
+    </div>
+    <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
+    <div className="flex items-center gap-2 mb-1">
+    <Activity className="w-4 h-4 text-blue-500" />
+    <span className="text-sm text-gray-600 dark:text-gray-400">Helped</span>
+    </div>
+    <p className="text-lg font-semibold text-blue-600 dark:text-blue-400">
+    {stats?.donationCount || 0} people
+    </p>
+    </div>
+    </div>
     
     <div className="space-y-4">
     <div className="bg-primary text-white p-4 rounded-lg">

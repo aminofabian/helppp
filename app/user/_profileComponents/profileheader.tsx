@@ -1,6 +1,8 @@
 import React from 'react'
 import { Mail, Calendar, Trophy, Star, Wallet, HandHeart, HelpCircle } from 'lucide-react'
 import { Progress } from '@/components/ui/progress'
+import Image from 'next/image'
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 interface PHProps {
   userName: string;
@@ -22,6 +24,8 @@ export default function ProfileHeader({userName, firstName, lastName, email, poi
   const nextLevel = (level + 1) * 1000;
   const progress = (totalPoints / nextLevel) * 100;
   
+  const initials = `${firstName?.[0] || ''}${lastName?.[0] || ''}`.toUpperCase();
+  
   return (
     <div className="w-full bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden">
       {/* Header Banner */}
@@ -37,11 +41,10 @@ export default function ProfileHeader({userName, firstName, lastName, email, poi
         <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
           {/* Avatar */}
           <div className="relative -mt-16 sm:-mt-20">
-            <img
-              src={imageUrl}
-              alt={`${firstName} ${lastName}`}
-              className="w-24 h-24 sm:w-32 sm:h-32 rounded-full border-4 border-white dark:border-gray-700 shadow-lg object-cover"
-            />
+            <Avatar className="w-24 h-24 sm:w-32 sm:h-32 border-4 border-white dark:border-gray-700 shadow-lg">
+              <AvatarImage src={imageUrl} alt={`${firstName} ${lastName}`} />
+              <AvatarFallback className="text-2xl">{initials}</AvatarFallback>
+            </Avatar>
             <div className="absolute -bottom-2 -right-2 bg-gradient-to-r from-emerald-400 to-emerald-500 rounded-full p-2 shadow-lg">
               <Star className="w-4 h-4 text-white" />
             </div>

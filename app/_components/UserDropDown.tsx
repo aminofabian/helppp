@@ -44,7 +44,11 @@ function UserDropDown({userImage}: iAppProps) {
     <DropdownMenuContent>
     <DropdownMenuLabel>My Account</DropdownMenuLabel>
     <DropdownMenuSeparator />
-    <DropdownMenuItem>Profile</DropdownMenuItem>
+    <DropdownMenuItem>
+      <Link href='/user/me' className="w-full">
+        Profile
+      </Link>
+    </DropdownMenuItem>
     <DropdownMenuItem>Add Funds</DropdownMenuItem>
     <DropdownMenuItem>
     <Link href='/c/create'>
