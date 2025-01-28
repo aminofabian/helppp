@@ -1,13 +1,18 @@
 import type { Metadata } from "next";
-import { Jost } from "next/font/google";
+import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/app/_components/Navbar";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { Toaster } from "@/components/ui/toaster"
 import MenuBar from "./_components/MenuBar";
 
-
-const inter = Jost ({ subsets: ["latin"] });
+const jakarta = Plus_Jakarta_Sans({ 
+  subsets: ["latin"],
+  display: 'swap',
+  variable: '--font-jakarta',
+  weight: ['400', '500', '600', '700'],
+  adjustFontFallback: true,
+});
 
 export const metadata: Metadata = {
   title: "Fitrii™  - Building a World of Mutual Support",
@@ -26,21 +31,21 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning={true}>
-    <body className={`flex min-h-screen flex-col ${inter.className}`} >
-    <ThemeProvider
-    attribute="class"
-    defaultTheme="system"
-    enableSystem
-    disableTransitionOnChange
-    >
-    <Navbar />
-    <div className='container mx-auto px-4'>
-    {children}
-    </div>
-    <Toaster />
-    </ThemeProvider>
-    <MenuBar className='sticky bottom-0 flex w-full justify-evenly border-t bg-card p-3 sm:hidden'/>
-    </body>
+      <body className={`flex min-h-screen flex-col ${jakarta.className} antialiased text-[14px] leading-relaxed`}>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <Navbar />
+          <div className='container mx-auto px-4'>
+            {children}
+          </div>
+          <Toaster />
+        </ThemeProvider>
+        <MenuBar className='sticky bottom-0 flex w-full justify-evenly border-t bg-card p-3 sm:hidden'/>
+      </body>
     </html>
   );
 }
