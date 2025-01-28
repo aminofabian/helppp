@@ -5,7 +5,9 @@ import { getKindeServerSession } from '@kinde-oss/kinde-auth-nextjs/server';
 export async function GET(req: Request, { params }: { params: { id: string } }) {
   try {
     const { searchParams } = new URL(req.url);
-    const page = searchParams.get('page') || '1';
+    const page = Number(searchParams.get('page')) || 1;
+    const pageSize = 10;
+
     const { getUser } = getKindeServerSession();
     const user = await getUser();
 
@@ -42,46 +44,50 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
       return new NextResponse('Community not found', { status: 404 });
     }
 
-    // Get requests with pagination
-    const requests = await prisma.request.findMany({
+    // Get total count of requests for pagination
+    const totalRequests = await prisma.request.count({
       where: {
-        communityName: params.id,
-      },
-      take: 10,
-      skip: (Number(page) - 1) * 10,
-      select: {
-        id: true,
-        title: true,
-        textContent: true,
-        imageString: true,
-        amount: true,
-        pointsUsed: true,
-        deadline: true,
-        createdAt: true,
-        updatedAt: true,
-        status: true,
-        User: {
-          select: {
-            id: true,
-            userName: true
-          }
-        },
-        _count: {
-          select: {
-            Comment: true,
-            Vote: true
-          }
-        },
-        Vote: {
-          select: {
-            voteType: true
-          }
-        }
-      },
-      orderBy: {
-        createdAt: 'desc'
+        communityName: params.id
       }
     });
+
+    // Get requests with pagination
+    const requests = await prisma.$transaction([
+      prisma.request.findMany({
+        where: {
+          communityName: params.id
+        },
+        take: pageSize,
+        skip: Math.max(0, (page - 1) * pageSize),
+        orderBy: {
+          createdAt: 'desc'
+        },
+        include: {
+          User: {
+            select: {
+              id: true,
+              userName: true
+            }
+          },
+          Comment: {
+            select: {
+              id: true
+            }
+          },
+          Vote: {
+            select: {
+              voteType: true
+            }
+          },
+          _count: {
+            select: {
+              Comment: true,
+              Vote: true
+            }
+          }
+        }
+      })
+    ]);
 
     // Get members usernames
     const members = await prisma.communityMember.findMany({
@@ -117,13 +123,15 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
     return NextResponse.json({
       data: {
         ...community,
-        requests,
+        requests: requests[0],
         memberCount: community._count.memberships,
         requestCount: community._count.requests,
         isMember,
         members: members.map(m => m.user.userName)
       },
-      count: community._count.requests
+      count: totalRequests,
+      currentPage: page,
+      totalPages: Math.ceil(totalRequests / pageSize)
     });
   } catch (error) {
     console.error('Error fetching community:', error);
