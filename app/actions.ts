@@ -402,7 +402,8 @@ export async function handleTillPayment(formData: FormData) {
       return { success: false, message: 'Missing required fields' };
     }
 
-    const response = await fetch('/api/initiate-till-payment', {
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://fitrii.com';
+    const response = await fetch(`${baseUrl}/api/initiate-till-payment`, {
       method: 'POST',
       body: JSON.stringify({
         amount: parseFloat(amount.toString()),
