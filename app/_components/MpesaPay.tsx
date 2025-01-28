@@ -1,7 +1,7 @@
 'use client'
 import React, { useState, useEffect } from 'react';
-import { handleMpesa } from '../actions';
-import { CreditCard, Phone, Mail, Loader2 } from 'lucide-react';
+import { handleMpesa, handleTillPayment } from '../actions';
+import { CreditCard, Phone, Mail, Loader2, Building2 } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 import { stkPushQuery } from '../(actions)/stkPushQuery';
 import PaymentSuccess from './Success';
@@ -9,7 +9,7 @@ import PayPalButtonWrapper from './PayPalButtonWrapper';
 import { PayPalScriptProvider } from '@paypal/react-paypal-js';
 
 
-type PaymentMethod = 'Mpesa' | 'Paystack' | 'PayPal';
+type PaymentMethod = 'Mpesa' | 'Paystack' | 'PayPal' | 'Till';
 
 interface PaymentMethodSelectorProps {
   selectedMethod: PaymentMethod;
@@ -50,7 +50,7 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ ButtonName, isLoading, onCl
 };
 
 const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({ selectedMethod, onSelect }) => {
-  const methods: PaymentMethod[] = ['Mpesa', 'Paystack', 'PayPal'];
+  const methods: PaymentMethod[] = ['Mpesa', 'Till', 'Paystack', 'PayPal'];
   return (
     <div className="flex justify-center space-x-4 mb-6">
       {methods.map((method) => (
@@ -115,7 +115,7 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
       setError('Please select a valid amount');
       return false;
     }
-    if (paymentMethod === 'Mpesa' && (!phoneNumber || !/^(?:254|\+254|0)?([0-9]{9})$/.test(phoneNumber))) {
+    if ((paymentMethod === 'Mpesa' || paymentMethod === 'Till') && (!phoneNumber || !/^(?:254|\+254|0)?([0-9]{9})$/.test(phoneNumber))) {
       setError('Please enter a valid Kenyan phone number');
       return false;
     }
@@ -184,6 +184,29 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
         } else {
           setIsLoading(false);
           setError("An unexpected error occurred");
+        }
+      } else if (paymentMethod === "Till") {
+        const formData = new FormData();
+        formData.append("amount", selectedAmount?.toString() || "");
+        formData.append("requestId", requestId);
+        formData.append("phoneNumber", phoneNumber);
+
+        const result = await handleTillPayment(formData);
+        console.log(result, 'result from handleTillPayment');
+
+        if (result.success) {
+          toast.success("Payment initiated successfully. Please check your phone to complete the transaction.", {
+            duration: 5000,
+            position: "top-center",
+          });
+          setIsLoading(false);
+        } else {
+          toast.error(result.message || "Failed to initiate payment", {
+            duration: 5000,
+            position: "top-center",
+          });
+          setIsLoading(false);
+          setError(result.message || "Failed to initiate payment");
         }
       } else if (paymentMethod === 'Paystack') {
         const script = document.createElement('script');
@@ -338,22 +361,35 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
                     </div>
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-600 mb-1.5">Phone Number</label>
-                    <div className="relative">
-                      <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-primary" size={16} />
-                      <input
-                        type="tel"
-                        placeholder="Enter your phone number"
-                        name='phoneNumber'
-                        className="w-full h-11 pl-11 pr-4 bg-gray-50 text-gray-700 rounded-lg
-                                  focus:ring-2 focus:ring-primary/20 outline-none text-sm
-                                  border border-gray-200 focus:border-primary/30"
-                        value={phoneNumber}
-                        onChange={handlePhoneChange}
-                      />
+                  {(paymentMethod === 'Mpesa' || paymentMethod === 'Till') && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-600 mb-1.5">
+                        {paymentMethod === 'Till' ? 'Phone Number for Till Payment' : 'Phone Number'}
+                      </label>
+                      <div className="relative">
+                        {paymentMethod === 'Till' ? (
+                          <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 text-primary" size={16} />
+                        ) : (
+                          <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-primary" size={16} />
+                        )}
+                        <input
+                          type="tel"
+                          placeholder="Enter your phone number"
+                          name='phoneNumber'
+                          className="w-full h-11 pl-11 pr-4 bg-gray-50 text-gray-700 rounded-lg
+                                    focus:ring-2 focus:ring-primary/20 outline-none text-sm
+                                    border border-gray-200 focus:border-primary/30"
+                          value={phoneNumber}
+                          onChange={handlePhoneChange}
+                        />
+                      </div>
+                      {paymentMethod === 'Till' && (
+                        <p className="text-xs text-gray-500 mt-1">
+                          Till Number: {process.env.NEXT_PUBLIC_KOPOKOPO_TILL_NUMBER}
+                        </p>
+                      )}
                     </div>
-                  </div>
+                  )}
 
                   {paymentMethod === 'Paystack' && (
                     <div>
@@ -382,7 +418,11 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
               <div className="bg-gradient-to-br from-primary to-secondary rounded-lg p-4 mb-4">
                 <div className="text-center">
                   <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <CreditCard size={24} className="text-white" />
+                    {paymentMethod === 'Till' ? (
+                      <Building2 size={24} className="text-white" />
+                    ) : (
+                      <CreditCard size={24} className="text-white" />
+                    )}
                   </div>
                   <div className="text-3xl text-white font-bold mb-1">
                     {selectedAmount ? selectedAmount.toLocaleString() : '0'}
@@ -400,9 +440,9 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
                 </div>
               )}
 
-              {paymentMethod === 'Mpesa' || paymentMethod === 'Paystack' ? (
+              {(paymentMethod === 'Mpesa' || paymentMethod === 'Till' || paymentMethod === 'Paystack') ? (
                 <SubmitButton 
-                  ButtonName={`Complete Payment`}
+                  ButtonName={`Complete ${paymentMethod} Payment`}
                   isLoading={isLoading}
                   onClick={handleSubmit}
                 />

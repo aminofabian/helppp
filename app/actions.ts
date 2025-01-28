@@ -391,3 +391,36 @@ export async function handlePayPalPayment(formData: FormData) {
     return { success: false, message: 'An error occurred while processing the PayPal payment' };
   }
 }
+
+export async function handleTillPayment(formData: FormData) {
+  try {
+    const amount = formData.get('amount');
+    const requestId = formData.get('requestId');
+    const phoneNumber = formData.get('phoneNumber');
+
+    if (!amount || !requestId || !phoneNumber) {
+      return { success: false, message: 'Missing required fields' };
+    }
+
+    const response = await fetch('/api/initiate-till-payment', {
+      method: 'POST',
+      body: JSON.stringify({
+        amount: parseFloat(amount.toString()),
+        requestId,
+        phoneNumber: phoneNumber.toString(),
+      }),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error in handleTillPayment:', error);
+    return {
+      success: false,
+      message: 'Failed to process Till payment',
+    };
+  }
+}
