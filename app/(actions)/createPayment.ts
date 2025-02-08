@@ -6,7 +6,7 @@ export async function createPayment(
   amount: number,
   mpesaReceiptNumber: string,
   phoneNumber: string,
-  transactionDate: Date
+  transactionDate: Date,
 ) {
   return prisma.payment.create({
     data: {
@@ -15,14 +15,13 @@ export async function createPayment(
       resultCode: callbackData.ResultCode.toString(),
       resultDesc: callbackData.ResultDesc,
       amount: amount,
-      userts: new Date(),
       user: { connect: { id: donation.userId } },
       donation: { connect: { id: donation.id } },
       request: { connect: { id: donation.requestId } },
       mpesaReceiptNumber: mpesaReceiptNumber,
       phoneNumber: phoneNumber,
       transactionDate: transactionDate,
-      paymentMethod: callbackData.PaymentMethod // Add this line
+      paymentMethod: callbackData.PaymentMethod
     }
   });
 }
