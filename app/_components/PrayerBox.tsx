@@ -54,6 +54,42 @@ const sparkleVariants = {
   }
 };
 
+const unfoldAnimation = {
+  initial: { 
+    rotateX: 0,
+    transformOrigin: "top",
+    height: "100%",
+  },
+  unfold: {
+    rotateX: [0, -180, -180],
+    transformOrigin: "top",
+    height: ["100%", "100%", "auto"],
+    transition: {
+      duration: 1.2,
+      times: [0, 0.5, 1],
+      ease: "easeInOut"
+    }
+  }
+};
+
+const letterAnimation = {
+  initial: { 
+    y: -50,
+    opacity: 0,
+    scale: 0.9,
+  },
+  animate: {
+    y: 0,
+    opacity: 1,
+    scale: 1,
+    transition: {
+      delay: 0.6,
+      duration: 0.5,
+      ease: "easeOut"
+    }
+  }
+};
+
 export default function PrayerBox() {
   const [prayers, setPrayers] = useState<Prayer[]>([]);
   const [newPrayer, setNewPrayer] = useState('');
@@ -259,77 +295,120 @@ export default function PrayerBox() {
 
               {currentPrayer && !isShuffling && (
                 <motion.div
-                  initial={{ scale: 0.8, opacity: 0, rotateY: 90 }}
-                  animate={{ scale: 1, opacity: 1, rotateY: 0 }}
-                  exit={{ scale: 0.8, opacity: 0, rotateY: -90 }}
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.8, opacity: 0 }}
                   transition={{ duration: 0.5, type: "spring" }}
                   className="relative"
                 >
-                  <Card className="p-8 bg-[url('/old-paper.jpg')] bg-cover">
-                    <div className="absolute inset-0 bg-white/80 backdrop-blur-sm" />
-                    <div className="relative">
+                  <Card className="p-0 overflow-hidden bg-[url('/old-paper.jpg')] bg-cover">
+                    <motion.div
+                      className="absolute inset-0 bg-gradient-to-b from-primary/5 via-primary/10 to-primary/5"
+                      variants={unfoldAnimation}
+                      initial="initial"
+                      animate="unfold"
+                    />
+                    
+                    <motion.div 
+                      className="relative p-8"
+                      variants={letterAnimation}
+                      initial="initial"
+                      animate="animate"
+                    >
+                      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-8">
+                        <motion.div
+                          className="w-full h-full bg-primary/20 rounded-full"
+                          animate={{
+                            scale: [1, 1.2, 1],
+                            opacity: [0.5, 1, 0.5]
+                          }}
+                          transition={{
+                            duration: 2,
+                            repeat: Infinity,
+                            ease: "easeInOut"
+                          }}
+                        />
+                      </div>
+
                       <button
                         onClick={() => setCurrentPrayer(null)}
                         className="absolute -top-2 -right-2 w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center hover:bg-primary/20"
                       >
                         <X className="h-4 w-4" />
                       </button>
-                      <h4 className="font-serif text-xl mb-4">{currentPrayer.title}</h4>
-                      <p className="font-serif text-lg leading-relaxed mb-6">{currentPrayer.content}</p>
-                      {currentPrayer.isMonetary && (
-                        <motion.div 
-                          initial={{ y: 10, opacity: 0 }}
+
+                      <div className="pt-6">
+                        <motion.div
+                          initial={{ y: 20, opacity: 0 }}
                           animate={{ y: 0, opacity: 1 }}
-                          className="mb-6 p-6 bg-gradient-to-r from-primary/10 via-primary/5 to-primary/10 rounded-xl border border-primary/20 backdrop-blur-sm"
+                          transition={{ delay: 0.8 }}
                         >
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <div className="relative">
-                                <Coins className="h-6 w-6 text-primary" />
-                                <motion.div
-                                  className="absolute -top-1 -right-1 w-2 h-2 bg-primary rounded-full"
-                                  animate={{
-                                    scale: [1, 1.5, 1],
-                                    opacity: [0.5, 1, 0.5]
-                                  }}
-                                  transition={{
-                                    duration: 2,
-                                    repeat: Infinity,
-                                    ease: "easeInOut"
-                                  }}
-                                />
-                              </div>
-                              <span className="font-serif text-primary/70">Support Needed</span>
-                            </div>
-                            <motion.div
-                              initial={{ scale: 0.9 }}
-                              animate={{ scale: 1 }}
-                              className="flex items-baseline gap-2"
-                            >
-                              <span className="text-sm font-serif text-primary/70">KES</span>
-                              <span className="text-2xl font-bold font-serif text-primary">{currentPrayer.amount?.toLocaleString()}</span>
-                            </motion.div>
-                          </div>
+                          <h4 className="font-serif text-xl mb-4">{currentPrayer.title}</h4>
+                          <p className="font-serif text-lg leading-relaxed mb-6">{currentPrayer.content}</p>
                         </motion.div>
-                      )}
-                      <div className="flex gap-4">
-                        <Button 
-                          onClick={() => handleAnswer('accept')} 
-                          className="flex-1 bg-primary/90 hover:bg-primary font-serif text-lg py-6"
+
+                        {currentPrayer.isMonetary && (
+                          <motion.div 
+                            initial={{ y: 20, opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            transition={{ delay: 1 }}
+                            className="mb-6 p-6 bg-gradient-to-r from-primary/10 via-primary/5 to-primary/10 rounded-xl border border-primary/20 backdrop-blur-sm"
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <div className="relative">
+                                  <Coins className="h-6 w-6 text-primary" />
+                                  <motion.div
+                                    className="absolute -top-1 -right-1 w-2 h-2 bg-primary rounded-full"
+                                    animate={{
+                                      scale: [1, 1.5, 1],
+                                      opacity: [0.5, 1, 0.5]
+                                    }}
+                                    transition={{
+                                      duration: 2,
+                                      repeat: Infinity,
+                                      ease: "easeInOut"
+                                    }}
+                                  />
+                                </div>
+                                <span className="font-serif text-primary/70">Support Needed</span>
+                              </div>
+                              <motion.div
+                                initial={{ scale: 0.9 }}
+                                animate={{ scale: 1 }}
+                                className="flex items-baseline gap-2"
+                              >
+                                <span className="text-sm font-serif text-primary/70">KES</span>
+                                <span className="text-2xl font-bold font-serif text-primary">{currentPrayer.amount?.toLocaleString()}</span>
+                              </motion.div>
+                            </div>
+                          </motion.div>
+                        )}
+
+                        <motion.div 
+                          className="flex gap-4"
+                          initial={{ y: 20, opacity: 0 }}
+                          animate={{ y: 0, opacity: 1 }}
+                          transition={{ delay: 1.2 }}
                         >
-                          <Heart className="mr-2 h-5 w-5" />
-                          I'll Help
-                        </Button>
-                        <Button 
-                          onClick={() => handleAnswer('impossible')} 
-                          variant="outline" 
-                          className="flex-1 font-serif text-lg py-6 border-2"
-                        >
-                          <Ban className="mr-2 h-5 w-5" />
-                          Mark Impossible
-                        </Button>
+                          <Button 
+                            onClick={() => handleAnswer('accept')} 
+                            className="flex-1 bg-primary/90 hover:bg-primary font-serif text-lg py-6"
+                          >
+                            <Heart className="mr-2 h-5 w-5" />
+                            I'll Help
+                          </Button>
+                          <Button 
+                            onClick={() => handleAnswer('impossible')} 
+                            variant="outline" 
+                            className="flex-1 font-serif text-lg py-6 border-2"
+                          >
+                            <Ban className="mr-2 h-5 w-5" />
+                            Mark Impossible
+                          </Button>
+                        </motion.div>
                       </div>
-                    </div>
+                    </motion.div>
                   </Card>
                 </motion.div>
               )}
