@@ -1,9 +1,7 @@
-
+// This is your Prisma schema file
 datasource db {
-  provider          = "postgresql"
-  url               = env("DATABASE_URL")
-  directUrl         = env("DIRECT_URL")
-  relationMode      = "prisma"
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 generator client {
@@ -11,324 +9,288 @@ generator client {
 }
 
 model User {
-  id                String @id @default(uuid())
-  email             String @unique
-  firstName         String
-  lastName          String
-  phone             String? 
-  imageUrl          String?
-  userName          String @unique
-  createdCommunities Community[]
-  memberships       CommunityMember[]
-  Comment           Comment[]
-  giverTransactions     Transaction[] @relation("GiverRelation")
-  receiverTransactions  Transaction[] @relation("ReceiverRelation")
-  wallet            Wallet?
-  payments          Payment[]
-  donations         Donation[]
-  requests          Request[]
-  love              Vote[]
-  points            Points[]
-  level             Int      @default(1)
-  recievedNotifications Notification[] @relation("Recepient")
-  issuedNotifications   Notification[] @relation("Issuer")
-  createdAt         DateTime @default(now())
-  totalDonated      Float @default(0)
-  donationCount     Int @default(0)
-  Circle            Circle[]
-  CircleMember      CircleMember[]
-  CircleContribution CircleContribution[]
-  CircleHelpRequest CircleHelpRequest[]
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
-  @@map("users")
-  @@index([id]) // Add this line to create an index on id
+  // Auth
+  password      String?   // Hashed password for email/password auth
+  accounts      Account[]
+  sessions      Session[]
+
+  // Profile
+  bio           String?   @db.Text
+  location      String?
+  faith         String?
+  
+  // Relations
+  prayers       Prayer[]  @relation("CreatedPrayers")
+  answers       Prayer[]  @relation("AnsweredPrayers")
+  payments      Payment[]
+  communities   CommunityMember[]
+  testimonies   Testimony[]
+
+  // Stats
+  prayersAnswered Int     @default(0)
+  prayersCreated  Int     @default(0)
+  totalDonated    Decimal @default(0) @db.Decimal(10, 2)
+  totalReceived   Decimal @default(0) @db.Decimal(10, 2)
+
+  // Notifications
+  notifications  Notification[]
+  notificationSettings NotificationSettings?
 }
 
-model Community {
-  id          String @id @default(uuid())
-  name        String @unique
-  description String?
-  creatorId String?
-  User                User?     @relation(fields: [userId], references: [id])  
-  userId              String?
-  requests     Request[]
-  memberships CommunityMember[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  totalDonations Float @default(0) 
-  successfulRequests Int @default(0) 
+model Prayer {
+  id          String    @id @default(cuid())
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
-  @@index([userId]) // Add this line to create an index on userId
-}
-
-model CommunityMember {
-  id          String   @id @default(uuid())
-  userId      String
-  communityId String
-  user        User     @relation(fields: [userId], references: [id])
-  community   Community @relation(fields: [communityId], references: [id])
-  createdAt   DateTime @default(now())
-  totalDonated Float @default(0)
-
-  @@unique([userId, communityId])
-  @@index([userId]) // Add this line to create an index on userId
-  @@index([communityId]) // Add this line to create an index on communityId
-}
-
-model Request {
-  id          String @id @default(uuid())
-  title String
-  textContent Json?
-  imageString String?
-  deadline DateTime @default(now()) 
-  donations Donation[]
-  payments Payment[]
-  amount Int
-  pointsUsed Float
-  Comment Comment[]
-  Community Community? @relation(fields: [communityName], references: [name])
-  communityName String?
-  User  User? @relation(fields: [userId], references: [id])
-  userId String
-  Vote Vote[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  linkedNotifications Notification[]
-  status String? 
-
-  @@index([userId]) // Add this line to create an index on userId
-  @@index([communityName]) // Add this line to create an index on communityName
-}
-
-enum TypeOfVote {
-  LOVE
-  SUSPISION
-}
-
-model Vote {
-  id String @id @default(uuid())
-
-  Request Request? @relation(fields: [requestId], references: [id])
-  requestId String
-
-  User User? @relation(fields: [userId], references: [id])
-  userId String
-
-  voteType TypeOfVote
-
-  @@index([requestId]) 
-  @@index([userId]) 
-  @@map("votes")
-}
-
-model Comment {
-  id String @id @default(uuid())
-  text String
-  createdAt DateTime @default(now())
-
-  User User? @relation(fields: [userId], references: [id])
-  userId String?
-
-  Request  Request? @relation(fields: [requestId], references: [id])
-  requestId String? 
-
-  @@index([userId]) // Add this line to create an index on userId
-  @@index([requestId]) // Add this line to create an index on requestId
-}
-
-model Donation {
-  id        String   @id @default(cuid())
-  User      User?    @relation(fields: [userId], references: [id])
-  userId    String
-  Request   Request? @relation(fields: [requestId], references: [id])
-  requestId String
-  amount    Float
-  createdAt DateTime @default(now())
-  phoneNumber String?
-  payment   Payment?
-  invoice   String
-  status    String
-  mpesaReceiptNumber String?
-  transactionDate    DateTime?
-  linkedNotifications Notification[]
-
-  @@index([userId]) // Add this line to create an index on userId
-  @@index([requestId]) // Add this line to create an index on requestId
-}
-
-model Transaction {
-  id         String   @id @default(cuid())
-  giver      User     @relation(name: "GiverRelation", fields: [giverId], references: [id])
-  giverId    String
-  receiver   User     @relation(name: "ReceiverRelation", fields: [receiverId], references: [id])
-  receiverId String
-  amount     Float
-  timestamp  DateTime @default(now())
-
-  @@index([giverId]) // Add this line to create an index on giverId
-  @@index([receiverId]) // Add this line to create an index on receiverId
-}
-
-model Wallet {
-  id        String   @id @default(cuid())
-  user      User?    @relation(fields: [userId], references: [id])
-  userId    String @unique
-  balance   Float    @default(0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([userId]) // Add this line to create an index on userId
+  // Content
+  title       String
+  content     String    @db.Text
+  isAnonymous Boolean   @default(false)
+  
+  // Status
+  status      PrayerStatus @default(PENDING)
+  isOpen      Boolean   @default(true)
+  
+  // Financial
+  isMonetary  Boolean   @default(false)
+  amount      Decimal?  @db.Decimal(10, 2)
+  currency    String?
+  
+  // Relations
+  creator     User      @relation("CreatedPrayers", fields: [creatorId], references: [id])
+  creatorId   String
+  answeredBy  User?     @relation("AnsweredPrayers", fields: [answeredById], references: [id])
+  answeredById String?
+  
+  // Community
+  community   Community? @relation(fields: [communityId], references: [id])
+  communityId String?
+  
+  // Related records
+  payments    Payment[]
+  testimonies Testimony[]
+  tags        PrayerTag[]
+  updates     PrayerUpdate[]
+  
+  // Engagement metrics
+  viewCount   Int       @default(0)
+  prayerCount Int       @default(0) // Number of people who prayed
+  
+  @@index([status])
+  @@index([creatorId])
+  @@index([communityId])
 }
 
 model Payment {
-  id                 String   @id @default(cuid())
-  merchantRequestID  String
-  checkoutRequestID  String
-  resultCode         String
-  resultDesc         String
-  amount             Float
-  userts             DateTime
-  user               User     @relation(fields: [userId], references: [id])
-  userId             String
-  request            Request? @relation(fields: [requestId], references: [id])
-  requestId          String?
-  donation           Donation? @relation(fields: [donationId], references: [id])
-  donationId         String?   @unique
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
-  points             Points?
-  mpesaReceiptNumber String?
-  phoneNumber        String?
-  transactionDate    DateTime?
-  paymentMethod      PaymentMethod
+  id          String    @id @default(cuid())
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
-  @@index([userId]) 
-  @@index([requestId]) 
-  @@index([paymentMethod])
+  // Payment details
+  amount      Decimal   @db.Decimal(10, 2)
+  currency    String
+  status      PaymentStatus @default(PENDING)
+  method      PaymentMethod
+  
+  // Transaction details
+  transactionId String?  @unique // External payment provider transaction ID
+  metadata    Json?     // Additional payment provider metadata
+  
+  // Relations
+  prayer      Prayer    @relation(fields: [prayerId], references: [id])
+  prayerId    String
+  sender      User      @relation(fields: [senderId], references: [id])
+  senderId    String
+  
+  // Receipt/Invoice
+  receiptUrl  String?
+  description String?   @db.Text
+
+  @@index([status])
+  @@index([prayerId])
+  @@index([senderId])
+}
+
+model Community {
+  id          String    @id @default(cuid())
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Basic info
+  name        String
+  description String?   @db.Text
+  image       String?
+  slug        String    @unique
+  
+  // Settings
+  isPrivate   Boolean   @default(false)
+  guidelines  String?   @db.Text
+  
+  // Relations
+  members     CommunityMember[]
+  prayers     Prayer[]
+  
+  // Stats
+  memberCount Int       @default(0)
+  prayerCount Int       @default(0)
+}
+
+model CommunityMember {
+  id          String    @id @default(cuid())
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  role        CommunityRole @default(MEMBER)
+  community   Community @relation(fields: [communityId], references: [id])
+  communityId String
+  user        User      @relation(fields: [userId], references: [id])
+  userId      String
+
+  @@unique([communityId, userId])
+}
+
+model Testimony {
+  id          String    @id @default(cuid())
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  content     String    @db.Text
+  isAnonymous Boolean   @default(false)
+  
+  prayer      Prayer    @relation(fields: [prayerId], references: [id])
+  prayerId    String
+  user        User      @relation(fields: [userId], references: [id])
+  userId      String
+}
+
+model PrayerTag {
+  id          String    @id @default(cuid())
+  name        String
+  prayer      Prayer    @relation(fields: [prayerId], references: [id])
+  prayerId    String
+
+  @@unique([prayerId, name])
+}
+
+model PrayerUpdate {
+  id          String    @id @default(cuid())
+  createdAt   DateTime  @default(now())
+  content     String    @db.Text
+  prayer      Prayer    @relation(fields: [prayerId], references: [id])
+  prayerId    String
+}
+
+model Notification {
+  id          String    @id @default(cuid())
+  createdAt   DateTime  @default(now())
+  
+  type        NotificationType
+  title       String
+  content     String
+  isRead      Boolean   @default(false)
+  
+  user        User      @relation(fields: [userId], references: [id])
+  userId      String
+  
+  // Optional link to related records
+  prayerId    String?
+  paymentId   String?
+  
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model NotificationSettings {
+  id                String    @id @default(cuid())
+  user              User      @relation(fields: [userId], references: [id])
+  userId            String    @unique
+  
+  emailNotifications Boolean  @default(true)
+  pushNotifications  Boolean  @default(true)
+  prayerUpdates     Boolean  @default(true)
+  paymentUpdates    Boolean  @default(true)
+  communityUpdates  Boolean  @default(true)
+}
+
+// Auth related models (for NextAuth.js)
+model Account {
+  id                 String  @id @default(cuid())
+  userId             String
+  type               String
+  provider           String
+  providerAccountId  String
+  refresh_token      String?  @db.Text
+  access_token       String?  @db.Text
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String?  @db.Text
+  session_state      String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+enum PrayerStatus {
+  PENDING
+  ANSWERED
+  IMPOSSIBLE
+  CLOSED
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  REFUNDED
 }
 
 enum PaymentMethod {
   MPESA
-  PAYSTACK
-  PAYPAL
+  BANK_TRANSFER
+  CARD
+  OTHER
 }
 
-
-model Points {
-  id        String   @id @default(cuid())
-  user      User     @relation(fields: [userId], references: [id])
-  userId    String
-  amount    Int      
-  payment   Payment  @relation(fields: [paymentId], references: [id])
-  paymentId String   @unique
-  createdAt DateTime @default(now())
-
-  @@index([userId]) 
-}
-
-model Notification {
-  id        String   @id @default(cuid())
-  recipientId String
-  recipient User @relation("Recepient", fields: [recipientId], references: [id], onDelete: Cascade)
-  issuerId String
-  issuer User @relation("Issuer", fields: [issuerId], references: [id], onDelete: Cascade)
-  requestId String?
-  request Request? @relation(fields: [requestId], references: [id], onDelete: Cascade)
-  type NotificationType
-  read Boolean @default(false)
-  createdAt DateTime @default(now())
-  donationId String?
-  donation Donation? @relation(fields: [donationId], references: [id], onDelete: Cascade)
-
-  @@map("notifications")
-  @@index([recipientId]) 
-  @@index([issuerId]) 
-  @@index([requestId]) 
-  @@index([donationId]) 
-
+enum CommunityRole {
+  MEMBER
+  MODERATOR
+  ADMIN
 }
 
 enum NotificationType {
-  LIKE
-  COMMENT
-  NEWREQUEST
-  DONATION
-  JOIN
-  FOLLOW
-}
-
-model Circle {
-  id          String   @id @default(uuid())
-  name        String
-  description String?
-  ownerId     String
-  owner       User     @relation(fields: [ownerId], references: [id])
-  members     CircleMember[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  helpRequests CircleHelpRequest[]
-  contributions CircleContribution[]
-
-  @@index([ownerId]) // Add this line to create an index on ownerId
-}
-
-model CircleMember {
-  id        String   @id @default(uuid())
-  circleId  String
-  userId    String
-  circle    Circle   @relation(fields: [circleId], references: [id])
-  user      User     @relation(fields: [userId], references: [id])
-  createdAt DateTime @default(now())
-  
-  @@unique([circleId, userId])
-}
-
-
-model CircleHelpRequest {
-  id          String   @id @default(uuid())
-  circleId    String
-  circle      Circle   @relation(fields: [circleId], references: [id])
-  requesterId String
-  requester   User     @relation(fields: [requesterId], references: [id])
-  title       String
-  description String
-  amount      Float?
-  status      RequestStatus @default(PENDING)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@index([circleId])
-  @@index([requesterId])
-}
-
-model CircleContribution {
-  id        String   @id @default(uuid())
-  circleId  String
-  circle    Circle   @relation(fields: [circleId], references: [id])
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  amount    Float
-  createdAt DateTime @default(now())
-
-  @@index([circleId])
-  @@index([userId])
-}
-
-enum CircleStatus {
-  ACTIVE
-  INACTIVE
-  ARCHIVED
-}
-
-enum CircleRole {
-  ADMIN
-  MODERATOR
-  MEMBER
-}
-
-enum RequestStatus {
-  PENDING
-  APPROVED
-  REJECTED
-  FULFILLED
+  PRAYER_ANSWERED
+  PRAYER_UPDATE
+  PAYMENT_RECEIVED
+  PAYMENT_SENT
+  PAYMENT_FAILED
+  NEW_TESTIMONY
+  COMMUNITY_UPDATE
+  SYSTEM
 }
