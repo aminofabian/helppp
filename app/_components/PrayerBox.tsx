@@ -95,12 +95,19 @@ const letterAnimation = {
 };
 
 const CURRENCIES = [
-  { value: 'KES', label: 'Kenyan Shilling (KES)', symbol: 'KSh' },
-  { value: 'TZS', label: 'Tanzanian Shilling (TZS)', symbol: 'TSh' },
-  { value: 'NGN', label: 'Nigerian Naira (NGN)', symbol: '₦' },
-  { value: 'UGX', label: 'Ugandan Shilling (UGX)', symbol: 'USh' },
-  { value: 'RWF', label: 'Rwandan Franc (RWF)', symbol: 'RF' },
-  { value: 'ETB', label: 'Ethiopian Birr (ETB)', symbol: 'Br' },
+  // African Currencies
+  { value: 'KES', label: 'Kenyan Shilling', symbol: 'KSh', group: 'Africa' },
+  { value: 'TZS', label: 'Tanzanian Shilling', symbol: 'TSh', group: 'Africa' },
+  { value: 'NGN', label: 'Nigerian Naira', symbol: '₦', group: 'Africa' },
+  { value: 'UGX', label: 'Ugandan Shilling', symbol: 'USh', group: 'Africa' },
+  { value: 'RWF', label: 'Rwandan Franc', symbol: 'RF', group: 'Africa' },
+  { value: 'ETB', label: 'Ethiopian Birr', symbol: 'Br', group: 'Africa' },
+  // International Currencies
+  { value: 'USD', label: 'US Dollar', symbol: '$', group: 'International' },
+  { value: 'EUR', label: 'Euro', symbol: '€', group: 'International' },
+  { value: 'GBP', label: 'British Pound', symbol: '£', group: 'International' },
+  { value: 'AUD', label: 'Australian Dollar', symbol: 'A$', group: 'International' },
+  { value: 'CAD', label: 'Canadian Dollar', symbol: 'C$', group: 'International' },
 ] as const;
 
 export default function PrayerBox() {
@@ -108,7 +115,7 @@ export default function PrayerBox() {
   const [newPrayer, setNewPrayer] = useState('');
   const [title, setTitle] = useState('');
   const [currentPrayer, setCurrentPrayer] = useState<Prayer | null>(null);
-  const [isMonetary, setIsMonetary] = useState(false);
+  const [isMonetary, setIsMonetary] = useState(true);
   const [amount, setAmount] = useState('');
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('');
@@ -289,54 +296,93 @@ export default function PrayerBox() {
                   className="space-y-4"
                 >
                   <div className="relative">
-                    <div className="absolute inset-0 bg-gradient-to-r from-[#ffd700]/5 via-[#ffd700]/10 to-[#ffd700]/5 rounded-lg -m-1 blur-sm" />
-                    <div className="relative bg-white/5 rounded-lg p-4 border border-[#ffd700]/20">
-                      <div className="flex flex-col space-y-4">
-                        <div className="flex items-center gap-2">
-                          <Coins className="h-5 w-5 text-[#ffd700]" />
-                          <span className="font-serif text-[#ffd700]/80">Financial Support Details</span>
+                    <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 rounded-lg -m-1 blur-sm" />
+                    <div className="relative bg-white/5 rounded-lg p-6 border border-primary/20">
+                      <div className="flex flex-col space-y-6">
+                        <div className="flex items-center gap-3">
+                          <div className="relative">
+                            <Coins className="h-6 w-6 text-primary" />
+                            <motion.div
+                              className="absolute -top-1 -right-1 w-2 h-2 bg-primary rounded-full"
+                              animate={{
+                                scale: [1, 1.5, 1],
+                                opacity: [0.5, 1, 0.5]
+                              }}
+                              transition={{
+                                duration: 2,
+                                repeat: Infinity,
+                                ease: "easeInOut"
+                              }}
+                            />
+                          </div>
+                          <span className="font-serif text-primary/90 text-lg">Financial Support Details</span>
                         </div>
                         
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label htmlFor="currency" className="text-sm text-[#ffd700]/60">Currency</Label>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div className="space-y-3">
+                            <Label htmlFor="currency" className="text-sm text-primary/80 font-medium">Select Currency</Label>
                             <Select 
                               value={selectedCurrency} 
                               onValueChange={(value: Currency) => setSelectedCurrency(value)}
                             >
-                              <SelectTrigger className="w-full bg-white/5 border-[#ffd700]/20 focus:ring-[#ffd700]/20">
+                              <SelectTrigger 
+                                className="w-full bg-white/10 border-primary/20 focus:ring-primary/20 hover:bg-white/20 transition-colors"
+                              >
                                 <SelectValue placeholder="Select currency" />
                               </SelectTrigger>
-                              <SelectContent>
-                                {CURRENCIES.map((currency) => (
-                                  <SelectItem 
-                                    key={currency.value} 
-                                    value={currency.value}
-                                    className="font-serif"
-                                  >
-                                    {currency.label}
-                                  </SelectItem>
+                              <SelectContent className="max-h-[300px]">
+                                {Array.from(new Set(CURRENCIES.map(c => c.group))).map(group => (
+                                  <div key={group} className="px-2 py-1.5">
+                                    <div className="text-sm font-medium text-primary/60 mb-1">{group}</div>
+                                    {CURRENCIES.filter(c => c.group === group).map((currency) => (
+                                      <SelectItem 
+                                        key={currency.value} 
+                                        value={currency.value}
+                                        className="font-serif hover:bg-primary/10"
+                                      >
+                                        <div className="flex items-center gap-2">
+                                          <span className="text-primary/90">{currency.symbol}</span>
+                                          <span>{currency.label}</span>
+                                        </div>
+                                      </SelectItem>
+                                    ))}
+                                  </div>
                                 ))}
                               </SelectContent>
                             </Select>
                           </div>
                           
-                          <div className="space-y-2">
-                            <Label htmlFor="amount" className="text-sm text-[#ffd700]/60">Amount</Label>
+                          <div className="space-y-3">
+                            <Label htmlFor="amount" className="text-sm text-primary/80 font-medium">Enter Amount</Label>
                             <div className="relative">
-                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#ffd700]/40">
-                                {CURRENCIES.find(c => c.value === selectedCurrency)?.symbol}
-                              </span>
+                              <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+                                <span className="text-primary/60 font-medium">
+                                  {CURRENCIES.find(c => c.value === selectedCurrency)?.symbol}
+                                </span>
+                                <div className="h-4 w-px bg-primary/20" />
+                              </div>
                               <Input
                                 id="amount"
                                 type="number"
                                 placeholder="0.00"
                                 value={amount}
                                 onChange={(e) => setAmount(e.target.value)}
-                                className="pl-12 w-full bg-white/5 border-[#ffd700]/20 font-serif focus:ring-[#ffd700]/20"
+                                className="pl-12 w-full bg-white/10 border-primary/20 font-serif focus:ring-primary/20 hover:bg-white/20 transition-colors"
                               />
+                              <motion.div
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-primary/40"
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                transition={{ delay: 0.2 }}
+                              >
+                                {selectedCurrency}
+                              </motion.div>
                             </div>
                           </div>
+                        </div>
+
+                        <div className="text-xs text-primary/40 italic mt-2">
+                          * All transactions are secure and encrypted
                         </div>
                       </div>
                     </div>
@@ -490,14 +536,14 @@ export default function PrayerBox() {
                             initial={{ y: 20, opacity: 0 }}
                             animate={{ y: 0, opacity: 1 }}
                             transition={{ delay: 1 }}
-                            className="mb-6 p-6 bg-gradient-to-r from-[#ffd700]/10 via-[#ffd700]/5 to-[#ffd700]/10 rounded-xl border border-[#ffd700]/20 backdrop-blur-sm"
+                            className="mb-6 p-6 bg-gradient-to-r from-primary/10 via-primary/5 to-primary/10 rounded-xl border border-primary/20 backdrop-blur-sm"
                           >
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-3">
                                 <div className="relative">
-                                  <Coins className="h-6 w-6 text-[#ffd700]" />
+                                  <Coins className="h-6 w-6 text-primary" />
                                   <motion.div
-                                    className="absolute -top-1 -right-1 w-2 h-2 bg-[#ffd700] rounded-full"
+                                    className="absolute -top-1 -right-1 w-2 h-2 bg-primary rounded-full"
                                     animate={{
                                       scale: [1, 1.5, 1],
                                       opacity: [0.5, 1, 0.5]
@@ -509,14 +555,19 @@ export default function PrayerBox() {
                                     }}
                                   />
                                 </div>
-                                <span className="font-serif text-[#ffd700]/70">Support Needed</span>
+                                <div className="flex flex-col">
+                                  <span className="font-serif text-primary/90">Support Needed</span>
+                                  <span className="text-xs text-primary/50">
+                                    {CURRENCIES.find(c => c.value === currentPrayer.currency)?.label}
+                                  </span>
+                                </div>
                               </div>
                               <motion.div
                                 initial={{ scale: 0.9 }}
                                 animate={{ scale: 1 }}
                                 className="flex items-baseline gap-2"
                               >
-                                <span className="text-2xl font-bold font-serif text-[#ffd700]">
+                                <span className="text-3xl font-bold font-serif text-primary">
                                   {formatAmount(currentPrayer.amount, currentPrayer.currency)}
                                 </span>
                               </motion.div>
