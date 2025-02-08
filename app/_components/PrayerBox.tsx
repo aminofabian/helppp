@@ -730,7 +730,7 @@ export default function PrayerBox() {
               )}
             </AnimatePresence>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3 mt-8">
+            <div className="grid grid-cols-4 sm:grid-cols-8 md:grid-cols-12 gap-2 mt-8">
               {prayers.map((prayer, index) => (
                 <motion.div
                   key={prayer.id}
@@ -752,24 +752,24 @@ export default function PrayerBox() {
                     animate={{ scale: [0.95, 1.05, 0.95] }}
                     transition={{ duration: 4, repeat: Infinity }}
                   />
-                  <Card className={`p-3 ${prayer.isOpen ? 'bg-secondary/50' : 'bg-[url(/envelope.jpg)] bg-cover'} relative overflow-hidden h-16`}>
+                  <Card className={`p-1.5 ${prayer.isOpen ? 'bg-secondary/50' : 'bg-[url(/envelope.jpg)] bg-cover'} relative overflow-hidden h-8`}>
                     <div className="absolute inset-0 bg-gradient-to-br from-white/40 via-transparent to-white/40 opacity-50" />
                     <div className="relative z-10 flex items-center justify-between h-full">
-                      <Mail className={`h-5 w-5 ${prayer.isOpen ? 'text-primary/50' : 'text-primary'}`} />
-                      <span className="font-serif text-lg text-primary/70">#{index + 1}</span>
+                      <Mail className={`h-3 w-3 ${prayer.isOpen ? 'text-primary/50' : 'text-primary'}`} />
+                      <span className="font-serif text-xs text-primary/70">#{index + 1}</span>
                       {prayer.isMonetary && (
                         <motion.div
                           variants={sparkleVariants}
                           initial="initial"
                           animate="animate"
-                          className="absolute -top-1 -right-1"
+                          className="absolute -top-0.5 -right-0.5"
                         >
-                          <Sparkle className="h-3 w-3 text-primary" />
+                          <Sparkle className="h-2 w-2 text-primary" />
                         </motion.div>
                       )}
                     </div>
                     {prayer.isOpen && (
-                      <span className="text-[10px] font-serif text-primary absolute bottom-1 left-3 z-10">Answered</span>
+                      <span className="text-[8px] font-serif text-primary absolute bottom-0.5 left-1.5 z-10">Answered</span>
                     )}
                   </Card>
                 </motion.div>
