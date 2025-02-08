@@ -114,6 +114,15 @@ model Payment {
   receiptUrl  String?
   description String?   @db.Text
 
+  // M-Pesa specific fields
+  merchantRequestID   String?
+  checkoutRequestID   String?
+  resultCode         String?
+  resultDesc         String?
+  mpesaReceiptNumber String?
+  phoneNumber        String?
+  transactionDate    DateTime?
+
   @@index([status])
   @@index([prayerId])
   @@index([senderId])
