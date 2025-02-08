@@ -106,11 +106,13 @@ export default function PrayerBox() {
       return;
     }
     
-    setPrayers(prayers.map(p => 
-      p.id === currentPrayer.id 
-        ? { ...p, isOpen: true }
-        : p
-    ));
+    if (answer === 'accept') {
+      setPrayers(prayers.map(p => 
+        p.id === currentPrayer.id 
+          ? { ...p, isOpen: true }
+          : p
+      ));
+    }
     setCurrentPrayer(null);
   };
 
