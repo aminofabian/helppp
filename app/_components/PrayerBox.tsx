@@ -696,8 +696,9 @@ export default function PrayerBox() {
                   />
                   <Card className={`p-6 ${prayer.isOpen ? 'bg-secondary/50' : 'bg-[url(/envelope.jpg)] bg-cover'} relative overflow-hidden`}>
                     <div className="absolute inset-0 bg-gradient-to-br from-white/40 via-transparent to-white/40 opacity-50" />
-                    <div className="relative z-10">
-                      <Mail className={`h-8 w-8 mb-3 ${prayer.isOpen ? 'text-primary/50' : 'text-primary'}`} />
+                    <div className="relative z-10 flex items-center justify-between">
+                      <Mail className={`h-8 w-8 ${prayer.isOpen ? 'text-primary/50' : 'text-primary'}`} />
+                      <span className="font-serif text-2xl text-primary/70">#{index + 1}</span>
                       {prayer.isMonetary && (
                         <motion.div
                           variants={sparkleVariants}
@@ -709,9 +710,8 @@ export default function PrayerBox() {
                         </motion.div>
                       )}
                     </div>
-                    <h4 className="font-serif text-lg truncate relative z-10">{prayer.title}</h4>
                     {prayer.isOpen && (
-                      <span className="text-sm font-serif text-primary mt-2 block relative z-10">Prayer Answered</span>
+                      <span className="text-sm font-serif text-primary mt-4 block relative z-10">Prayer Answered</span>
                     )}
                   </Card>
                 </motion.div>
