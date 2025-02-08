@@ -227,10 +227,40 @@ export default function PrayerBox() {
                     <h4 className="font-semibold mb-2">{currentPrayer.title}</h4>
                     <p className="mb-4">{currentPrayer.content}</p>
                     {currentPrayer.isMonetary && (
-                      <div className="mb-4 p-2 bg-primary/10 rounded-lg flex items-center gap-2">
-                        <Coins className="h-4 w-4 text-primary" />
-                        <span>Financial support needed: KES {currentPrayer.amount}</span>
-                      </div>
+                      <motion.div 
+                        initial={{ y: 10, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        className="mb-4 p-4 bg-gradient-to-r from-primary/10 via-primary/5 to-primary/10 rounded-lg border border-primary/20 backdrop-blur-sm"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div className="relative">
+                              <Coins className="h-5 w-5 text-primary" />
+                              <motion.div
+                                className="absolute -top-1 -right-1 w-2 h-2 bg-primary rounded-full"
+                                animate={{
+                                  scale: [1, 1.2, 1],
+                                  opacity: [0.5, 1, 0.5]
+                                }}
+                                transition={{
+                                  duration: 2,
+                                  repeat: Infinity,
+                                  ease: "easeInOut"
+                                }}
+                              />
+                            </div>
+                            <span className="text-sm text-muted-foreground">Support Needed</span>
+                          </div>
+                          <motion.div
+                            initial={{ scale: 0.9 }}
+                            animate={{ scale: 1 }}
+                            className="flex items-baseline gap-1"
+                          >
+                            <span className="text-xs text-primary/70">KES</span>
+                            <span className="text-xl font-bold text-primary">{currentPrayer.amount?.toLocaleString()}</span>
+                          </motion.div>
+                        </div>
+                      </motion.div>
                     )}
                     <div className="flex gap-2">
                       <Button onClick={() => handleAnswer('accept')} className="flex-1">
