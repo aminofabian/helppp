@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mail, Send, X, Heart, Ban, DollarSign, Sparkles, Coins, PenTool } from 'lucide-react';
+import { Mail, Send, X, Heart, Ban, DollarSign, Sparkles, Coins, PenTool, Star, Sparkle } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -186,20 +186,57 @@ export default function PrayerBox() {
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.5 }}
       >
-        <Card className="p-8 relative overflow-hidden bg-[url('/old-paper.jpg')] bg-cover">
-          <div className="absolute inset-0 bg-gradient-to-b from-white/80 via-white/60 to-white/80 backdrop-blur-sm" />
+        <Card className="p-8 relative overflow-hidden bg-gradient-to-br from-[#1a237e]/10 via-[#311b92]/5 to-[#4a148c]/10">
+          <div className="absolute inset-0 bg-[url('/stardust.png')] opacity-20" />
+          <div className="absolute inset-0 bg-gradient-to-b from-white/40 via-white/20 to-white/40 backdrop-blur-[2px]" />
+          
+          {/* Floating stars */}
+          <div className="absolute inset-0 overflow-hidden">
+            {[...Array(5)].map((_, i) => (
+              <motion.div
+                key={i}
+                className="absolute"
+                initial={{ 
+                  x: Math.random() * 100 + "%", 
+                  y: Math.random() * 100 + "%",
+                  scale: 0
+                }}
+                animate={{ 
+                  scale: [0, 1, 0],
+                  opacity: [0, 1, 0]
+                }}
+                transition={{
+                  duration: 3,
+                  delay: i * 0.5,
+                  repeat: Infinity,
+                  repeatType: "loop"
+                }}
+              >
+                <Star className="h-4 w-4 text-primary/30" />
+              </motion.div>
+            ))}
+          </div>
+
           <motion.div
             className="absolute -top-4 -right-4 text-primary/10 z-0"
             initial={{ scale: 0, rotate: 0 }}
-            animate={{ scale: 1, rotate: 360 }}
-            transition={{ duration: 2, repeat: Infinity, repeatType: "reverse" }}
+            animate={{ 
+              scale: [1, 1.2, 1],
+              rotate: 360,
+              opacity: [0.1, 0.3, 0.1]
+            }}
+            transition={{ 
+              duration: 10,
+              repeat: Infinity,
+              repeatType: "reverse"
+            }}
           >
-            <PenTool className="w-20 h-20" />
+            <Sparkle className="w-20 h-20" />
           </motion.div>
           
           <form onSubmit={handleSubmit} className="space-y-4 relative z-10">
             <div className="space-y-4">
-              <h3 className="text-2xl font-serif text-center">Write Your Prayer</h3>
+              <h3 className="text-2xl font-serif text-center bg-clip-text text-transparent bg-gradient-to-r from-primary via-primary/80 to-primary">Write Your Prayer</h3>
               <Input
                 placeholder="Prayer Title"
                 value={title}
@@ -253,17 +290,45 @@ export default function PrayerBox() {
         transition={{ duration: 0.5, delay: 0.2 }}
       >
         <Card className="relative overflow-hidden">
-          <div className="absolute inset-0 bg-[url('/wooden-texture.jpg')] bg-cover opacity-30" />
+          <div className="absolute inset-0 bg-gradient-to-br from-[#1a237e]/5 via-[#311b92]/10 to-[#4a148c]/5" />
+          <div className="absolute inset-0 bg-[url('/stardust.png')] mix-blend-soft-light opacity-30" />
+          <div className="absolute inset-0 bg-gradient-to-b from-white/60 via-transparent to-white/60 backdrop-blur-[1px]" />
+          
+          {/* Divine light rays */}
+          <div className="absolute inset-0 overflow-hidden">
+            <motion.div
+              className="absolute inset-0 bg-gradient-to-r from-transparent via-primary/5 to-transparent"
+              animate={{
+                x: ['-100%', '100%'],
+                opacity: [0, 0.5, 0]
+              }}
+              transition={{
+                duration: 8,
+                repeat: Infinity,
+                repeatType: "loop",
+                ease: "linear"
+              }}
+            />
+          </div>
+
           <div className="relative p-8">
             <div className="flex justify-between items-center mb-8">
-              <h3 className="text-2xl font-serif">Prayer Box</h3>
+              <h3 className="text-2xl font-serif bg-clip-text text-transparent bg-gradient-to-r from-primary via-primary/80 to-primary">Prayer Box</h3>
               <Button 
                 onClick={handleOpenPrayer} 
                 variant="outline" 
-                className="font-serif border-2 hover:bg-primary/10"
+                className="font-serif border-2 hover:bg-primary/10 relative overflow-hidden group"
                 disabled={isShuffling}
               >
-                {isShuffling ? 'Selecting...' : 'Open a Prayer'}
+                <span className="relative z-10">
+                  {isShuffling ? 'Selecting...' : 'Open a Prayer'}
+                </span>
+                <motion.div
+                  className="absolute inset-0 bg-gradient-to-r from-primary/20 to-primary/10"
+                  initial={{ x: '-100%' }}
+                  whileHover={{ x: '100%' }}
+                  transition={{ duration: 1 }}
+                />
               </Button>
             </div>
 
@@ -431,10 +496,17 @@ export default function PrayerBox() {
                     rotate: shuffleIndex === index ? [0, -5, 5, 0] : 0,
                     transition: { duration: 0.3 }
                   } : {}}
-                  className="relative"
+                  className="relative group"
                 >
-                  <Card className={`p-6 ${prayer.isOpen ? 'bg-secondary/50' : 'bg-[url(/envelope.jpg)] bg-cover'}`}>
-                    <div className="relative">
+                  <motion.div
+                    className="absolute inset-0 bg-gradient-to-r from-primary/10 to-primary/5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                    initial={false}
+                    animate={{ scale: [0.95, 1.05, 0.95] }}
+                    transition={{ duration: 4, repeat: Infinity }}
+                  />
+                  <Card className={`p-6 ${prayer.isOpen ? 'bg-secondary/50' : 'bg-[url(/envelope.jpg)] bg-cover'} relative overflow-hidden`}>
+                    <div className="absolute inset-0 bg-gradient-to-br from-white/40 via-transparent to-white/40 opacity-50" />
+                    <div className="relative z-10">
                       <Mail className={`h-8 w-8 mb-3 ${prayer.isOpen ? 'text-primary/50' : 'text-primary'}`} />
                       {prayer.isMonetary && (
                         <motion.div
@@ -443,13 +515,13 @@ export default function PrayerBox() {
                           animate="animate"
                           className="absolute -top-1 -right-1"
                         >
-                          <DollarSign className="h-5 w-5 text-primary" />
+                          <Sparkle className="h-5 w-5 text-primary" />
                         </motion.div>
                       )}
                     </div>
-                    <h4 className="font-serif text-lg truncate">{prayer.title}</h4>
+                    <h4 className="font-serif text-lg truncate relative z-10">{prayer.title}</h4>
                     {prayer.isOpen && (
-                      <span className="text-sm font-serif text-primary mt-2 block">Prayer Answered</span>
+                      <span className="text-sm font-serif text-primary mt-2 block relative z-10">Prayer Answered</span>
                     )}
                   </Card>
                 </motion.div>
