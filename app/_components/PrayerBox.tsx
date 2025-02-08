@@ -63,6 +63,8 @@ export default function PrayerBox() {
   const [amount, setAmount] = useState('');
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('');
+  const [isShuffling, setIsShuffling] = useState(false);
+  const [shuffleIndex, setShuffleIndex] = useState(0);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -84,7 +86,7 @@ export default function PrayerBox() {
     setIsMonetary(false);
   };
 
-  const handleOpenPrayer = () => {
+  const handleOpenPrayer = async () => {
     if (prayers.length === 0) return;
     
     const unopenedPrayers = prayers.filter(p => !p.isOpen);
@@ -92,10 +94,22 @@ export default function PrayerBox() {
       setCurrentPrayer(null);
       return;
     }
+
+    setIsShuffling(true);
     
+    // Shuffle animation
+    for (let i = 0; i < 20; i++) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+      setShuffleIndex(Math.floor(Math.random() * unopenedPrayers.length));
+    }
+
     const randomIndex = Math.floor(Math.random() * unopenedPrayers.length);
-    const selectedPrayer = unopenedPrayers[randomIndex];
-    setCurrentPrayer(selectedPrayer);
+    setShuffleIndex(randomIndex);
+    
+    // Final selection
+    await new Promise(resolve => setTimeout(resolve, 500));
+    setIsShuffling(false);
+    setCurrentPrayer(unopenedPrayers[randomIndex]);
   };
 
   const handleAnswer = (answer: 'accept' | 'impossible') => {
@@ -211,13 +225,39 @@ export default function PrayerBox() {
                 onClick={handleOpenPrayer} 
                 variant="outline" 
                 className="font-serif border-2 hover:bg-primary/10"
+                disabled={isShuffling}
               >
-                Open a Prayer
+                {isShuffling ? 'Selecting...' : 'Open a Prayer'}
               </Button>
             </div>
 
             <AnimatePresence mode="wait">
-              {currentPrayer && (
+              {isShuffling && (
+                <motion.div
+                  key="shuffle"
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.8, opacity: 0 }}
+                  className="absolute inset-0 z-10 flex items-center justify-center bg-black/20 backdrop-blur-sm"
+                >
+                  <motion.div
+                    animate={{ 
+                      rotateY: [0, 360],
+                      scale: [1, 1.2, 1]
+                    }}
+                    transition={{
+                      duration: 1,
+                      repeat: Infinity,
+                      ease: "easeInOut"
+                    }}
+                    className="bg-primary/10 p-8 rounded-xl backdrop-blur-md"
+                  >
+                    <Mail className="h-12 w-12 text-primary animate-bounce" />
+                  </motion.div>
+                </motion.div>
+              )}
+
+              {currentPrayer && !isShuffling && (
                 <motion.div
                   initial={{ scale: 0.8, opacity: 0, rotateY: 90 }}
                   animate={{ scale: 1, opacity: 1, rotateY: 0 }}
@@ -296,7 +336,7 @@ export default function PrayerBox() {
             </AnimatePresence>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mt-8">
-              {prayers.map((prayer) => (
+              {prayers.map((prayer, index) => (
                 <motion.div
                   key={prayer.id}
                   variants={envelope}
@@ -304,6 +344,11 @@ export default function PrayerBox() {
                   whileHover="hover"
                   whileTap="tap"
                   exit="exit"
+                  animate={isShuffling && !prayer.isOpen ? {
+                    scale: shuffleIndex === index ? 1.1 : 1,
+                    rotate: shuffleIndex === index ? [0, -5, 5, 0] : 0,
+                    transition: { duration: 0.3 }
+                  } : {}}
                   className="relative"
                 >
                   <Card className={`p-6 ${prayer.isOpen ? 'bg-secondary/50' : 'bg-[url(/envelope.jpg)] bg-cover'}`}>
