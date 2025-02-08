@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mail, Send, X, Heart, Ban, DollarSign, Sparkles, Coins } from 'lucide-react';
+import { Mail, Send, X, Heart, Ban, DollarSign, Sparkles, Coins, PenTool } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -136,38 +136,39 @@ export default function PrayerBox() {
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.5 }}
       >
-        <Card className="p-6 relative overflow-hidden">
+        <Card className="p-8 relative overflow-hidden bg-[url('/old-paper.jpg')] bg-cover">
+          <div className="absolute inset-0 bg-gradient-to-b from-white/80 via-white/60 to-white/80 backdrop-blur-sm" />
           <motion.div
             className="absolute -top-4 -right-4 text-primary/10 z-0"
             initial={{ scale: 0, rotate: 0 }}
             animate={{ scale: 1, rotate: 360 }}
             transition={{ duration: 2, repeat: Infinity, repeatType: "reverse" }}
           >
-            <Sparkles className="w-20 h-20" />
+            <PenTool className="w-20 h-20" />
           </motion.div>
           
           <form onSubmit={handleSubmit} className="space-y-4 relative z-10">
-            <div className="space-y-2">
-              <h3 className="text-lg font-semibold">Submit a Prayer</h3>
+            <div className="space-y-4">
+              <h3 className="text-2xl font-serif text-center">Write Your Prayer</h3>
               <Input
                 placeholder="Prayer Title"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="w-full"
+                className="w-full border-none bg-transparent text-lg font-serif placeholder:text-primary/40"
               />
               <Textarea
-                placeholder="Write your prayer here..."
+                placeholder="Dear Lord..."
                 value={newPrayer}
                 onChange={(e) => setNewPrayer(e.target.value)}
-                className="min-h-[100px]"
+                className="min-h-[200px] border-none bg-transparent font-serif text-lg leading-relaxed placeholder:text-primary/40 resize-none"
               />
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-2 justify-end">
                 <Switch
                   checked={isMonetary}
                   onCheckedChange={setIsMonetary}
                   id="monetary-mode"
                 />
-                <Label htmlFor="monetary-mode">This prayer needs financial support</Label>
+                <Label htmlFor="monetary-mode" className="font-serif">Financial Support Needed</Label>
               </div>
               {isMonetary && (
                 <motion.div
@@ -181,15 +182,17 @@ export default function PrayerBox() {
                     placeholder="Amount needed (KES)"
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
-                    className="w-full mt-2"
+                    className="w-full mt-2 bg-transparent border-primary/20 font-serif"
                   />
                 </motion.div>
               )}
             </div>
-            <Button type="submit" className="w-full">
-              <Mail className="mr-2 h-4 w-4" />
-              Submit Prayer
-            </Button>
+            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+              <Button type="submit" className="w-full bg-primary/90 hover:bg-primary font-serif text-lg py-6">
+                <Mail className="mr-2 h-5 w-5" />
+                Seal & Send Prayer
+              </Button>
+            </motion.div>
           </form>
         </Card>
       </motion.div>
@@ -199,11 +202,16 @@ export default function PrayerBox() {
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.5, delay: 0.2 }}
       >
-        <Card className="p-6">
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h3 className="text-lg font-semibold">Prayer Box</h3>
-              <Button onClick={handleOpenPrayer} variant="outline">
+        <Card className="relative overflow-hidden">
+          <div className="absolute inset-0 bg-[url('/wooden-texture.jpg')] bg-cover opacity-30" />
+          <div className="relative p-8">
+            <div className="flex justify-between items-center mb-8">
+              <h3 className="text-2xl font-serif">Prayer Box</h3>
+              <Button 
+                onClick={handleOpenPrayer} 
+                variant="outline" 
+                className="font-serif border-2 hover:bg-primary/10"
+              >
                 Open a Prayer
               </Button>
             </div>
@@ -217,67 +225,77 @@ export default function PrayerBox() {
                   transition={{ duration: 0.5, type: "spring" }}
                   className="relative"
                 >
-                  <Card className="p-6 bg-secondary">
-                    <button
-                      onClick={() => setCurrentPrayer(null)}
-                      className="absolute top-2 right-2"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                    <h4 className="font-semibold mb-2">{currentPrayer.title}</h4>
-                    <p className="mb-4">{currentPrayer.content}</p>
-                    {currentPrayer.isMonetary && (
-                      <motion.div 
-                        initial={{ y: 10, opacity: 0 }}
-                        animate={{ y: 0, opacity: 1 }}
-                        className="mb-4 p-4 bg-gradient-to-r from-primary/10 via-primary/5 to-primary/10 rounded-lg border border-primary/20 backdrop-blur-sm"
+                  <Card className="p-8 bg-[url('/old-paper.jpg')] bg-cover">
+                    <div className="absolute inset-0 bg-white/80 backdrop-blur-sm" />
+                    <div className="relative">
+                      <button
+                        onClick={() => setCurrentPrayer(null)}
+                        className="absolute -top-2 -right-2 w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center hover:bg-primary/20"
                       >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <div className="relative">
-                              <Coins className="h-5 w-5 text-primary" />
-                              <motion.div
-                                className="absolute -top-1 -right-1 w-2 h-2 bg-primary rounded-full"
-                                animate={{
-                                  scale: [1, 1.2, 1],
-                                  opacity: [0.5, 1, 0.5]
-                                }}
-                                transition={{
-                                  duration: 2,
-                                  repeat: Infinity,
-                                  ease: "easeInOut"
-                                }}
-                              />
+                        <X className="h-4 w-4" />
+                      </button>
+                      <h4 className="font-serif text-xl mb-4">{currentPrayer.title}</h4>
+                      <p className="font-serif text-lg leading-relaxed mb-6">{currentPrayer.content}</p>
+                      {currentPrayer.isMonetary && (
+                        <motion.div 
+                          initial={{ y: 10, opacity: 0 }}
+                          animate={{ y: 0, opacity: 1 }}
+                          className="mb-6 p-6 bg-gradient-to-r from-primary/10 via-primary/5 to-primary/10 rounded-xl border border-primary/20 backdrop-blur-sm"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className="relative">
+                                <Coins className="h-6 w-6 text-primary" />
+                                <motion.div
+                                  className="absolute -top-1 -right-1 w-2 h-2 bg-primary rounded-full"
+                                  animate={{
+                                    scale: [1, 1.5, 1],
+                                    opacity: [0.5, 1, 0.5]
+                                  }}
+                                  transition={{
+                                    duration: 2,
+                                    repeat: Infinity,
+                                    ease: "easeInOut"
+                                  }}
+                                />
+                              </div>
+                              <span className="font-serif text-primary/70">Support Needed</span>
                             </div>
-                            <span className="text-sm text-muted-foreground">Support Needed</span>
+                            <motion.div
+                              initial={{ scale: 0.9 }}
+                              animate={{ scale: 1 }}
+                              className="flex items-baseline gap-2"
+                            >
+                              <span className="text-sm font-serif text-primary/70">KES</span>
+                              <span className="text-2xl font-bold font-serif text-primary">{currentPrayer.amount?.toLocaleString()}</span>
+                            </motion.div>
                           </div>
-                          <motion.div
-                            initial={{ scale: 0.9 }}
-                            animate={{ scale: 1 }}
-                            className="flex items-baseline gap-1"
-                          >
-                            <span className="text-xs text-primary/70">KES</span>
-                            <span className="text-xl font-bold text-primary">{currentPrayer.amount?.toLocaleString()}</span>
-                          </motion.div>
-                        </div>
-                      </motion.div>
-                    )}
-                    <div className="flex gap-2">
-                      <Button onClick={() => handleAnswer('accept')} className="flex-1">
-                        <Heart className="mr-2 h-4 w-4" />
-                        I'll Help
-                      </Button>
-                      <Button onClick={() => handleAnswer('impossible')} variant="outline" className="flex-1">
-                        <Ban className="mr-2 h-4 w-4" />
-                        Mark Impossible
-                      </Button>
+                        </motion.div>
+                      )}
+                      <div className="flex gap-4">
+                        <Button 
+                          onClick={() => handleAnswer('accept')} 
+                          className="flex-1 bg-primary/90 hover:bg-primary font-serif text-lg py-6"
+                        >
+                          <Heart className="mr-2 h-5 w-5" />
+                          I'll Help
+                        </Button>
+                        <Button 
+                          onClick={() => handleAnswer('impossible')} 
+                          variant="outline" 
+                          className="flex-1 font-serif text-lg py-6 border-2"
+                        >
+                          <Ban className="mr-2 h-5 w-5" />
+                          Mark Impossible
+                        </Button>
+                      </div>
                     </div>
                   </Card>
                 </motion.div>
               )}
             </AnimatePresence>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mt-8">
               {prayers.map((prayer) => (
                 <motion.div
                   key={prayer.id}
@@ -288,9 +306,9 @@ export default function PrayerBox() {
                   exit="exit"
                   className="relative"
                 >
-                  <Card className={`p-4 ${prayer.isOpen ? 'bg-secondary/50' : 'bg-primary/5'}`}>
+                  <Card className={`p-6 ${prayer.isOpen ? 'bg-secondary/50' : 'bg-[url(/envelope.jpg)] bg-cover'}`}>
                     <div className="relative">
-                      <Mail className={`h-6 w-6 mb-2 ${prayer.isOpen ? 'text-primary/50' : 'text-primary'}`} />
+                      <Mail className={`h-8 w-8 mb-3 ${prayer.isOpen ? 'text-primary/50' : 'text-primary'}`} />
                       {prayer.isMonetary && (
                         <motion.div
                           variants={sparkleVariants}
@@ -298,13 +316,13 @@ export default function PrayerBox() {
                           animate="animate"
                           className="absolute -top-1 -right-1"
                         >
-                          <DollarSign className="h-4 w-4 text-primary" />
+                          <DollarSign className="h-5 w-5 text-primary" />
                         </motion.div>
                       )}
                     </div>
-                    <h4 className="font-semibold truncate">{prayer.title}</h4>
+                    <h4 className="font-serif text-lg truncate">{prayer.title}</h4>
                     {prayer.isOpen && (
-                      <span className="text-xs text-primary">Prayer Answered</span>
+                      <span className="text-sm font-serif text-primary mt-2 block">Prayer Answered</span>
                     )}
                   </Card>
                 </motion.div>
@@ -317,34 +335,35 @@ export default function PrayerBox() {
       <Dialog open={showPaymentModal} onOpenChange={setShowPaymentModal}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Choose Payment Method</DialogTitle>
-            <DialogDescription>
-              Select how you'd like to send KES {currentPrayer?.amount}
+            <DialogTitle className="font-serif text-xl">Choose Payment Method</DialogTitle>
+            <DialogDescription className="font-serif">
+              Select how you'd like to send KES {currentPrayer?.amount?.toLocaleString()}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <RadioGroup value={selectedPaymentMethod} onValueChange={setSelectedPaymentMethod}>
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="mpesa" id="mpesa" />
-                <Label htmlFor="mpesa">M-Pesa</Label>
+                <Label htmlFor="mpesa" className="font-serif">M-Pesa</Label>
               </div>
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="bank" id="bank" />
-                <Label htmlFor="bank">Bank Transfer</Label>
+                <Label htmlFor="bank" className="font-serif">Bank Transfer</Label>
               </div>
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="card" id="card" />
-                <Label htmlFor="card">Credit/Debit Card</Label>
+                <Label htmlFor="card" className="font-serif">Credit/Debit Card</Label>
               </div>
             </RadioGroup>
           </div>
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setShowPaymentModal(false)}>
+          <div className="flex justify-end gap-4">
+            <Button variant="outline" onClick={() => setShowPaymentModal(false)} className="font-serif">
               Cancel
             </Button>
             <Button 
               onClick={handlePayment}
               disabled={!selectedPaymentMethod}
+              className="font-serif"
             >
               Proceed to Pay
             </Button>
