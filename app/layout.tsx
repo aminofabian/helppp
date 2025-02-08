@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Plus_Jakarta_Sans } from "next/font/google";
+import { Plus_Jakarta_Sans, Dancing_Script } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/app/_components/Navbar";
 import { ThemeProvider } from "@/components/ThemeProvider";
@@ -12,6 +12,12 @@ const jakarta = Plus_Jakarta_Sans({
   variable: '--font-jakarta',
   weight: ['400', '500', '600', '700'],
   adjustFontFallback: true,
+});
+
+const dancingScript = Dancing_Script({
+  subsets: ["latin"],
+  display: 'swap',
+  variable: '--font-handwriting',
 });
 
 export const metadata: Metadata = {
@@ -31,7 +37,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning={true}>
-      <body className={`flex min-h-screen flex-col ${jakarta.className} antialiased text-[14px] leading-relaxed`}>
+      <body className={`flex min-h-screen flex-col ${jakarta.variable} ${dancingScript.variable} antialiased text-[14px] leading-relaxed`}>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

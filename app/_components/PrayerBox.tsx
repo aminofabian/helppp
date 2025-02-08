@@ -210,7 +210,7 @@ export default function PrayerBox() {
                 placeholder="Dear Lord..."
                 value={newPrayer}
                 onChange={(e) => setNewPrayer(e.target.value)}
-                className="min-h-[200px] border-none bg-transparent font-serif text-lg leading-relaxed placeholder:text-primary/40 resize-none"
+                className="min-h-[200px] border-none bg-transparent font-handwriting text-xl leading-relaxed placeholder:text-primary/40 resize-none"
               />
               <div className="flex items-center space-x-2 justify-end">
                 <Switch
@@ -343,8 +343,11 @@ export default function PrayerBox() {
                           animate={{ y: 0, opacity: 1 }}
                           transition={{ delay: 0.8 }}
                         >
-                          <h4 className="font-serif text-xl mb-4">{currentPrayer.title}</h4>
-                          <p className="font-serif text-lg leading-relaxed mb-6">{currentPrayer.content}</p>
+                          <h4 className="font-serif text-xl mb-4 text-primary/80">{currentPrayer.title}</h4>
+                          <div className="relative">
+                            <div className="absolute -left-6 top-0 w-1 h-full bg-primary/20 rounded-full" />
+                            <p className="font-handwriting text-xl leading-relaxed mb-6 pl-4">{currentPrayer.content}</p>
+                          </div>
                         </motion.div>
 
                         {currentPrayer.isMonetary && (

@@ -21,6 +21,10 @@ export default withUt({
       },
     },
     extend: {
+      fontFamily: {
+        sans: ['var(--font-jakarta)'],
+        handwriting: ['var(--font-handwriting)'],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
