@@ -115,8 +115,8 @@ model Payment {
   description String?   @db.Text
 
   // M-Pesa specific fields
-  merchantRequestID   String?
-  checkoutRequestID   String?
+  merchantRequestId   String?
+  checkoutRequestId   String?
   resultCode         String?
   resultDesc         String?
   mpesaReceiptNumber String?

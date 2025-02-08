@@ -10,18 +10,19 @@ export async function createPayment(
 ) {
   return prisma.payment.create({
     data: {
-      merchantRequestID: callbackData.MerchantRequestID,
-      checkoutRequestID: callbackData.CheckoutRequestID,
+      amount,
+      currency: 'KES',
+      status: 'PENDING',
+      method: 'MPESA',
+      merchantRequestId: callbackData.MerchantRequestID,
+      checkoutRequestId: callbackData.CheckoutRequestID,
       resultCode: callbackData.ResultCode.toString(),
       resultDesc: callbackData.ResultDesc,
-      amount: amount,
-      user: { connect: { id: donation.userId } },
-      donation: { connect: { id: donation.id } },
-      request: { connect: { id: donation.requestId } },
-      mpesaReceiptNumber: mpesaReceiptNumber,
-      phoneNumber: phoneNumber,
-      transactionDate: transactionDate,
-      paymentMethod: callbackData.PaymentMethod
+      mpesaReceiptNumber,
+      phoneNumber,
+      transactionDate,
+      sender: { connect: { id: donation.userId } },
+      prayer: { connect: { id: donation.requestId } }
     }
   });
 }
