@@ -516,6 +516,64 @@ export default function PrayerBox() {
               </Button>
             </div>
 
+            {/* Prayer Progress Stats */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              className="mb-8"
+            >
+              <div className="flex justify-between items-center mb-2">
+                <div className="flex items-center gap-2">
+                  <motion.div
+                    animate={{
+                      scale: [1, 1.2, 1],
+                      opacity: [0.5, 1, 0.5]
+                    }}
+                    transition={{
+                      duration: 2,
+                      repeat: Infinity,
+                      ease: "easeInOut"
+                    }}
+                  >
+                    <Heart className="h-4 w-4 text-primary/70" />
+                  </motion.div>
+                  <span className="text-sm font-serif text-primary/70">Prayer Progress</span>
+                </div>
+                <div className="flex items-center gap-4 text-sm font-serif">
+                  <span className="text-primary/70">
+                    {prayers.filter(p => p.isOpen).length} Answered
+                  </span>
+                  <span className="text-primary/50">•</span>
+                  <span className="text-primary/70">
+                    {prayers.filter(p => !p.isOpen).length} Pending
+                  </span>
+                </div>
+              </div>
+              
+              <div className="relative h-2 bg-primary/10 rounded-full overflow-hidden">
+                <motion.div
+                  className="absolute inset-y-0 left-0 bg-gradient-to-r from-primary to-primary/80"
+                  initial={{ width: 0 }}
+                  animate={{ 
+                    width: `${prayers.length > 0 ? (prayers.filter(p => p.isOpen).length / prayers.length) * 100 : 0}%` 
+                  }}
+                  transition={{ duration: 0.5, ease: "easeOut" }}
+                />
+                <motion.div
+                  className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent"
+                  animate={{
+                    x: ['-100%', '100%']
+                  }}
+                  transition={{
+                    duration: 3,
+                    repeat: Infinity,
+                    ease: "linear"
+                  }}
+                />
+              </div>
+            </motion.div>
+
             <AnimatePresence mode="wait">
               {isShuffling && (
                 <motion.div
@@ -672,7 +730,7 @@ export default function PrayerBox() {
               )}
             </AnimatePresence>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mt-8">
+            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3 mt-8">
               {prayers.map((prayer, index) => (
                 <motion.div
                   key={prayer.id}
@@ -694,11 +752,11 @@ export default function PrayerBox() {
                     animate={{ scale: [0.95, 1.05, 0.95] }}
                     transition={{ duration: 4, repeat: Infinity }}
                   />
-                  <Card className={`p-6 ${prayer.isOpen ? 'bg-secondary/50' : 'bg-[url(/envelope.jpg)] bg-cover'} relative overflow-hidden`}>
+                  <Card className={`p-3 ${prayer.isOpen ? 'bg-secondary/50' : 'bg-[url(/envelope.jpg)] bg-cover'} relative overflow-hidden h-16`}>
                     <div className="absolute inset-0 bg-gradient-to-br from-white/40 via-transparent to-white/40 opacity-50" />
-                    <div className="relative z-10 flex items-center justify-between">
-                      <Mail className={`h-8 w-8 ${prayer.isOpen ? 'text-primary/50' : 'text-primary'}`} />
-                      <span className="font-serif text-2xl text-primary/70">#{index + 1}</span>
+                    <div className="relative z-10 flex items-center justify-between h-full">
+                      <Mail className={`h-5 w-5 ${prayer.isOpen ? 'text-primary/50' : 'text-primary'}`} />
+                      <span className="font-serif text-lg text-primary/70">#{index + 1}</span>
                       {prayer.isMonetary && (
                         <motion.div
                           variants={sparkleVariants}
@@ -706,12 +764,12 @@ export default function PrayerBox() {
                           animate="animate"
                           className="absolute -top-1 -right-1"
                         >
-                          <Sparkle className="h-5 w-5 text-primary" />
+                          <Sparkle className="h-3 w-3 text-primary" />
                         </motion.div>
                       )}
                     </div>
                     {prayer.isOpen && (
-                      <span className="text-sm font-serif text-primary mt-4 block relative z-10">Prayer Answered</span>
+                      <span className="text-[10px] font-serif text-primary absolute bottom-1 left-3 z-10">Answered</span>
                     )}
                   </Card>
                 </motion.div>
