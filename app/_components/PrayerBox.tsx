@@ -730,7 +730,32 @@ export default function PrayerBox() {
               )}
             </AnimatePresence>
 
-            <div className="grid grid-cols-4 sm:grid-cols-8 md:grid-cols-12 gap-2 mt-8">
+            <div className="grid grid-cols-4 sm:grid-cols-8 md:grid-cols-12 gap-3 mt-8 relative">
+              {/* Background floating particles */}
+              <div className="absolute inset-0 overflow-hidden">
+                {[...Array(20)].map((_, i) => (
+                  <motion.div
+                    key={`particle-${i}`}
+                    className="absolute w-1 h-1 bg-primary/20 rounded-full"
+                    initial={{ 
+                      x: Math.random() * 100 + "%",
+                      y: Math.random() * 100 + "%",
+                      scale: 0
+                    }}
+                    animate={{
+                      y: [null, "-100%"],
+                      scale: [0, 1, 0],
+                      opacity: [0, 1, 0]
+                    }}
+                    transition={{
+                      duration: 5 + Math.random() * 5,
+                      repeat: Infinity,
+                      delay: Math.random() * 5
+                    }}
+                  />
+                ))}
+              </div>
+
               {prayers.map((prayer, index) => (
                 <motion.div
                   key={prayer.id}
@@ -745,6 +770,9 @@ export default function PrayerBox() {
                     transition: { duration: 0.3 }
                   } : {}}
                   className="relative group"
+                  style={{
+                    transform: `rotate(${Math.random() * 10 - 5}deg)`
+                  }}
                 >
                   <motion.div
                     className="absolute inset-0 bg-gradient-to-r from-primary/10 to-primary/5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"
@@ -752,11 +780,32 @@ export default function PrayerBox() {
                     animate={{ scale: [0.95, 1.05, 0.95] }}
                     transition={{ duration: 4, repeat: Infinity }}
                   />
-                  <Card className={`p-1.5 ${prayer.isOpen ? 'bg-secondary/50' : 'bg-[url(/envelope.jpg)] bg-cover'} relative overflow-hidden h-8`}>
-                    <div className="absolute inset-0 bg-gradient-to-br from-white/40 via-transparent to-white/40 opacity-50" />
-                    <div className="relative z-10 flex items-center justify-between h-full">
-                      <Mail className={`h-3 w-3 ${prayer.isOpen ? 'text-primary/50' : 'text-primary'}`} />
-                      <span className="font-serif text-xs text-primary/70">#{index + 1}</span>
+                  <Card 
+                    className={`
+                      p-1.5 relative overflow-hidden h-8 
+                      ${prayer.isOpen 
+                        ? 'bg-gradient-to-br from-secondary/30 via-secondary/20 to-secondary/30' 
+                        : 'bg-[url(/envelope.jpg)] bg-cover'
+                      }
+                      hover:shadow-lg hover:shadow-primary/10 transition-shadow duration-300
+                      before:absolute before:inset-0 before:bg-gradient-to-br before:from-white/40 before:via-transparent before:to-white/40 before:opacity-50
+                      after:absolute after:inset-0 after:bg-gradient-to-tr after:from-primary/5 after:via-transparent after:to-primary/5 after:opacity-0 after:group-hover:opacity-100 after:transition-opacity after:duration-300
+                    `}
+                  >
+                    <motion.div 
+                      className="relative z-10 flex items-center justify-between h-full"
+                      animate={{
+                        y: [0, -1, 0],
+                      }}
+                      transition={{
+                        duration: 2,
+                        repeat: Infinity,
+                        repeatType: "reverse",
+                        delay: index * 0.1,
+                      }}
+                    >
+                      <Mail className={`h-3 w-3 ${prayer.isOpen ? 'text-primary/50' : 'text-primary'} drop-shadow-md`} />
+                      <span className="font-serif text-xs text-primary/70 drop-shadow-sm">#{index + 1}</span>
                       {prayer.isMonetary && (
                         <motion.div
                           variants={sparkleVariants}
@@ -764,13 +813,39 @@ export default function PrayerBox() {
                           animate="animate"
                           className="absolute -top-0.5 -right-0.5"
                         >
-                          <Sparkle className="h-2 w-2 text-primary" />
+                          <motion.div
+                            animate={{
+                              rotate: [0, 360],
+                            }}
+                            transition={{
+                              duration: 4,
+                              repeat: Infinity,
+                              ease: "linear"
+                            }}
+                          >
+                            <Sparkle className="h-2 w-2 text-primary filter drop-shadow" />
+                          </motion.div>
                         </motion.div>
                       )}
-                    </div>
+                    </motion.div>
                     {prayer.isOpen && (
-                      <span className="text-[8px] font-serif text-primary absolute bottom-0.5 left-1.5 z-10">Answered</span>
+                      <motion.span 
+                        className="text-[8px] font-serif text-primary absolute bottom-0.5 left-1.5 z-10"
+                        initial={{ opacity: 0, y: 2 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3 }}
+                      >
+                        Answered
+                      </motion.span>
                     )}
+                    
+                    {/* Hover effect light beam */}
+                    <motion.div
+                      className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100"
+                      initial={{ x: '-100%' }}
+                      whileHover={{ x: '100%' }}
+                      transition={{ duration: 1 }}
+                    />
                   </Card>
                 </motion.div>
               ))}
