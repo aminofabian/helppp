@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mail, Send, X, Heart, Ban, DollarSign, Sparkles, Coins, PenTool, Star, Sparkle } from 'lucide-react';
+import { Mail, Send, X, Heart, Ban, DollarSign, Sparkles, Coins, PenTool, Star, Sparkle, Globe2, MapPin } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -23,7 +23,26 @@ interface Prayer {
   currency?: Currency;
 }
 
-type Currency = typeof CURRENCIES[number]['value'];
+const CURRENCIES = {
+  africa: [
+    { value: 'KES', label: 'Kenyan Shilling', symbol: 'KSh', flag: '🇰🇪' },
+    { value: 'TZS', label: 'Tanzanian Shilling', symbol: 'TSh', flag: '🇹🇿' },
+    { value: 'NGN', label: 'Nigerian Naira', symbol: '₦', flag: '🇳🇬' },
+    { value: 'UGX', label: 'Ugandan Shilling', symbol: 'USh', flag: '🇺🇬' },
+    { value: 'RWF', label: 'Rwandan Franc', symbol: 'RF', flag: '🇷🇼' },
+    { value: 'ETB', label: 'Ethiopian Birr', symbol: 'Br', flag: '🇪🇹' },
+  ],
+  international: [
+    { value: 'USD', label: 'US Dollar', symbol: '$', flag: '🇺🇸' },
+    { value: 'EUR', label: 'Euro', symbol: '€', flag: '🇪🇺' },
+    { value: 'GBP', label: 'British Pound', symbol: '£', flag: '🇬🇧' },
+    { value: 'AUD', label: 'Australian Dollar', symbol: 'A$', flag: '🇦🇺' },
+    { value: 'CAD', label: 'Canadian Dollar', symbol: 'C$', flag: '🇨🇦' },
+  ]
+} as const;
+
+type CurrencyRegion = keyof typeof CURRENCIES;
+type Currency = typeof CURRENCIES[CurrencyRegion][number]['value'];
 
 const envelope = {
   initial: { rotateY: 0, scale: 1 },
@@ -94,22 +113,6 @@ const letterAnimation = {
   }
 };
 
-const CURRENCIES = [
-  // African Currencies
-  { value: 'KES', label: 'Kenyan Shilling', symbol: 'KSh', group: 'Africa' },
-  { value: 'TZS', label: 'Tanzanian Shilling', symbol: 'TSh', group: 'Africa' },
-  { value: 'NGN', label: 'Nigerian Naira', symbol: '₦', group: 'Africa' },
-  { value: 'UGX', label: 'Ugandan Shilling', symbol: 'USh', group: 'Africa' },
-  { value: 'RWF', label: 'Rwandan Franc', symbol: 'RF', group: 'Africa' },
-  { value: 'ETB', label: 'Ethiopian Birr', symbol: 'Br', group: 'Africa' },
-  // International Currencies
-  { value: 'USD', label: 'US Dollar', symbol: '$', group: 'International' },
-  { value: 'EUR', label: 'Euro', symbol: '€', group: 'International' },
-  { value: 'GBP', label: 'British Pound', symbol: '£', group: 'International' },
-  { value: 'AUD', label: 'Australian Dollar', symbol: 'A$', group: 'International' },
-  { value: 'CAD', label: 'Canadian Dollar', symbol: 'C$', group: 'International' },
-] as const;
-
 export default function PrayerBox() {
   const [prayers, setPrayers] = useState<Prayer[]>([]);
   const [newPrayer, setNewPrayer] = useState('');
@@ -121,7 +124,13 @@ export default function PrayerBox() {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('');
   const [isShuffling, setIsShuffling] = useState(false);
   const [shuffleIndex, setShuffleIndex] = useState(0);
-  const [selectedCurrency, setSelectedCurrency] = useState<Currency>(CURRENCIES[0].value);
+  const [selectedRegion, setSelectedRegion] = useState<CurrencyRegion>('africa');
+  const [selectedCurrency, setSelectedCurrency] = useState<Currency>(CURRENCIES.africa[0].value);
+
+  // Update currency when region changes
+  React.useEffect(() => {
+    setSelectedCurrency(CURRENCIES[selectedRegion][0].value);
+  }, [selectedRegion]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -143,7 +152,7 @@ export default function PrayerBox() {
     setTitle('');
     setAmount('');
     setIsMonetary(false);
-    setSelectedCurrency(CURRENCIES[0].value);
+    setSelectedCurrency(CURRENCIES.africa[0].value);
   };
 
   const handleOpenPrayer = async () => {
@@ -205,7 +214,7 @@ export default function PrayerBox() {
 
   const formatAmount = (amount: number | undefined, currency: string | undefined) => {
     if (!amount || !currency) return '';
-    const currencyInfo = CURRENCIES.find(c => c.value === currency);
+    const currencyInfo = CURRENCIES[selectedRegion].find(c => c.value === currency);
     return `${currencyInfo?.symbol} ${amount.toLocaleString()}`;
   };
 
@@ -317,69 +326,128 @@ export default function PrayerBox() {
                           </div>
                           <span className="font-serif text-primary/90 text-lg">Financial Support Details</span>
                         </div>
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          <div className="space-y-3">
-                            <Label htmlFor="currency" className="text-sm text-primary/80 font-medium">Select Currency</Label>
-                            <Select 
-                              value={selectedCurrency} 
-                              onValueChange={(value: Currency) => setSelectedCurrency(value)}
-                            >
-                              <SelectTrigger 
-                                className="w-full bg-white/10 border-primary/20 focus:ring-primary/20 hover:bg-white/20 transition-colors"
-                              >
-                                <SelectValue placeholder="Select currency" />
-                              </SelectTrigger>
-                              <SelectContent className="max-h-[300px]">
-                                {Array.from(new Set(CURRENCIES.map(c => c.group))).map(group => (
-                                  <div key={group} className="px-2 py-1.5">
-                                    <div className="text-sm font-medium text-primary/60 mb-1">{group}</div>
-                                    {CURRENCIES.filter(c => c.group === group).map((currency) => (
-                                      <SelectItem 
-                                        key={currency.value} 
-                                        value={currency.value}
-                                        className="font-serif hover:bg-primary/10"
-                                      >
-                                        <div className="flex items-center gap-2">
-                                          <span className="text-primary/90">{currency.symbol}</span>
-                                          <span>{currency.label}</span>
-                                        </div>
-                                      </SelectItem>
-                                    ))}
-                                  </div>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          
-                          <div className="space-y-3">
-                            <Label htmlFor="amount" className="text-sm text-primary/80 font-medium">Enter Amount</Label>
-                            <div className="relative">
-                              <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
-                                <span className="text-primary/60 font-medium">
-                                  {CURRENCIES.find(c => c.value === selectedCurrency)?.symbol}
-                                </span>
-                                <div className="h-4 w-px bg-primary/20" />
-                              </div>
-                              <Input
-                                id="amount"
-                                type="number"
-                                placeholder="0.00"
-                                value={amount}
-                                onChange={(e) => setAmount(e.target.value)}
-                                className="pl-12 w-full bg-white/10 border-primary/20 font-serif focus:ring-primary/20 hover:bg-white/20 transition-colors"
-                              />
-                              <motion.div
-                                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-primary/40"
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                transition={{ delay: 0.2 }}
-                              >
-                                {selectedCurrency}
-                              </motion.div>
+
+                        {/* Region Selection */}
+                        <div className="grid grid-cols-2 gap-4">
+                          <Button
+                            type="button"
+                            variant={selectedRegion === 'africa' ? 'default' : 'outline'}
+                            onClick={() => setSelectedRegion('africa')}
+                            className={`relative overflow-hidden group ${
+                              selectedRegion === 'africa' 
+                                ? 'bg-primary text-white' 
+                                : 'hover:text-primary hover:bg-primary/10'
+                            }`}
+                          >
+                            <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-primary/5 to-primary/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            <div className="relative flex items-center justify-center gap-2">
+                              <MapPin className="h-4 w-4" />
+                              <span>African</span>
                             </div>
-                          </div>
+                            {selectedRegion === 'africa' && (
+                              <motion.div
+                                layoutId="regionHighlight"
+                                className="absolute inset-0 bg-gradient-to-r from-primary/20 via-primary/10 to-primary/20"
+                                initial={false}
+                                transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                              />
+                            )}
+                          </Button>
+
+                          <Button
+                            type="button"
+                            variant={selectedRegion === 'international' ? 'default' : 'outline'}
+                            onClick={() => setSelectedRegion('international')}
+                            className={`relative overflow-hidden group ${
+                              selectedRegion === 'international' 
+                                ? 'bg-primary text-white' 
+                                : 'hover:text-primary hover:bg-primary/10'
+                            }`}
+                          >
+                            <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-primary/5 to-primary/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            <div className="relative flex items-center justify-center gap-2">
+                              <Globe2 className="h-4 w-4" />
+                              <span>International</span>
+                            </div>
+                            {selectedRegion === 'international' && (
+                              <motion.div
+                                layoutId="regionHighlight"
+                                className="absolute inset-0 bg-gradient-to-r from-primary/20 via-primary/10 to-primary/20"
+                                initial={false}
+                                transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                              />
+                            )}
+                          </Button>
                         </div>
+                        
+                        {/* Currency Selection */}
+                        <AnimatePresence mode="wait">
+                          <motion.div
+                            key={selectedRegion}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -20 }}
+                            transition={{ duration: 0.3 }}
+                            className="grid grid-cols-1 md:grid-cols-2 gap-6"
+                          >
+                            <div className="space-y-3">
+                              <Label htmlFor="currency" className="text-sm text-primary/80 font-medium">Select Currency</Label>
+                              <Select 
+                                value={selectedCurrency} 
+                                onValueChange={(value: Currency) => setSelectedCurrency(value)}
+                              >
+                                <SelectTrigger 
+                                  className="w-full bg-white/10 border-primary/20 focus:ring-primary/20 hover:bg-white/20 transition-colors"
+                                >
+                                  <SelectValue placeholder="Select currency" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {CURRENCIES[selectedRegion].map((currency) => (
+                                    <SelectItem 
+                                      key={currency.value} 
+                                      value={currency.value}
+                                      className="font-serif hover:bg-primary/10"
+                                    >
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-base">{currency.flag}</span>
+                                        <span className="text-primary/90">{currency.symbol}</span>
+                                        <span>{currency.label}</span>
+                                      </div>
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            
+                            <div className="space-y-3">
+                              <Label htmlFor="amount" className="text-sm text-primary/80 font-medium">Enter Amount</Label>
+                              <div className="relative">
+                                <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+                                  <span className="text-primary/60 font-medium">
+                                    {CURRENCIES[selectedRegion].find(c => c.value === selectedCurrency)?.symbol}
+                                  </span>
+                                  <div className="h-4 w-px bg-primary/20" />
+                                </div>
+                                <Input
+                                  id="amount"
+                                  type="number"
+                                  placeholder="0.00"
+                                  value={amount}
+                                  onChange={(e) => setAmount(e.target.value)}
+                                  className="pl-12 w-full bg-white/10 border-primary/20 font-serif focus:ring-primary/20 hover:bg-white/20 transition-colors"
+                                />
+                                <motion.div
+                                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-primary/40"
+                                  initial={{ opacity: 0 }}
+                                  animate={{ opacity: 1 }}
+                                  transition={{ delay: 0.2 }}
+                                >
+                                  {selectedCurrency}
+                                </motion.div>
+                              </div>
+                            </div>
+                          </motion.div>
+                        </AnimatePresence>
 
                         <div className="text-xs text-primary/40 italic mt-2">
                           * All transactions are secure and encrypted
@@ -558,7 +626,7 @@ export default function PrayerBox() {
                                 <div className="flex flex-col">
                                   <span className="font-serif text-primary/90">Support Needed</span>
                                   <span className="text-xs text-primary/50">
-                                    {CURRENCIES.find(c => c.value === currentPrayer.currency)?.label}
+                                    {CURRENCIES[selectedRegion].find(c => c.value === currentPrayer.currency)?.label}
                                   </span>
                                 </div>
                               </div>
