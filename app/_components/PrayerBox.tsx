@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface Prayer {
   id: string;
@@ -19,7 +20,10 @@ interface Prayer {
   isOpen: boolean;
   isMonetary: boolean;
   amount?: number;
+  currency?: Currency;
 }
+
+type Currency = typeof CURRENCIES[number]['value'];
 
 const envelope = {
   initial: { rotateY: 0, scale: 1 },
@@ -90,6 +94,15 @@ const letterAnimation = {
   }
 };
 
+const CURRENCIES = [
+  { value: 'KES', label: 'Kenyan Shilling (KES)', symbol: 'KSh' },
+  { value: 'TZS', label: 'Tanzanian Shilling (TZS)', symbol: 'TSh' },
+  { value: 'NGN', label: 'Nigerian Naira (NGN)', symbol: '₦' },
+  { value: 'UGX', label: 'Ugandan Shilling (UGX)', symbol: 'USh' },
+  { value: 'RWF', label: 'Rwandan Franc (RWF)', symbol: 'RF' },
+  { value: 'ETB', label: 'Ethiopian Birr (ETB)', symbol: 'Br' },
+] as const;
+
 export default function PrayerBox() {
   const [prayers, setPrayers] = useState<Prayer[]>([]);
   const [newPrayer, setNewPrayer] = useState('');
@@ -101,10 +114,12 @@ export default function PrayerBox() {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('');
   const [isShuffling, setIsShuffling] = useState(false);
   const [shuffleIndex, setShuffleIndex] = useState(0);
+  const [selectedCurrency, setSelectedCurrency] = useState<Currency>(CURRENCIES[0].value);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newPrayer.trim() || !title.trim()) return;
+    if (isMonetary && (!amount.trim() || !selectedCurrency)) return;
 
     const prayer: Prayer = {
       id: Math.random().toString(36).substr(2, 9),
@@ -112,7 +127,8 @@ export default function PrayerBox() {
       title: title,
       isOpen: false,
       isMonetary,
-      amount: isMonetary ? Number(amount) : undefined
+      amount: isMonetary ? Number(amount) : undefined,
+      currency: isMonetary ? selectedCurrency : undefined
     };
 
     setPrayers([...prayers, prayer]);
@@ -120,6 +136,7 @@ export default function PrayerBox() {
     setTitle('');
     setAmount('');
     setIsMonetary(false);
+    setSelectedCurrency(CURRENCIES[0].value);
   };
 
   const handleOpenPrayer = async () => {
@@ -177,6 +194,12 @@ export default function PrayerBox() {
     setShowPaymentModal(false);
     setCurrentPrayer(null);
     setSelectedPaymentMethod('');
+  };
+
+  const formatAmount = (amount: number | undefined, currency: string | undefined) => {
+    if (!amount || !currency) return '';
+    const currencyInfo = CURRENCIES.find(c => c.value === currency);
+    return `${currencyInfo?.symbol} ${amount.toLocaleString()}`;
   };
 
   return (
@@ -263,14 +286,61 @@ export default function PrayerBox() {
                   animate={{ height: 'auto', opacity: 1 }}
                   exit={{ height: 0, opacity: 0 }}
                   transition={{ duration: 0.3 }}
+                  className="space-y-4"
                 >
-                  <Input
-                    type="number"
-                    placeholder="Amount needed (KES)"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    className="w-full mt-2 bg-transparent border-primary/20 font-serif"
-                  />
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-gradient-to-r from-[#ffd700]/5 via-[#ffd700]/10 to-[#ffd700]/5 rounded-lg -m-1 blur-sm" />
+                    <div className="relative bg-white/5 rounded-lg p-4 border border-[#ffd700]/20">
+                      <div className="flex flex-col space-y-4">
+                        <div className="flex items-center gap-2">
+                          <Coins className="h-5 w-5 text-[#ffd700]" />
+                          <span className="font-serif text-[#ffd700]/80">Financial Support Details</span>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="currency" className="text-sm text-[#ffd700]/60">Currency</Label>
+                            <Select 
+                              value={selectedCurrency} 
+                              onValueChange={(value: Currency) => setSelectedCurrency(value)}
+                            >
+                              <SelectTrigger className="w-full bg-white/5 border-[#ffd700]/20 focus:ring-[#ffd700]/20">
+                                <SelectValue placeholder="Select currency" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {CURRENCIES.map((currency) => (
+                                  <SelectItem 
+                                    key={currency.value} 
+                                    value={currency.value}
+                                    className="font-serif"
+                                  >
+                                    {currency.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <Label htmlFor="amount" className="text-sm text-[#ffd700]/60">Amount</Label>
+                            <div className="relative">
+                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#ffd700]/40">
+                                {CURRENCIES.find(c => c.value === selectedCurrency)?.symbol}
+                              </span>
+                              <Input
+                                id="amount"
+                                type="number"
+                                placeholder="0.00"
+                                value={amount}
+                                onChange={(e) => setAmount(e.target.value)}
+                                className="pl-12 w-full bg-white/5 border-[#ffd700]/20 font-serif focus:ring-[#ffd700]/20"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </motion.div>
               )}
             </div>
@@ -420,14 +490,14 @@ export default function PrayerBox() {
                             initial={{ y: 20, opacity: 0 }}
                             animate={{ y: 0, opacity: 1 }}
                             transition={{ delay: 1 }}
-                            className="mb-6 p-6 bg-gradient-to-r from-primary/10 via-primary/5 to-primary/10 rounded-xl border border-primary/20 backdrop-blur-sm"
+                            className="mb-6 p-6 bg-gradient-to-r from-[#ffd700]/10 via-[#ffd700]/5 to-[#ffd700]/10 rounded-xl border border-[#ffd700]/20 backdrop-blur-sm"
                           >
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-3">
                                 <div className="relative">
-                                  <Coins className="h-6 w-6 text-primary" />
+                                  <Coins className="h-6 w-6 text-[#ffd700]" />
                                   <motion.div
-                                    className="absolute -top-1 -right-1 w-2 h-2 bg-primary rounded-full"
+                                    className="absolute -top-1 -right-1 w-2 h-2 bg-[#ffd700] rounded-full"
                                     animate={{
                                       scale: [1, 1.5, 1],
                                       opacity: [0.5, 1, 0.5]
@@ -439,15 +509,16 @@ export default function PrayerBox() {
                                     }}
                                   />
                                 </div>
-                                <span className="font-serif text-primary/70">Support Needed</span>
+                                <span className="font-serif text-[#ffd700]/70">Support Needed</span>
                               </div>
                               <motion.div
                                 initial={{ scale: 0.9 }}
                                 animate={{ scale: 1 }}
                                 className="flex items-baseline gap-2"
                               >
-                                <span className="text-sm font-serif text-primary/70">KES</span>
-                                <span className="text-2xl font-bold font-serif text-primary">{currentPrayer.amount?.toLocaleString()}</span>
+                                <span className="text-2xl font-bold font-serif text-[#ffd700]">
+                                  {formatAmount(currentPrayer.amount, currentPrayer.currency)}
+                                </span>
                               </motion.div>
                             </div>
                           </motion.div>
@@ -532,11 +603,11 @@ export default function PrayerBox() {
       </motion.div>
 
       <Dialog open={showPaymentModal} onOpenChange={setShowPaymentModal}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[425px] bg-gradient-to-br from-[#2c1810] via-[#000000] to-[#1a1a1a]">
           <DialogHeader>
-            <DialogTitle className="font-serif text-xl">Choose Payment Method</DialogTitle>
-            <DialogDescription className="font-serif">
-              Select how you'd like to send KES {currentPrayer?.amount?.toLocaleString()}
+            <DialogTitle className="font-serif text-xl text-[#ffd700]">Choose Payment Method</DialogTitle>
+            <DialogDescription className="font-serif text-[#ffd700]/70">
+              Select how you'd like to send {formatAmount(currentPrayer?.amount, currentPrayer?.currency)}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
