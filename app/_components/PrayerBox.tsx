@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -12,6 +12,8 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useKindeBrowserClient } from "@kinde-oss/kinde-auth-nextjs";
+import { useToast } from "@/components/ui/use-toast";
 
 interface Prayer {
   id: string;
@@ -114,6 +116,8 @@ const letterAnimation = {
 };
 
 export default function PrayerBox() {
+  const { getToken, isLoading: isAuthLoading, isAuthenticated } = useKindeBrowserClient();
+  const { toast } = useToast();
   const [prayers, setPrayers] = useState<Prayer[]>([]);
   const [newPrayer, setNewPrayer] = useState('');
   const [title, setTitle] = useState('');
@@ -126,33 +130,95 @@ export default function PrayerBox() {
   const [shuffleIndex, setShuffleIndex] = useState(0);
   const [selectedRegion, setSelectedRegion] = useState<CurrencyRegion>('africa');
   const [selectedCurrency, setSelectedCurrency] = useState<Currency>(CURRENCIES.africa[0].value);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Update currency when region changes
   React.useEffect(() => {
     setSelectedCurrency(CURRENCIES[selectedRegion][0].value);
   }, [selectedRegion]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Fetch existing prayers
+  useEffect(() => {
+    const fetchPrayers = async () => {
+      try {
+        const token = await getToken();
+        const response = await fetch('/api/prayers', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setPrayers(data);
+        }
+      } catch (error) {
+        console.error('Error fetching prayers:', error);
+      }
+    };
+
+    if (isAuthenticated && !isAuthLoading) {
+      fetchPrayers();
+    }
+  }, [isAuthenticated, isAuthLoading, getToken]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isAuthenticated) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to submit a prayer",
+        variant: "destructive"
+      });
+      return;
+    }
+
     if (!newPrayer.trim() || !title.trim()) return;
     if (isMonetary && (!amount.trim() || !selectedCurrency)) return;
 
-    const prayer: Prayer = {
-      id: Math.random().toString(36).substr(2, 9),
-      content: newPrayer,
-      title: title,
-      isOpen: false,
-      isMonetary,
-      amount: isMonetary ? Number(amount) : undefined,
-      currency: isMonetary ? selectedCurrency : undefined
-    };
+    setIsSubmitting(true);
+    try {
+      const token = await getToken();
+      const response = await fetch('/api/prayers', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          title,
+          content: newPrayer,
+          isMonetary,
+          amount: isMonetary ? Number(amount) : undefined,
+          currency: isMonetary ? selectedCurrency : undefined,
+        }),
+      });
 
-    setPrayers([...prayers, prayer]);
-    setNewPrayer('');
-    setTitle('');
-    setAmount('');
-    setIsMonetary(false);
-    setSelectedCurrency(CURRENCIES.africa[0].value);
+      if (!response.ok) {
+        throw new Error('Failed to create prayer');
+      }
+
+      const prayer = await response.json();
+      setPrayers([...prayers, prayer]);
+      setNewPrayer('');
+      setTitle('');
+      setAmount('');
+      setIsMonetary(false);
+      setSelectedCurrency(CURRENCIES.africa[0].value);
+      
+      toast({
+        title: "Prayer Submitted",
+        description: "Your prayer has been successfully sent",
+      });
+    } catch (error) {
+      console.error('Error creating prayer:', error);
+      toast({
+        title: "Error",
+        description: "Failed to submit prayer. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleOpenPrayer = async () => {
@@ -459,9 +525,22 @@ export default function PrayerBox() {
               )}
             </div>
             <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-              <Button type="submit" className="w-full bg-primary/90 hover:bg-primary font-serif text-lg py-6">
-                <Mail className="mr-2 h-5 w-5" />
-                Seal & Send Prayer
+              <Button 
+                type="submit" 
+                className="w-full bg-primary/90 hover:bg-primary font-serif text-lg py-6"
+                disabled={isSubmitting || isAuthLoading || !isAuthenticated}
+              >
+                {isSubmitting ? (
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 border-2 border-white/50 border-t-white rounded-full animate-spin" />
+                    <span>Sending Prayer...</span>
+                  </div>
+                ) : (
+                  <>
+                    <Mail className="mr-2 h-5 w-5" />
+                    Seal & Send Prayer
+                  </>
+                )}
               </Button>
             </motion.div>
           </form>
