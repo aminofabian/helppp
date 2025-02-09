@@ -137,10 +137,14 @@ export async function POST(request: NextRequest) {
       await prisma.notification.create({
         data: {
           recipient: { connect: { id: requestCreator.id } },
+          title: 'Donation Received',
+          content: `You have received a donation of KES ${event.data.amount / 100}.`,
+          
           issuer: { connect: { id: donation.userId } },
           request: { connect: { id: donation.requestId } },
           type: 'DONATION',
-          read: false
+          read: false,
+          
         }
       });
 
@@ -227,6 +231,8 @@ export async function POST(request: NextRequest) {
           await prisma.notification.create({
             data: {
               recipient: { connect: { id: communityAdmin.id } },
+              title: `New donation from ${donation.Request.title}`,
+              content: `New donation from ${donation.Request.title}`,
               issuer: { connect: { id: donation.userId } },
               request: { connect: { id: donation.requestId } },
               type: 'DONATION',
