@@ -271,8 +271,8 @@ model Payment {
   resultDesc         String?
   amount             Float
   userts             DateTime
-  sender             User     @relation(fields: [userId], references: [id])
-  userId             String
+  sender             User?     @relation(fields: [userId], references: [id])
+  userId             String?
   request            Request? @relation(fields: [requestId], references: [id])
   requestId          String?
   donation           Donation? @relation(fields: [donationId], references: [id])
