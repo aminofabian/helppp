@@ -249,6 +249,19 @@ model Wallet {
   @@index([userId]) // Add this line to create an index on userId
 }
 
+enum PaymentMethod {
+  MPESA
+  PAYSTACK
+  PAYPAL
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
 model Payment {
   id                 String   @id @default(cuid())
   merchantRequestId   String?
@@ -271,17 +284,12 @@ model Payment {
   transactionDate    DateTime?
   paymentMethod      PaymentMethod
   currency           String?
+  status             PaymentStatus @default(PENDING)
   answer             Answer?  @relation("AnswerPayment")
 
   @@index([userId]) 
   @@index([requestId]) 
   @@index([paymentMethod])
-}
-
-enum PaymentMethod {
-  MPESA
-  PAYSTACK
-  PAYPAL
 }
 
 model Points {

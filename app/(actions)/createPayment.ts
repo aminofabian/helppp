@@ -1,4 +1,5 @@
 import prisma from '@/app/lib/db';
+import { Prisma, PaymentStatus } from '@prisma/client';
 
 export async function createPayment(
   callbackData: any,
@@ -12,8 +13,8 @@ export async function createPayment(
     data: {
       amount,
       currency: 'KES',
-      status: 'PENDING',
-      method: 'MPESA',
+      paymentMethod: 'MPESA',
+      status: PaymentStatus.PENDING,
       merchantRequestId: callbackData.MerchantRequestID,
       checkoutRequestId: callbackData.CheckoutRequestID,
       resultCode: callbackData.ResultCode.toString(),
@@ -21,8 +22,10 @@ export async function createPayment(
       mpesaReceiptNumber,
       phoneNumber,
       transactionDate,
+      userts: new Date(),
       sender: { connect: { id: donation.userId } },
-      prayer: { connect: { id: donation.requestId } }
+      donation: { connect: { id: donation.id } },
+      request: { connect: { id: donation.requestId } }
     }
   });
 }
