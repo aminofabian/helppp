@@ -93,7 +93,9 @@ export async function POST(
       data: {
         recipientId: prayer.userId,
         issuerId: userId,
-        type: "COMMENT",  // Using COMMENT type since there's no specific PRAYER_ANSWERED type
+        type: "COMMENT",  
+        title: "New Prayer Answer",
+        content: "Someone has answered your prayer"
       }
     });
 
