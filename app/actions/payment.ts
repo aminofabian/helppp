@@ -89,7 +89,7 @@ export async function updatePaymentStatus(paymentId: string, status: string, tra
       }
     });
 
-    if (status === PaymentStatus.COMPLETED && payment.request?.userId) {
+    if (status === PaymentStatus.COMPLETED && payment.request?.userId && payment.userId) {
       // Update user stats
       await prisma.$transaction([
         // Update sender's stats
