@@ -73,6 +73,7 @@ model Testimony {
   answer    Answer?  @relation("TestimonyAnswer", fields: [answerId], references: [id])
   answerId  String?  @unique
 
+  @@map("testimony")
   @@index([userId])
   @@index([answerId])
 }
@@ -256,7 +257,7 @@ model Payment {
   resultDesc         String?
   amount             Float
   userts             DateTime
-  user               User     @relation(fields: [userId], references: [id])
+  sender             User     @relation(fields: [userId], references: [id])
   userId             String
   request            Request? @relation(fields: [requestId], references: [id])
   requestId          String?
@@ -324,6 +325,9 @@ enum NotificationType {
   DONATION
   JOIN
   FOLLOW
+  PAYMENT_RECEIVED
+  PAYMENT_COMPLETED
+  PAYMENT_SENT
 }
 
 model Circle {

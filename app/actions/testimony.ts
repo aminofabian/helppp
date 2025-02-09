@@ -1,10 +1,12 @@
 import prisma from '@/app/lib/db';
-import { auth } from '@kinde-oss/kinde-auth-nextjs/server';
 import { createNotification } from '@/app/lib/notifications';
+import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
 
 export async function createTestimony(prayerId: string, content: string, isAnonymous: boolean = false) {
   try {
-    const { userId } = auth();
+    const { getUser } = getKindeServerSession();
+    const user = await getUser();
+    const userId = user?.id;
     if (!userId) {
       throw new Error('Unauthorized');
     }
@@ -110,7 +112,9 @@ export async function getTestimonies(prayerId: string) {
 
 export async function deleteTestimony(testimonyId: string) {
   try {
-    const { userId } = auth();
+    const { getUser } = getKindeServerSession();
+    const user = await getUser();
+    const userId = user?.id;
     if (!userId) {
       throw new Error('Unauthorized');
     }

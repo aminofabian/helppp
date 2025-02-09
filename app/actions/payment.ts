@@ -1,9 +1,12 @@
 import prisma from '@/app/lib/db';
-import { auth } from '@kinde-oss/kinde-auth-nextjs/server';
+import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
+
 
 export async function createPayment(prayerId: string, amount: number, currency: string, method: string) {
   try {
-    const { userId } = auth();
+    const { getUser } = getKindeServerSession();
+    const user = await getUser();
+    const userId = user?.id;
     if (!userId) {
       throw new Error('Unauthorized');
     }
