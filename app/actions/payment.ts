@@ -46,6 +46,8 @@ export async function createPayment(requestId: string, amount: number, currency:
         data: {
           type: NotificationType.PAYMENT_RECEIVED,
           recipientId: payment.request.userId,
+          title: 'Payment Received',
+          content: `You have received a payment of KES ${payment.amount}.`,
           issuerId: userId,
           requestId: requestId,
           read: false
@@ -111,6 +113,8 @@ export async function updatePaymentStatus(paymentId: string, status: string, tra
           data: {
             type: NotificationType.PAYMENT_COMPLETED,
             recipientId: payment.request.userId,
+            title: 'Payment Completed',
+            content: `Your payment of KES ${payment.amount} has been received.`,
             issuerId: payment.userId,
             requestId: payment.requestId,
             read: false
@@ -121,6 +125,8 @@ export async function updatePaymentStatus(paymentId: string, status: string, tra
           data: {
             type: NotificationType.PAYMENT_SENT,
             recipientId: payment.userId,
+            title: 'Payment Sent',
+            content: `You have sent a payment of KES ${payment.amount}.`,
             issuerId: payment.userId,
             requestId: payment.requestId,
             read: false
