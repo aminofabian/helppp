@@ -1,37 +1,37 @@
 import prisma from '@/app/lib/db';
-import { NotificationType } from '@prisma/client';
+import { NotificationType,  } from '@prisma/client';
 
 export async function createNotification({
   type,
   title,
   content,
-  userId,
-  prayerId,
-  paymentId
+  recipientId,
+  issuerId,
+  requestId,
+  donationId
 }: {
   type: NotificationType;
   title: string;
   content: string;
-  userId: string;
-  prayerId?: string;
-  paymentId?: string;
+  recipientId: string;
+  issuerId: string;
+  requestId?: string;
+  donationId?: string;
 }) {
   try {
     // Check user's notification preferences
-    const userSettings = await prisma.notificationSettings.findUnique({
-      where: { userId }
+    const userSettings = await prisma.user.findUnique({
+      where: { id: recipientId },
+      include: { notificationSettings: true }
     });
 
-    if (!userSettings) {
+    if (!userSettings?.notificationSettings) {
       // Create default settings if they don't exist
       await prisma.notificationSettings.create({
         data: {
-          userId,
-          emailNotifications: true,
-          pushNotifications: true,
-          prayerUpdates: true,
-          paymentUpdates: true,
-          communityUpdates: true
+          userId: recipientId,
+          emailEnabled: true,
+          pushEnabled: true
         }
       });
     }
@@ -42,19 +42,20 @@ export async function createNotification({
         type,
         title,
         content,
-        userId,
-        prayerId,
-        paymentId
+        recipientId,
+        issuerId,
+        requestId,
+        donationId
       }
     });
 
     // TODO: Implement email notifications
-    if (userSettings?.emailNotifications) {
+    if (userSettings?.notificationSettings?.emailEnabled) {
       // Send email notification
     }
 
     // TODO: Implement push notifications
-    if (userSettings?.pushNotifications) {
+    if (userSettings?.notificationSettings?.pushEnabled) {
       // Send push notification
     }
 
@@ -69,7 +70,7 @@ export async function markNotificationAsRead(notificationId: string) {
   try {
     const notification = await prisma.notification.update({
       where: { id: notificationId },
-      data: { isRead: true }
+      data: { read: true }
     });
 
     return notification;
@@ -83,20 +84,23 @@ export async function getUnreadNotifications(userId: string) {
   try {
     const notifications = await prisma.notification.findMany({
       where: {
-        userId,
-        isRead: false
+        recipientId: userId,
+        read: false
       },
       orderBy: {
         createdAt: 'desc'
       },
       include: {
-        user: {
+        issuer: {
           select: {
             id: true,
-            name: true,
-            image: true
+            firstName: true,
+            lastName: true,
+            imageUrl: true
           }
-        }
+        },
+        request: true,
+        donation: true
       }
     });
 
@@ -116,4 +120,4 @@ export async function deleteNotification(notificationId: string) {
     console.error('[DELETE_NOTIFICATION]', error);
     throw error;
   }
-} 
+}

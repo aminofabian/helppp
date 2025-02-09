@@ -31,6 +31,7 @@ model User {
   level             Int      @default(1)
   recievedNotifications Notification[] @relation("Recepient")
   issuedNotifications   Notification[] @relation("Issuer")
+  notificationSettings NotificationSettings?
   createdAt         DateTime @default(now())
   totalDonated      Float @default(0)
   donationCount     Int @default(0)
@@ -313,6 +314,8 @@ model Notification {
   requestId String?
   request Request? @relation(fields: [requestId], references: [id], onDelete: Cascade)
   type NotificationType
+  title String
+  content String
   read Boolean @default(false)
   createdAt DateTime @default(now())
   donationId String?
@@ -323,7 +326,6 @@ model Notification {
   @@index([issuerId]) 
   @@index([requestId]) 
   @@index([donationId]) 
-
 }
 
 enum NotificationType {
@@ -411,4 +413,16 @@ enum RequestStatus {
   APPROVED
   REJECTED
   FULFILLED
+}
+
+model NotificationSettings {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  emailEnabled Boolean @default(true)
+  pushEnabled  Boolean @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
 }
