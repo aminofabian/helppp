@@ -74,8 +74,9 @@ export async function createTestimony(prayerId: string, content: string, isAnony
         type: NotificationType.NEWREQUEST,
         title: "New Testimony",
         content: `Someone has shared a testimony on your prayer request`,
-        userId: prayer.user.id,
-        prayerId
+        recipientId: prayer.user.id,
+        issuerId: userId,
+        requestId: prayerId        
       });
     }
 
