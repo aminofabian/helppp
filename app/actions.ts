@@ -331,6 +331,8 @@ async function createNotification(type: NotificationType, recipientId: string, i
     const notification = await prisma.notification.create({
       data: {
         type,
+        title: '',
+        content: '',
         recipientId,
         issuerId,
         requestId,
