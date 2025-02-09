@@ -116,7 +116,7 @@ export async function updatePaymentStatus(paymentId: string, status: string, tra
             title: 'Payment Completed',
             content: `Your payment of KES ${payment.amount} has been received.`,
             issuerId: payment.userId,
-            requestId: payment.requestId,
+            requestId: payment.requestId ?? undefined,
             read: false
           }
         }),
@@ -128,7 +128,7 @@ export async function updatePaymentStatus(paymentId: string, status: string, tra
             title: 'Payment Sent',
             content: `You have sent a payment of KES ${payment.amount}.`,
             issuerId: payment.userId,
-            requestId: payment.requestId,
+            requestId: payment.requestId ?? undefined,
             read: false
           }
         })
