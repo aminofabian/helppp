@@ -77,8 +77,8 @@ export async function POST(request: Request) {
           data: {
             requestId: requestId,
             amount: parseFloat(amount),
-            merchantRequestID: paymentResponse.data.id || '',
-            checkoutRequestID: paymentResponse.data.id || '',
+            merchantRequestId: paymentResponse.data.id || '',
+            checkoutRequestId: paymentResponse.data.id || '',
             resultCode: 'PENDING',
             resultDesc: 'Till payment initiated',
             userts: new Date(),
