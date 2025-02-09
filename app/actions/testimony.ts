@@ -1,6 +1,7 @@
 import prisma from '@/app/lib/db';
 import { createNotification } from '@/app/lib/notifications';
 import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
+import { NotificationType } from '@prisma/client';
 
 export async function createTestimony(prayerId: string, content: string, isAnonymous: boolean = false) {
   try {
@@ -14,10 +15,11 @@ export async function createTestimony(prayerId: string, content: string, isAnony
     const prayer = await prisma.prayer.findUnique({
       where: { id: prayerId },
       include: {
-        creator: {
+        user: {
           select: {
             id: true,
-            name: true
+            firstName: true,
+            lastName: true
           }
         }
       }
@@ -29,8 +31,7 @@ export async function createTestimony(prayerId: string, content: string, isAnony
 
     const testimony = await prisma.testimony.create({
       data: {
-        content,
-        isAnonymous,
+        response: content,
         prayer: {
           connect: {
             id: prayerId
@@ -46,18 +47,20 @@ export async function createTestimony(prayerId: string, content: string, isAnony
         user: {
           select: {
             id: true,
-            name: true,
-            image: true
+            firstName: true,
+            lastName: true,
+            imageUrl: true
           }
         },
         prayer: {
           select: {
             id: true,
             title: true,
-            creator: {
+            user: {
               select: {
                 id: true,
-                name: true
+                firstName: true,
+                lastName: true
               }
             }
           }
@@ -66,12 +69,12 @@ export async function createTestimony(prayerId: string, content: string, isAnony
     });
 
     // Create notification for prayer creator
-    if (prayer.creator.id !== userId) {
+    if (prayer.user.id !== userId) {
       await createNotification({
-        type: 'NEW_TESTIMONY',
-        title: 'New testimony on your prayer!',
-        content: `${isAnonymous ? 'Someone' : testimony.user.name} shared a testimony on your prayer: ${prayer.title}`,
-        userId: prayer.creator.id,
+        type: NotificationType.NEWREQUEST,
+        title: "New Testimony",
+        content: `Someone has shared a testimony on your prayer request`,
+        userId: prayer.user.id,
         prayerId
       });
     }
@@ -93,8 +96,9 @@ export async function getTestimonies(prayerId: string) {
         user: {
           select: {
             id: true,
-            name: true,
-            image: true
+            firstName: true,
+            lastName: true,
+            imageUrl: true
           }
         }
       },
@@ -124,7 +128,7 @@ export async function deleteTestimony(testimonyId: string) {
       include: {
         prayer: {
           select: {
-            creatorId: true
+            userId: true
           }
         }
       }
@@ -135,7 +139,7 @@ export async function deleteTestimony(testimonyId: string) {
     }
 
     // Only allow the testimony creator or prayer creator to delete
-    if (testimony.userId !== userId && testimony.prayer.creatorId !== userId) {
+    if (testimony.userId !== userId && testimony.prayer.userId !== userId) {
       throw new Error('Not authorized to delete this testimony');
     }
 
@@ -146,4 +150,4 @@ export async function deleteTestimony(testimonyId: string) {
     console.error('[DELETE_TESTIMONY]', error);
     throw error;
   }
-} 
+}
