@@ -60,14 +60,14 @@ export async function POST(request: NextRequest) {
 
       const payment = await prisma.payment.create({
         data: {
-          merchantRequestID: event.data.id,
-          checkoutRequestID: event.data.reference,
+          merchantRequestId: event.data.id,
+          checkoutRequestId: event.data.reference,
           resultCode: event.data.status,
           resultDesc: event.data.gateway_response,
           amount: event.data.amount / 100,
           userts: new Date(event.data.paid_at),
-          paymentMethod: event.data.channel, 
-          user: { connect: { id: donation.userId } },
+          paymentMethod: event.data.channel,
+          sender: { connect: { id: donation.userId } },
           donation: { connect: { id: donation.id } },
           request: donation.requestId ? { connect: { id: donation.requestId } } : undefined
         }

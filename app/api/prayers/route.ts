@@ -1,10 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/app/lib/db';
+import { PrayerStatus } from '@prisma/client';
 import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
-
-
-
-
 
 export async function POST(req: Request) {
   try {
@@ -16,38 +13,26 @@ export async function POST(req: Request) {
     }
 
     const json = await req.json();
-    const { title, content, isMonetary, amount, currency } = json;
+    const { title, content } = json;
 
     const prayer = await prisma.prayer.create({
       data: {
         title,
         content,
-        isMonetary: isMonetary || false,
-        amount: amount ? parseFloat(amount) : null,
-        currency,
-        creator: {
+        user: {
           connect: {
             id: userId
           }
         }
       },
       include: {
-        creator: {
+        user: {
           select: {
             id: true,
-            name: true,
-            image: true
+            firstName: true,
+            lastName: true,
+            imageUrl: true
           }
-        }
-      }
-    });
-
-    // Update user stats
-    await prisma.user.update({
-      where: { id: userId },
-      data: {
-        prayersCreated: {
-          increment: 1
         }
       }
     });
@@ -63,38 +48,27 @@ export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const status = searchParams.get('status');
-    const communityId = searchParams.get('communityId');
-    const creatorId = searchParams.get('creatorId');
+    const userId = searchParams.get('userId');
 
     let where: any = {};
 
     if (status) {
-      where.status = status;
+      where.status = status as PrayerStatus;
     }
 
-    if (communityId) {
-      where.communityId = communityId;
-    }
-
-    if (creatorId) {
-      where.creatorId = creatorId;
+    if (userId) {
+      where.userId = userId;
     }
 
     const prayers = await prisma.prayer.findMany({
       where,
       include: {
-        creator: {
+        user: {
           select: {
             id: true,
-            name: true,
-            image: true
-          }
-        },
-        community: {
-          select: {
-            id: true,
-            name: true,
-            image: true
+            firstName: true,
+            lastName: true,
+            imageUrl: true
           }
         }
       },
@@ -108,4 +82,4 @@ export async function GET(req: Request) {
     console.error('[PRAYERS_GET]', error);
     return new NextResponse('Internal Error', { status: 500 });
   }
-} 
+}

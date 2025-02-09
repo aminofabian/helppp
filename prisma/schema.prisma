@@ -48,6 +48,12 @@ model User {
   @@index([id])
 }
 
+enum PrayerStatus {
+  PENDING
+  ANSWERED
+  CLOSED
+}
+
 model Prayer {
   id        String   @id @default(uuid())  
   user      User     @relation(fields: [userId], references: [id])  
@@ -104,12 +110,6 @@ model Leaderboard {
   prayersAnswered Int @default(0)  
 
   @@index([userId])
-}
-
-enum PrayerStatus {
-  PENDING    // Waiting for an answer  
-  ANSWERED   // Answered by someone  
-  IMPOSSIBLE // Marked as impossible and returned to the box  
 }
 
 model Community {
