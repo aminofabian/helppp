@@ -4,14 +4,17 @@ import prisma from '@/app/lib/db';
 export async function POST(request: Request) {
   try {
     const callbackData = await request.json();
-    console.log('Received Kopokopo callback:', callbackData);
+    console.log('Received Kopokopo callback:', JSON.stringify(callbackData, null, 2));
 
     // Extract the event type and payment data
     const { event: { type }, data } = callbackData;
+    console.log('Event type:', type);
+    console.log('Payment data:', JSON.stringify(data, null, 2));
 
     if (type === 'payment_request.processed') {
       const { metadata, status, reference } = data;
       const requestId = metadata.customerId;
+      console.log('Processing payment:', { requestId, status, reference });
 
       // Find the payment by reference
       const payment = await prisma.payment.findFirst({
@@ -28,10 +31,12 @@ export async function POST(request: Request) {
         }, { status: 404 });
       }
 
+      console.log('Found payment record:', JSON.stringify(payment, null, 2));
+
       // Update the payment record
-      await prisma.payment.update({
+      const updatedPayment = await prisma.payment.update({
         where: {
-          id: payment.id // Using the payment ID we found
+          id: payment.id
         },
         data: {
           resultCode: status === 'SUCCESS' ? '0' : '1',
@@ -40,15 +45,17 @@ export async function POST(request: Request) {
           transactionDate: new Date()
         }
       });
+      console.log('Updated payment record:', JSON.stringify(updatedPayment, null, 2));
 
       // If payment was successful, update the request status
       if (status === 'SUCCESS') {
-        await prisma.request.update({
+        const updatedRequest = await prisma.request.update({
           where: { id: requestId },
           data: {
             status: 'PAID'
           }
         });
+        console.log('Updated request status:', JSON.stringify(updatedRequest, null, 2));
       }
 
       return NextResponse.json({ 
@@ -65,6 +72,15 @@ export async function POST(request: Request) {
 
   } catch (error) {
     console.error('Error processing Kopokopo callback:', error);
+    
+    // Log the request body for debugging
+    try {
+      const rawBody = await request.text();
+      console.error('Raw callback body:', rawBody);
+    } catch (e) {
+      console.error('Could not read raw body:', e);
+    }
+    
     return NextResponse.json(
       { 
         status: 'error',
