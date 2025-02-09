@@ -379,8 +379,8 @@ export async function handlePayPalPayment(formData: FormData) {
         mpesaReceiptNumber: invoiceId,
         resultCode: 'COMPLETED',
         resultDesc: `Paid by ${payerName} (${payerEmail})`,
-        merchantRequestID: '',
-        checkoutRequestID: '',
+        merchantRequestId: '',
+        checkoutRequestId: '',
         userts: new Date(),
       }
     });
