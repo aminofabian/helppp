@@ -3,6 +3,10 @@ import { PayPalButtons } from "@paypal/react-paypal-js";
 import { CreateOrderData, CreateOrderActions, OnApproveData, OnApproveActions } from "@paypal/paypal-js";
 import { handlePayPalPayment } from '../actions';
 import toast from 'react-hot-toast';
+import { useRouter } from "next/navigation";
+
+
+
 
 
 interface PayPalButtonWrapperProps {
@@ -20,8 +24,9 @@ const PayPalButtonWrapper: React.FC<PayPalButtonWrapperProps> = ({
   setErrorMessage,
   errorMessage
 }) => {
-
+  const router = useRouter();
   const [isPayPalReady, setIsPayPalReady] = useState(false);
+
 
   useEffect(() => {
     // Set a small timeout to simulate PayPalButtons loading (optional)
@@ -86,44 +91,99 @@ const PayPalButtonWrapper: React.FC<PayPalButtonWrapperProps> = ({
         [selectedAmount, setErrorMessage, errorMessage]
       );
 
-const onApprove = async (data: OnApproveData, actions: OnApproveActions) => {
-  if (actions.order) {
-    try {
-      const details = await actions.order.capture();
-      console.log('this is the details', details);
 
-      if (details.id) {
-        const formData = new FormData();
 
-        formData.append('id', details.id);
-        if (details.purchase_units && details.purchase_units[0].amount) {
-          formData.append('amount', details.purchase_units[0].amount.value); 
+      const onApprove = async (data: OnApproveData, actions: OnApproveActions) => {
+        if (actions.order) {
+          try {
+            const details = await actions.order.capture();
+            console.log('This is the details:', details);
+      
+            if (details.id) {
+              const formData = new FormData();
+              formData.append('id', details.id);
+      
+              if (details.purchase_units && details.purchase_units[0].amount) {
+                formData.append('amount', details.purchase_units[0].amount.value); 
+              } else {
+                throw new Error("Purchase units or amount is undefined");
+              }
+      
+              formData.append('create_time', details.create_time || '');
+              formData.append('payer_email', details.payer?.email_address || '');
+              formData.append('payer_name', `${details.payer?.name?.given_name || ''} ${details.payer?.name?.surname || ''}`);
+              formData.append('requestId', data.orderID || ''); 
+      
+              const paymentResponse = await handlePayPalPayment(formData);
+      
+              if (paymentResponse.success) {
+                onPaymentSuccess(details.id);
+      
+                // Show success message using alert
+                alert('Payment successfully saved!');
+      
+                // Reload and redirect to the homepage
+                window.location.href = '/';
+              } else {
+                throw new Error(paymentResponse.message || 'Unknown error while saving payment');
+              }
+            } else {
+              throw new Error("PayPal order ID is undefined");
+            }
+          } catch (error) {
+            onPaymentError(error instanceof Error ? error : new Error("Unknown error occurred"));
+          }
         } else {
-          throw new Error("Purchase units or amount is undefined");
+          onPaymentError(new Error("PayPal actions.order is undefined"));
         }
-        formData.append('create_time', details.create_time || '');
-        formData.append('payer_email', details.payer?.email_address || '');
-        formData.append('payer_name', `${details.payer?.name?.given_name || ''} ${details.payer?.name?.surname || ''}`);
-        formData.append('requestId', data.orderID || ''); 
-        const paymentResponse = await handlePayPalPayment(formData);
+      };      
 
-        if (paymentResponse.success) {
-          console.log('Payment successfully saved:', paymentResponse.paymentRecord);
-          toast.success('Payment successfully saved');
-          onPaymentSuccess(details.id);
-        } else {
-          throw new Error(paymentResponse.message || 'Unknown error while saving payment');
-        }
-      } else {
-        throw new Error("PayPal order ID is undefined");
-      }
-    } catch (error) {
-      onPaymentError(error instanceof Error ? error : new Error("Unknown error occurred"));
-    }
-  } else {
-    onPaymentError(new Error("PayPal actions.order is undefined"));
-  }
-};
+// const onApprove = async (data: OnApproveData, actions: OnApproveActions) => {
+//   if (actions.order) {
+//     try {
+//       const details = await actions.order.capture();
+//       console.log('this is the details', details);
+
+//       if (details.id) {
+//         const formData = new FormData();
+
+//         formData.append('id', details.id);
+//         if (details.purchase_units && details.purchase_units[0].amount) {
+//           formData.append('amount', details.purchase_units[0].amount.value); 
+//         } else {
+//           throw new Error("Purchase units or amount is undefined");
+//         }
+//         formData.append('create_time', details.create_time || '');
+//         formData.append('payer_email', details.payer?.email_address || '');
+//         formData.append('payer_name', `${details.payer?.name?.given_name || ''} ${details.payer?.name?.surname || ''}`);
+//         formData.append('requestId', data.orderID || ''); 
+//         const paymentResponse = await handlePayPalPayment(formData);
+
+//         if (paymentResponse.success) {
+//           // console.log('Payment successfully saved:', paymentResponse.paymentRecord);
+
+//           toast.success('Payment successfully saved', {
+//             position: 'top-right',
+//             duration: 3000, // 3 seconds
+//           });
+          
+//           setTimeout(() => {
+//             router.push('/'); // Redirect after toast disappears
+//           }, 3000);
+//           onPaymentSuccess(details.id);
+//         } else {
+//           throw new Error(paymentResponse.message || 'Unknown error while saving payment');
+//         }
+//       } else {
+//         throw new Error("PayPal order ID is undefined");
+//       }
+//     } catch (error) {
+//       onPaymentError(error instanceof Error ? error : new Error("Unknown error occurred"));
+//     }
+//   } else {
+//     onPaymentError(new Error("PayPal actions.order is undefined"));
+//   }
+// };
 
 
   return (

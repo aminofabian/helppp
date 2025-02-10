@@ -80,12 +80,36 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [stkQueryLoading, setStkQueryLoading] = useState(false);
   const [success, setSuccess] = useState(false);
-  
-  useEffect(() => {
-    if (selectedAmount) {
-      setCustomAmount(selectedAmount.toString());
+
+  const [showPayPal, setShowPayPal] = useState(false);
+
+  const [clientId, setClientId] = useState<string>("");
+  const [loading, setLoading] = useState(true);
+
+  const fetchClientId = async () => {
+    try {
+      const response = await fetch("/api/paypal");
+      const data = await response.json();
+      if (data.clientId) {
+        setClientId(data.clientId);
+      } else {
+        throw new Error("Client ID not found");
+      }
+    } catch (error) {
+      console.error("Error fetching PayPal client ID:", error);
+      toast.error("Failed to load PayPal client ID");
+    } finally {
+      setLoading(false);
     }
-  }, [selectedAmount]);
+  };
+
+  // ✅ Fix: useEffect executes only once
+  useEffect(() => {
+    fetchClientId();
+  }, []);
+
+  // ✅ Fix: Removed unnecessary useEffect
+  // ✅ We now update `customAmount` inside event handlers
 
   const handleAmountSelect = (amount: number) => {
     setSelectedAmount(amount);
@@ -109,7 +133,6 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
     setEmail(event.target.value);
     setError(null);
   };
-
   const validateForm = () => {
     if (!selectedAmount || selectedAmount <= 0) {
       setError('Please select a valid amount');
@@ -123,6 +146,8 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
       setError('Please enter a valid email address');
       return false;
     }
+
+    
     return true;
   };
 
@@ -230,7 +255,10 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
           handler.openIframe();
         };
         document.body.appendChild(script);
-      } else {
+      } 
+     
+        
+        else {
         setError('This payment method is not yet implemented.');
       }
     } catch (error) {
@@ -243,6 +271,7 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
   };
 
   return (
+
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-2 z-50">
       <div className="w-full max-w-3xl bg-white rounded-2xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom duration-300">
         {/* Header - Made more compact */}
@@ -308,7 +337,7 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
                               text-xs ml-0.5 font-medium
                               ${selectedAmount === number ? 'text-white/70' : 'text-gray-400'}
                             `}>
-                              KES
+                              {paymentMethod === 'PayPal' ? 'USD' : 'UD'}
                             </span>
                           </div>
                           <div className={`
@@ -440,7 +469,67 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
                 </div>
               )}
 
-              {(paymentMethod === 'Mpesa' || paymentMethod === 'Till' || paymentMethod === 'Paystack') ? (
+{paymentMethod === "PayPal" && clientId ? (
+  <PayPalScriptProvider options={{ clientId }}>
+
+  <PayPalButtonWrapper
+    onPaymentSuccess={(details) => {
+      console.log("Payment Successful:", details);
+      toast.success("Payment was successful!");
+      setShowPayPal(false); // Hide PayPal button after successful payment
+    }}
+    onPaymentError={(error) => {
+      console.error("Payment Error:", error);
+      toast.error("Payment failed. Please try again.");
+      setShowPayPal(false);
+    }}
+    selectedAmount={selectedAmount || 0}
+    setErrorMessage={setError}
+    errorMessage={error || ""}
+  />
+  </PayPalScriptProvider>
+) : (paymentMethod === "Mpesa" || paymentMethod === "Till" || paymentMethod === "Paystack") ? (
+  <SubmitButton 
+    ButtonName={`Complete ${paymentMethod} Payment`}
+    isLoading={isLoading}
+    onClick={handleSubmit}
+  />
+) : (
+  <button 
+    className="w-full py-4 font-bold bg-gray-400 text-white rounded-xl opacity-75 cursor-not-allowed"
+    disabled
+  >
+    Select a payment method
+  </button>
+)}
+
+
+
+{/* {paymentMethod === "PayPal" && clientId ? (
+  <PayPalScriptProvider options={{ clientId }}>
+    <PayPalButtonWrapper
+      onPaymentSuccess={(details) => {
+        console.log("Payment Successful:", details);
+        toast.success("Payment was successful!");
+        setShowPayPal(false);
+      }}
+      onPaymentError={(error) => {
+        console.error("Payment Error:", error);
+        toast.error("Payment failed. Please try again.");
+        setShowPayPal(false);
+      }}
+      selectedAmount={selectedAmount || 0}
+      setErrorMessage={setError}
+      errorMessage={error || ""}
+    />
+  </PayPalScriptProvider>
+) : (
+  <p>Loading PayPal...</p>
+)} */}
+
+
+
+              {/* {(paymentMethod === 'Mpesa' || paymentMethod === 'Till' || paymentMethod === 'Paystack' || paymentMethod === 'PayPal') ? (
                 <SubmitButton 
                   ButtonName={`Complete ${paymentMethod} Payment`}
                   isLoading={isLoading}
@@ -452,9 +541,14 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
                            opacity-75 cursor-not-allowed"
                   disabled
                 >
-                  {paymentMethod} - Coming Soon
+                  
+                 
+
+               
+    
+
                 </button>
-              )}
+              )} */}
 
               <p className="text-xs text-gray-500 text-center mt-4">
                 By completing this payment, you agree to our terms of service
@@ -464,6 +558,7 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
         </div>
       </div>
     </div>
+
   );
 };
 
