@@ -251,7 +251,13 @@ const handleSubmit = async () => {
           });
     
           if (!response.ok) {
-            throw new Error("Failed to initialize Paystack payment.");
+            if (response.status === 401) {
+              window.location.href = "/api/auth/login"; // Redirect user to login
+              return; // Stop further execution
+            }
+            
+            console.error("Error initializing Paystack payment:", await response.json());
+            return; // Stop execution without throwing an error
           }
     
           const result = await response.json();

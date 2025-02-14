@@ -5,6 +5,7 @@ const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
 
 export async function POST(req: Request) {
   try {
+    
     const rawBody = await req.text(); // read data
     const signature = req.headers.get("x-paystack-signature"); // Paystack signature
 
@@ -26,13 +27,14 @@ export async function POST(req: Request) {
 
       // Extract details
       const email = event.data.customer.email;
-      const amount = event.data.amount / 100; // from kobo to NGN
+      const amount = event.data.amount / 100; 
       const reference = event.data.reference;
 
-      console.log("Extracted Data:");
-      console.log(`Email: ${email}`);
-      console.log(`Amount: ${amount} NGN`);
-      console.log(` Reference: ${reference}`);
+
+    //   console.log("Extracted Data:");
+    //   console.log(`Email: ${email}`);
+    //   console.log(`Amount: ${amount} NGN`);
+    //   console.log(` Reference: ${reference}`);
 
     } else {
       console.log("Unhandled event type:", event.event);

@@ -1,7 +1,18 @@
+import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
 import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
+
   try {
+
+    const { getUser } = getKindeServerSession();
+    const user = await getUser();
+    const userId = user?.id;
+    console.log(userId, 'this is tobias user id...')
+
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     const { email, amount } = await req.json();
 
     if (!email || !amount) {
