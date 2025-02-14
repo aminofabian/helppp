@@ -20,6 +20,7 @@
     "@kinde-oss/kinde-auth-nextjs": "^2.2.3",
     "@paypal/checkout-server-sdk": "^1.0.3",
     "@paypal/react-paypal-js": "^8.8.1",
+    "@paystack/inline-js": "^2.22.2",
     "@prisma/client": "^5.22.0",
     "@radix-ui/react-alert-dialog": "^1.1.1",
     "@radix-ui/react-avatar": "^1.1.2",
@@ -80,6 +81,7 @@
   "devDependencies": {
     "@tailwindcss/typography": "^0.5.12",
     "@types/node": "^20",
+    "@types/paystack__inline-js": "^1.0.1",
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "autoprefixer": "^10.0.1",

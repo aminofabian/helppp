@@ -7,6 +7,10 @@ import { stkPushQuery } from '../(actions)/stkPushQuery';
 import PaymentSuccess from './Success';
 import PayPalButtonWrapper from './PayPalButtonWrapper';
 import { PayPalScriptProvider } from '@paypal/react-paypal-js';
+import PaystackPop from "@paystack/inline-js";
+import dynamic from "next/dynamic";
+
+
 
 
 type PaymentMethod = 'Mpesa' | 'Paystack' | 'PayPal' | 'Till';
@@ -180,95 +184,118 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
       }
     }, 2000);
   };
-  
-  const handleSubmit = async () => {
-    if (!validateForm()) return;
 
-    setIsLoading(true);
-    setError(null);
 
-    try {
-      if (paymentMethod === "Mpesa") {
-        const formData = new FormData();
-        formData.append("amount", selectedAmount?.toString() || "");
-        formData.append("requestId", requestId);
-        formData.append("phoneNumber", phoneNumber);
 
-        const result = await handleMpesa(formData);
-        console.log(result, 'result from handleMpesa');
+const handleSubmit = async () => {
+  if (!validateForm()) return;
 
-        if (result.success && result.response.CheckoutRequestID) {
-          stkPushQueryWithIntervals(result.response.CheckoutRequestID);
-        } else if (!result.success) {
-          toast.error(result.message || "Failed to initiate payment", {
-            duration: 5000,
-            position: "top-center",
-          });
-          setIsLoading(false);
-          setError(result.message || "Failed to initiate payment");
-        } else {
-          setIsLoading(false);
-          setError("An unexpected error occurred");
-        }
-      } else if (paymentMethod === "Till") {
-        const formData = new FormData();
-        formData.append("amount", selectedAmount?.toString() || "");
-        formData.append("requestId", requestId);
-        formData.append("phoneNumber", phoneNumber);
+  setIsLoading(true);
+  setError(null);
 
-        const result = await handleTillPayment(formData);
-        console.log(result, 'result from handleTillPayment');
+  try {
+    const createPaymentFormData = () => {
+      const formData = new FormData();
+      formData.append("amount", selectedAmount?.toString() || "");
+      formData.append("requestId", requestId);
+      formData.append("phoneNumber", phoneNumber);
+      return formData;
+    };
 
-        if (result.success) {
-          toast.success("Payment initiated successfully. Please check your phone to complete the transaction.", {
-            duration: 5000,
-            position: "top-center",
-          });
-          setIsLoading(false);
-        } else {
-          toast.error(result.message || "Failed to initiate payment", {
-            duration: 5000,
-            position: "top-center",
-          });
-          setIsLoading(false);
-          setError(result.message || "Failed to initiate payment");
-        }
-      } else if (paymentMethod === 'Paystack') {
-        const script = document.createElement('script');
-        script.src = 'https://js.paystack.co/v1/inline.js';
-        script.onload = () => {
-          const handler = (window as any).PaystackPop.setup({
-            key: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY!,
-            email: email,
-            amount: (selectedAmount || 0) * 100,
-            currency: 'KES',
-            ref: `${Date.now()}`, // Generate a unique reference
-            callback: function (response: any) {
-              console.log('Payment successful:', response);
-              toast.success('Payment successful!');
-            },
-            onClose: function () {
-              console.log('Payment window closed');
-              toast.error('Payment cancelled');
-            },
-          });
-          handler.openIframe();
-        };
-        document.body.appendChild(script);
-      } 
-     
-        
-        else {
-        setError('This payment method is not yet implemented.');
+    if (paymentMethod === "Mpesa") {
+      const result = await handleMpesa(createPaymentFormData());
+      console.log(result, "result from handleMpesa");
+
+      if (result.success && result.response.CheckoutRequestID) {
+        stkPushQueryWithIntervals(result.response.CheckoutRequestID);
+      } else {
+        toast.error(result.message || "Failed to initiate payment", {
+          duration: 5000,
+          position: "top-center",
+        });
+        setError(result.message || "Failed to initiate payment");
       }
-    } catch (error) {
-      console.error('Payment error:', error);
-      setError('An error occurred during payment. Please try again.');
-      toast.error('An error occurred during payment. Please try again.');
-    } finally {
-      setIsLoading(false);
     }
-  };
+
+    else if (paymentMethod === "Till") {
+      const result = await handleTillPayment(createPaymentFormData());
+      console.log(result, "result from handleTillPayment");
+
+      if (result.success) {
+        toast.success("Payment initiated successfully. Please check your phone to complete the transaction.", {
+          duration: 5000,
+          position: "top-center",
+        });
+      } else {
+        toast.error(result.message || "Failed to initiate payment", {
+          duration: 5000,
+          position: "top-center",
+        });
+        setError(result.message || "Failed to initiate payment");
+      }
+    }
+
+    else if (paymentMethod === "Paystack") {
+      const initiatePaystackPayment = async () => {
+        if (!email || !selectedAmount) {
+          setError("Please enter a valid email and amount for Paystack.");
+          toast.error("Invalid email or amount for Paystack.");
+          return;
+        }
+    
+        try {
+          const response = await fetch("/api/initiate", {
+            method: "POST",
+            body: JSON.stringify({ email, amount: selectedAmount }),
+            headers: { "Content-Type": "application/json" },
+          });
+    
+          if (!response.ok) {
+            throw new Error("Failed to initialize Paystack payment.");
+          }
+    
+          const result = await response.json();
+          console.log(result, "result");
+          const authorization_url = result?.data?.data?.authorization_url; 
+    
+          if (!authorization_url) {
+            throw new Error("Failed to retrieve authorization URL.");
+          }
+    
+          console.log("Paystack Payment URL:", authorization_url);
+
+          window.location.href = authorization_url;
+    
+        } catch (error) {
+          console.error("Paystack Payment Error:", error);
+          if (error instanceof Error) {
+            setError(error.message || "An error occurred with Paystack.");
+          } else {
+            setError("An error occurred with Paystack.");
+          }
+          if (error instanceof Error) {
+            toast.error(error.message || "An error occurred with Paystack.");
+          } else {
+            toast.error("An error occurred with Paystack.");
+          }
+        }
+      };
+    
+      await initiatePaystackPayment();
+    }
+
+    else {
+      setError("This payment method is not yet implemented.");
+    }
+  } catch (error) {
+    console.error("Payment error:", error);
+    setError("An error occurred during payment. Please try again.");
+    toast.error("An error occurred during payment. Please try again.");
+  } finally {
+    setIsLoading(false);
+  }
+};
+  
 
   return (
 
@@ -422,7 +449,7 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
 
                   {paymentMethod === 'Paystack' && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-600 mb-1.5">Email Address</label>
+                      <label className="block text-sm font-medium text-gray-600 mb-1.5">Email Addressses</label>
                       <div className="relative">
                         <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-primary" size={16} />
                         <input
@@ -571,3 +598,219 @@ export default MpesaPay;
     background-size: 8px 8px;
   }
 `}</style>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  // const handleSubmit = async () => {
+  //   if (!validateForm()) return;
+  
+  //   setIsLoading(true);
+  //   setError(null);
+  
+  //   try {
+  //     const createPaymentFormData = () => {
+  //       const formData = new FormData();
+  //       formData.append("amount", selectedAmount?.toString() || "");
+  //       formData.append("requestId", requestId);
+  //       formData.append("phoneNumber", phoneNumber);
+  //       return formData;
+  //     };
+  
+  //     if (paymentMethod === "Mpesa") {
+  //       const result = await handleMpesa(createPaymentFormData());
+  //       console.log(result, "result from handleMpesa");
+  
+  //       if (result.success && result.response.CheckoutRequestID) {
+  //         stkPushQueryWithIntervals(result.response.CheckoutRequestID);
+  //       } else {
+  //         toast.error(result.message || "Failed to initiate payment", { duration: 5000, position: "top-center" });
+  //         setError(result.message || "Failed to initiate payment");
+  //       }
+  //     } 
+      
+  //     else if (paymentMethod === "Till") {
+  //       const result = await handleTillPayment(createPaymentFormData());
+  //       console.log(result, "result from handleTillPayment");
+  
+  //       if (result.success) {
+  //         toast.success("Payment initiated successfully. Please check your phone to complete the transaction.", {
+  //           duration: 5000, position: "top-center",
+  //         });
+  //       } else {
+  //         toast.error(result.message || "Failed to initiate payment", { duration: 5000, position: "top-center" });
+  //         setError(result.message || "Failed to initiate payment");
+  //       }
+  //     } 
+      
+  //     else if (paymentMethod === "Paystack") {
+  //       const initiatePaystackPayment = async () => {
+  //         const response = await fetch("/api/paystack/initiate", {
+  //           method: "POST",
+  //           body: JSON.stringify({ email: "tobiasbarakan@gmail.com", amount: 1 }),
+  //           headers: { "Content-Type": "application/json" },
+  //         });
+  
+  //         const { access_code } = await response.json();
+  //         console.log(access_code, "Access Code from Paystack");
+  
+  //         const paystack = new PaystackPop();
+  //         paystack.newTransaction({
+  //           key: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || '',
+  //           email: "tobiasbarakan@gmail.com",
+  //           amount: 1 * 100, // Convert to kobo
+  //           onSuccess: (response) => {
+  //             console.log("Transaction Successful:", response);
+  //             toast.success("Payment successful!");
+  //           },
+  //           onCancel: () => {
+  //             console.error("Transaction cancelled");
+  //             toast.error("Payment cancelled!");
+  //           },
+  //         });
+  //       };
+  
+  //       await initiatePaystackPayment();
+  //     } 
+      
+  //     else {
+  //       setError("This payment method is not yet implemented.");
+  //     }
+  //   } catch (error) {
+  //     console.error("Payment error:", error);
+  //     setError("An error occurred during payment. Please try again.");
+  //     toast.error("An error occurred during payment. Please try again.");
+  //   } finally {
+  //     setIsLoading(false);
+  //   }
+  // };
+  
+  
+  // const handleSubmit = async () => {
+  //   if (!validateForm()) return;
+
+  //   setIsLoading(true);
+  //   setError(null);
+
+  //   try {
+  //     if (paymentMethod === "Mpesa") {
+  //       const formData = new FormData();
+  //       formData.append("amount", selectedAmount?.toString() || "");
+  //       formData.append("requestId", requestId);
+  //       formData.append("phoneNumber", phoneNumber);
+
+  //       const result = await handleMpesa(formData);
+  //       console.log(result, 'result from handleMpesa');
+
+  //       if (result.success && result.response.CheckoutRequestID) {
+  //         stkPushQueryWithIntervals(result.response.CheckoutRequestID);
+  //       } else if (!result.success) {
+  //         toast.error(result.message || "Failed to initiate payment", {
+  //           duration: 5000,
+  //           position: "top-center",
+  //         });
+  //         setIsLoading(false);
+  //         setError(result.message || "Failed to initiate payment");
+  //       } else {
+  //         setIsLoading(false);
+  //         setError("An unexpected error occurred");
+  //       }
+  //     } else if (paymentMethod === "Till") {
+  //       const formData = new FormData();
+  //       formData.append("amount", selectedAmount?.toString() || "");
+  //       formData.append("requestId", requestId);
+  //       formData.append("phoneNumber", phoneNumber);
+
+  //       const result = await handleTillPayment(formData);
+  //       console.log(result, 'result from handleTillPayment');
+
+  //       if (result.success) {
+  //         toast.success("Payment initiated successfully. Please check your phone to complete the transaction.", {
+  //           duration: 5000,
+  //           position: "top-center",
+  //         });
+  //         setIsLoading(false);
+  //       } else {
+  //         toast.error(result.message || "Failed to initiate payment", {
+  //           duration: 5000,
+  //           position: "top-center",
+  //         });
+  //         setIsLoading(false);
+  //         setError(result.message || "Failed to initiate payment");
+  //       }
+  //     } else if (paymentMethod === 'Paystack') {
+
+
+
+  //       const initiatePaystackPayment = async () => {
+  //         const response = await fetch("/api/paystack/initiate", {
+  //           method: "POST",
+  //           body: JSON.stringify({ email: "tobiasbarakan@gmail.com", amount: 1 }),
+  //           headers: { "Content-Type": "application/json" },
+  //         });
+        
+  //         const { access_code } = await response.json();
+  //         console.log(access_code, 'what is this')
+        
+  //         const paystack = new PaystackPop();
+  //         paystack.resumeTransaction(access_code);
+  //       };
+
+  //       // ✅ Fix: useEffect executes only once
+  // useEffect(() => {
+  //   initiatePaystackPayment();
+  // }, []);
+  //       // const script = document.createElement('script');
+  //       // script.src = 'https://js.paystack.co/v1/inline.js';
+  //       // script.onload = () => {
+  //       //   const handler = (window as any).PaystackPop.setup({
+  //       //     key: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY!,
+  //       //     email: email,
+  //       //     amount: (selectedAmount || 0) * 100,
+  //       //     currency: 'KES',
+  //       //     ref: `${Date.now()}`, // Generate a unique reference
+  //       //     callback: function (response: any) {
+  //       //       console.log('Payment successful:', response);
+  //       //       toast.success('Payment successful!');
+  //       //     },
+  //       //     onClose: function () {
+  //       //       console.log('Payment window closed');
+  //       //       toast.error('Payment cancelled');
+  //       //     },
+  //       //   });
+  //       //   handler.openIframe();
+  //       // };
+  //       // document.body.appendChild(script);
+  //     } 
+     
+        
+  //       else {
+  //       setError('This payment method is not yet implemented.');
+  //     }
+  //   } catch (error) {
+  //     console.error('Payment error:', error);
+  //     setError('An error occurred during payment. Please try again.');
+  //     toast.error('An error occurred during payment. Please try again.');
+  //   } finally {
+  //     setIsLoading(false);
+  //   }
+  // };
