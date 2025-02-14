@@ -17,10 +17,10 @@ export async function POST(req: Request) {
       body: JSON.stringify({
         email,
         amount: amount * 100, // Convert to kobo
-        callback_url: process.env.NEXT_PUBLIC_PAYSTACK_CALLBACK_URL || "https://32a3-41-90-172-99.ngrok-free.app/",
+        callback_url: process.env.NEXT_PUBLIC_PAYSTACK_CALLBACK_URL || "https://fitrii.com",
       }),
     });
-
+    // https://fitrii.com/
     const data = await response.json();
     console.log(data, 'succesful...')
 
