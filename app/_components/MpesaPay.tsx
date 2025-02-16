@@ -235,60 +235,109 @@ const handleSubmit = async () => {
       }
     }
 
+
     else if (paymentMethod === "Paystack") {
       const initiatePaystackPayment = async () => {
-        if (!email || !selectedAmount) {
-          setError("Please enter a valid email and amount for Paystack.");
-          toast.error("Invalid email or amount for Paystack.");
+        if (!email || !selectedAmount || !requestId) {
+          setError("Please enter a valid email, amount, and ensure request ID is set.");
+          toast.error("Invalid email, amount, or request ID for Paystack.");
           return;
         }
     
         try {
           const response = await fetch("/api/initiate", {
             method: "POST",
-            body: JSON.stringify({ email, amount: selectedAmount }),
+            body: JSON.stringify({ email, amount: selectedAmount, requestId }), 
             headers: { "Content-Type": "application/json" },
           });
     
           if (!response.ok) {
             if (response.status === 401) {
-              window.location.href = "/api/auth/login"; // Redirect user to login
-              return; // Stop further execution
+              window.location.href = "/api/auth/login"; 
+              return; 
             }
             
             console.error("Error initializing Paystack payment:", await response.json());
-            return; // Stop execution without throwing an error
+            return;
           }
     
           const result = await response.json();
           console.log(result, "result");
-          const authorization_url = result?.data?.data?.authorization_url; 
+          const authorization_url = result?.data?.data?.authorization_url;
     
           if (!authorization_url) {
             throw new Error("Failed to retrieve authorization URL.");
           }
     
           console.log("Paystack Payment URL:", authorization_url);
-
+    
           window.location.href = authorization_url;
     
         } catch (error) {
           console.error("Paystack Payment Error:", error);
-          if (error instanceof Error) {
-            setError(error.message || "An error occurred with Paystack.");
-          } else {
-            setError("An error occurred with Paystack.");
-          }
-          if (error instanceof Error) {
-            toast.error(error.message || "An error occurred with Paystack.");
-          } else {
-            toast.error("An error occurred with Paystack.");
-          }
+          setError(error instanceof Error ? error.message : "An error occurred with Paystack.");
+          toast.error(error instanceof Error ? error.message : "An error occurred with Paystack.");
         }
       };
     
       await initiatePaystackPayment();
     }
+    
+
+    // else if (paymentMethod === "Paystack") {
+    //   const initiatePaystackPayment = async () => {
+    //     if (!email || !selectedAmount) {
+    //       setError("Please enter a valid email and amount for Paystack.");
+    //       toast.error("Invalid email or amount for Paystack.");
+    //       return;
+    //     }
+    
+    //     try {
+    //       const response = await fetch("/api/initiate", {
+    //         method: "POST",
+    //         body: JSON.stringify({ email, amount: selectedAmount }),
+    //         headers: { "Content-Type": "application/json" },
+    //       });
+    
+    //       if (!response.ok) {
+    //         if (response.status === 401) {
+    //           window.location.href = "/api/auth/login"; // Redirect user to login
+    //           return; // Stop further execution
+    //         }
+            
+    //         console.error("Error initializing Paystack payment:", await response.json());
+    //         return; // Stop execution without throwing an error
+    //       }
+    
+    //       const result = await response.json();
+    //       console.log(result, "result");
+    //       const authorization_url = result?.data?.data?.authorization_url; 
+    
+    //       if (!authorization_url) {
+    //         throw new Error("Failed to retrieve authorization URL.");
+    //       }
+    
+    //       console.log("Paystack Payment URL:", authorization_url);
+
+    //       window.location.href = authorization_url;
+    
+    //     } catch (error) {
+    //       console.error("Paystack Payment Error:", error);
+    //       if (error instanceof Error) {
+    //         setError(error.message || "An error occurred with Paystack.");
+    //       } else {
+    //         setError("An error occurred with Paystack.");
+    //       }
+    //       if (error instanceof Error) {
+    //         toast.error(error.message || "An error occurred with Paystack.");
+    //       } else {
+    //         toast.error("An error occurred with Paystack.");
+    //       }
+    //     }
+    //   };
+    
+    //   await initiatePaystackPayment();
+    // }
 
     else {
       setError("This payment method is not yet implemented.");

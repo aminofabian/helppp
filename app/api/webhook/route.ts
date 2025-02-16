@@ -5,6 +5,7 @@ import crypto from "crypto";
 export async function POST(req: Request) {
   try {
     const rawBody = await req.text();
+    console.log(rawBody, 'this is the raw body...')
     const signature = req.headers.get("x-paystack-signature");
 
     // Verify Paystack webhook authenticity
@@ -24,14 +25,18 @@ export async function POST(req: Request) {
 
       // Extract necessary data
       const email = event.data.customer.email?.toLowerCase().trim();
-      if (!email) {
-        return NextResponse.json({ message: "No email provided" }, { status: 400 });
-      }
-
       const amount = event.data.amount / 100; // Convert from kobo to KES
       const reference = event.data.reference;
       const currency = event.data.currency;
       const paymentMethod = "PAYSTACK";
+      const requestId = event.data.metadata?.requestId; // ✅ Extract requestId
+
+      if (!email) {
+        return NextResponse.json({ message: "No email provided" }, { status: 400 });
+      }
+      if (!requestId) {
+        return NextResponse.json({ message: "No requestId provided" }, { status: 400 });
+      }
 
       // Find user by email
       const user = await prisma.user.findUnique({ where: { email } });
@@ -42,7 +47,7 @@ export async function POST(req: Request) {
 
       console.log("User found:", user.id);
 
-      // Store payment record (without updating wallet)
+      // Store payment record (linking to requestId)
       const payment = await prisma.payment.create({
         data: {
           userId: user.id,
@@ -54,10 +59,11 @@ export async function POST(req: Request) {
           mpesaReceiptNumber: reference,
           currency: currency,
           userts: new Date(),
+          requestId: requestId, // ✅ Store requestId with the payment
         },
       });
 
-      console.log(`Payment recorded successfully for user: ${user.id}`);
+      console.log(`Payment recorded successfully for user: ${user.id} and requestId: ${requestId}`);
 
       return NextResponse.json({ message: "Payment recorded successfully" }, { status: 200 });
     }
@@ -69,6 +75,79 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: error.message || "Server error" }, { status: 500 });
   }
 }
+
+
+// import { NextResponse } from "next/server";
+// import prisma from "@/app/lib/db";
+// import crypto from "crypto";
+
+// export async function POST(req: Request) {
+//   try {
+//     const rawBody = await req.text();
+//     const signature = req.headers.get("x-paystack-signature");
+
+//     // Verify Paystack webhook authenticity
+//     const hash = crypto.createHmac("sha512", process.env.PAYSTACK_SECRET_KEY!)
+//       .update(rawBody)
+//       .digest("hex");
+
+//     if (hash !== signature) {
+//       return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
+//     }
+
+//     const event = JSON.parse(rawBody);
+//     console.log("Webhook Data Received:", JSON.stringify(event, null, 2));
+
+//     if (event.event === "charge.success") {
+//       console.log(`Payment successful for ${event.data.amount / 100} KES`);
+
+//       // Extract necessary data
+//       const email = event.data.customer.email?.toLowerCase().trim();
+//       if (!email) {
+//         return NextResponse.json({ message: "No email provided" }, { status: 400 });
+//       }
+
+//       const amount = event.data.amount / 100; // Convert from kobo to KES
+//       const reference = event.data.reference;
+//       const currency = event.data.currency;
+//       const paymentMethod = "PAYSTACK";
+
+//       // Find user by email
+//       const user = await prisma.user.findUnique({ where: { email } });
+//       if (!user) {
+//         console.error("User not found for email:", email);
+//         return NextResponse.json({ message: "User not found" }, { status: 404 });
+//       }
+
+//       console.log("User found:", user.id);
+
+//       // Store payment record (without updating wallet)
+//       const payment = await prisma.payment.create({
+//         data: {
+//           userId: user.id,
+//           amount: amount,
+//           status: "COMPLETED",
+//           paymentMethod: paymentMethod,
+//           createdAt: new Date(),
+//           updatedAt: new Date(),
+//           mpesaReceiptNumber: reference,
+//           currency: currency,
+//           userts: new Date(),
+//         },
+//       });
+
+//       console.log(`Payment recorded successfully for user: ${user.id}`);
+
+//       return NextResponse.json({ message: "Payment recorded successfully" }, { status: 200 });
+//     }
+
+//     console.log("Unhandled event type:", event.event);
+//     return NextResponse.json({ message: "Webhook received" }, { status: 200 });
+//   } catch (error: any) {
+//     console.error("Webhook processing error:", error);
+//     return NextResponse.json({ error: error.message || "Server error" }, { status: 500 });
+//   }
+// }
 // import { NextResponse } from "next/server";
 // import prisma from "@/app/lib/db";
 // import crypto from "crypto";
