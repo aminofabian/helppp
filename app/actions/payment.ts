@@ -1,7 +1,8 @@
 import prisma from '@/app/lib/db';
 import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
+import { PaymentMethod, PaymentStatus, NotificationType } from '@prisma/client';
 
-export async function createPayment(prayerId: string, amount: number, currency: string, method: string) {
+export async function createPayment(answerId: string, amount: number, currency: string, method: PaymentMethod) {
   try {
     const { getUser } = getKindeServerSession();
     const user = await getUser();
@@ -15,138 +16,89 @@ export async function createPayment(prayerId: string, amount: number, currency: 
       data: {
         amount,
         currency,
-        method: method as any, // Cast to PaymentMethod enum
-        status: 'PENDING',
-        prayer: {
+        paymentMethod: method,
+        status: PaymentStatus.PENDING,
+        userts: new Date(),
+        userId,
+        answer: {
           connect: {
-            id: prayerId
-          }
-        },
-        sender: {
-          connect: {
-            id: userId
+            id: answerId
           }
         }
       },
       include: {
-        prayer: {
+        answer: {
           include: {
-            creator: {
-              select: {
-                id: true,
-                name: true,
-                email: true
-              }
-            }
-          }
-        },
-        sender: {
-          select: {
-            id: true,
-            name: true,
-            email: true
+            user: true
           }
         }
       }
     });
 
-    // Create notification for prayer creator
-    await prisma.notification.create({
-      data: {
-        type: 'PAYMENT_RECEIVED',
-        title: 'New payment received!',
-        content: `${payment.sender.name || 'Someone'} has sent a payment of ${currency} ${amount} for your prayer.`,
-        userId: payment.prayer.creatorId,
-        paymentId: payment.id
-      }
-    });
+    // Create notification for answer creator
+    if (payment.answer?.user?.id) {
+      await prisma.notification.create({
+        data: {
+          type: NotificationType.PAYMENT_RECEIVED,
+          title: 'New payment received!',
+          content: `Someone has sent a payment of ${currency} ${amount} for your answer.`,
+          recipientId: payment.answer.user.id,
+          issuerId: userId,
+          requestId: payment.answer.prayerId
+        }
+      });
+    }
 
     return payment;
   } catch (error) {
-    console.error('[CREATE_PAYMENT]', error);
+    console.error('Error creating payment:', error);
     throw error;
   }
 }
 
-export async function updatePaymentStatus(paymentId: string, status: string, transactionId?: string) {
+export async function updatePaymentStatus(paymentId: string, status: PaymentStatus, transactionDate?: Date) {
   try {
     const payment = await prisma.payment.update({
       where: {
-        id: paymentId
+        id: paymentId,
       },
       data: {
-        status: status as any, // Cast to PaymentStatus enum
-        transactionId,
-        ...(status === 'COMPLETED' && {
-          prayer: {
-            update: {
-              status: 'ANSWERED',
-              isOpen: false
-            }
-          }
-        })
+        status,
+        transactionDate,
       },
       include: {
-        prayer: {
+        answer: {
           include: {
-            creator: {
-              select: {
-                id: true
-              }
-            }
+            user: true
           }
         },
-        sender: {
-          select: {
-            id: true
-          }
-        }
+        sender: true
       }
     });
 
-    if (status === 'COMPLETED') {
-      // Update user stats
-      await prisma.$transaction([
-        // Update sender's stats
-        prisma.user.update({
-          where: { id: payment.sender.id },
-          data: {
-            totalDonated: {
-              increment: payment.amount
-            }
-          }
-        }),
-        // Update receiver's stats
-        prisma.user.update({
-          where: { id: payment.prayer.creator.id },
-          data: {
-            totalReceived: {
-              increment: payment.amount
-            }
-          }
-        })
-      ]);
-
+    if (status === PaymentStatus.PENDING && payment.answer?.user?.id && payment.userId) {
       // Create notifications
       await prisma.$transaction([
-        // Notify prayer creator
+        // Notify answer creator
         prisma.notification.create({
           data: {
-            type: 'PAYMENT_COMPLETED',
+            type: NotificationType.PAYMENT_COMPLETED,
             title: 'Payment completed!',
             content: `The payment of ${payment.currency} ${payment.amount} has been completed.`,
-            userId: payment.prayer.creator.id,
-            paymentId: payment.id
+            recipientId: payment.answer.user.id,
+            issuerId: payment.userId,
+            requestId: payment.answer.prayerId
           }
         }),
         // Notify sender
         prisma.notification.create({
           data: {
-            type: 'PAYMENT_SENT',
+            type: NotificationType.PAYMENT_SENT,
             title: 'Payment sent successfully!',
             content: `Your payment of ${payment.currency} ${payment.amount} has been sent successfully.`,
-            userId: payment.sender.id,
-            paymentId: payment.id
+            recipientId: payment.userId,
+            issuerId: payment.answer.user.id,
+            requestId: payment.answer.prayerId
           }
         })
       ]);
@@ -154,7 +106,7 @@ export async function updatePaymentStatus(paymentId: string, status: string, tra
 
     return payment;
   } catch (error) {
-    console.error('[UPDATE_PAYMENT_STATUS]', error);
+    console.error('Error updating payment status:', error);
     throw error;
   }
 } 
