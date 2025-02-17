@@ -1,5 +1,5 @@
 import prisma from '@/app/lib/db';
-import { PaymentMethod } from '@prisma/client';
+import { PaymentMethod, PaymentStatus } from '@prisma/client';
 
 export async function createPayment(
   callbackData: any,
@@ -21,9 +21,10 @@ export async function createPayment(
       transactionDate,
       userts: new Date(),
       paymentMethod: PaymentMethod.MPESA,
-      sender: { connect: { id: donation.userId } },
-      donation: { connect: { id: donation.id } },
-      request: { connect: { id: donation.requestId } },
+      status: PaymentStatus.PENDING,
+      userId: donation.userId,
+      donationId: donation.id,
+      requestId: donation.requestId,
     }
   });
 }
