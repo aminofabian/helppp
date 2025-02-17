@@ -4,7 +4,7 @@ import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
 import { NextResponse } from 'next/server';
 import { redirect } from "next/navigation";
 import prisma from "./lib/db";
-import { Prisma, TypeOfVote, NotificationType, PaymentMethod } from "@prisma/client";
+import { Prisma, TypeOfVote, NotificationType, PaymentMethod, PaymentStatus } from "@prisma/client";
 import { JSONContent } from "@tiptap/react";
 import { revalidatePath } from "next/cache";
 import { mpesa } from './mpesaone/mpesa';
@@ -305,12 +305,59 @@ export async function handleMpesa(formData: FormData) {
 
 async function createNotification(type: NotificationType, recipientId: string, issuerId: string, requestId?: string) {
   try {
+    let title = '';
+    let content = '';
+
+    switch (type) {
+      case NotificationType.PAYMENT_RECEIVED:
+        title = 'Payment Received';
+        content = 'You have received a new payment on your request.';
+        break;
+      case NotificationType.PAYMENT_COMPLETED:
+        title = 'Payment Completed';
+        content = 'Your payment has been completed successfully.';
+        break;
+      case NotificationType.PAYMENT_SENT:
+        title = 'Payment Sent';
+        content = 'Your payment has been sent successfully.';
+        break;
+      case NotificationType.DONATION:
+        title = 'New Donation';
+        content = 'Someone has made a donation to your request.';
+        break;
+      case NotificationType.COMMENT:
+        title = 'New Comment';
+        content = 'Someone has commented on your request.';
+        break;
+      case NotificationType.LIKE:
+        title = 'New Like';
+        content = 'Someone has liked your request.';
+        break;
+      case NotificationType.NEWREQUEST:
+        title = 'New Request';
+        content = 'A new request has been created.';
+        break;
+      case NotificationType.JOIN:
+        title = 'New Member';
+        content = 'Someone has joined your community.';
+        break;
+      case NotificationType.FOLLOW:
+        title = 'New Follower';
+        content = 'Someone has started following you.';
+        break;
+      default:
+        title = 'New Notification';
+        content = 'You have a new notification.';
+    }
+
     await prisma.notification.create({
       data: {
         type,
         recipientId,
         issuerId,
         requestId,
+        title,
+        content,
       },
     });
   } catch (error) {
@@ -333,10 +380,11 @@ export async function handlePayPalPayment(formData: FormData) {
     const payment = await prisma.payment.create({
       data: {
         amount,
-        method: PaymentMethod.PAYPAL,
-        status: 'PENDING',
+        paymentMethod: PaymentMethod.PAYPAL,
+        status: PaymentStatus.PENDING,
         userId: user.id,
         requestId,
+        userts: new Date(),
       },
     });
 
@@ -362,10 +410,11 @@ export async function handleTillPayment(formData: FormData) {
     const payment = await prisma.payment.create({
       data: {
         amount,
-        method: PaymentMethod.TILL,
-        status: 'PENDING',
+        paymentMethod: PaymentMethod.MPESA,
+        status: PaymentStatus.PENDING,
         userId: user.id,
         requestId,
+        userts: new Date(),
       },
     });
 
