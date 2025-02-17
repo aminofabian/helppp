@@ -31,6 +31,7 @@ async function getData(id: string){
       Vote: true,
       title: true,
       communityName: true,
+      donations: true,
       Comment: {
         orderBy: {
           createdAt: 'desc',
@@ -79,7 +80,16 @@ async function getData(id: string){
   if(!data) {
     return notFound();
   }
-  return data;
+
+  // Calculate total funded amount and unique contributors
+  const funded = data.donations.reduce((sum, donation) => sum + (donation.amount || 0), 0);
+  const contributors = new Set(data.donations.map(donation => donation.userId)).size;
+
+  return {
+    ...data,
+    funded,
+    contributors
+  };
 }
 
 export default async function Request({params}: {params: {id: string}}) {

@@ -12,12 +12,6 @@ import { v4 as uuidv4 } from 'uuid';
 import crypto from 'crypto';
 import { calculateLevel } from "@/app/lib/levelCalculator";
 
-
-
-
-
-
-
 export async function updateUsername(prevState: any, formData: FormData) {
   const { getUser } = getKindeServerSession();
   const user = await getUser();
@@ -33,13 +27,10 @@ export async function updateUsername(prevState: any, formData: FormData) {
       data: {
         userName: username,
       },
-
-
     });
     return {
       message: 'Your username has been successfully updated',
       status: 'green'
-
     }
   } catch (e) {
     if (e instanceof Prisma.PrismaClientKnownRequestError) {
@@ -67,7 +58,6 @@ export async function createCommunity(prevState: any, formData: FormData) {
       data: {
         name: name,
         userId: user.id,
-
       }
     });
 
@@ -79,11 +69,8 @@ export async function createCommunity(prevState: any, formData: FormData) {
           message: 'Oops!!!! A Community with that name already exists. Please choose another name!',
           status: 'error'
         }
-
       }
-
     }
-
     throw e;
   }
 }
@@ -111,8 +98,6 @@ export async function updateCommunityDescription(prevState: any, formData: FormD
       message: 'Your description has been successfully updated ✓✓✓✓✓',
       status: 'green'
     }
-
-
   } catch (e) {
     if (e instanceof Prisma.PrismaClientKnownRequestError) {
       if (e) {
@@ -122,13 +107,8 @@ export async function updateCommunityDescription(prevState: any, formData: FormD
         }
       }
     }
-
-
-
   }
-
 }
-
 
 export async function createRequest(formData: FormData) {
   const { getUser } = getKindeServerSession();
@@ -146,7 +126,6 @@ export async function createRequest(formData: FormData) {
 
   const deadline = new Date(deadlineString);
   if (isNaN(deadline.getTime())) {
-    // Handle invalid date
     return redirect('/invalid-date');
   }
 
@@ -167,7 +146,7 @@ export async function createRequest(formData: FormData) {
         title: title,
         imageString: imageUrl ?? undefined,
         amount: amount,
-        pointsUsed: pointsUsed, // Make sure this line is included
+        pointsUsed: pointsUsed,
         Community: { connect: { id: community.id } },
         User: { connect: { id: user.id } },
         textContent: jsonContent,
@@ -242,7 +221,6 @@ export async function handleVote(formData: FormData) {
       console.log("New vote created");
     }
 
-    // Create or update notification for all vote actions
     if (request.userId !== user.id) {
       await createNotification(
         'LIKE',
@@ -250,15 +228,12 @@ export async function handleVote(formData: FormData) {
         user.id,
         requestId
       );
-      console.log("Notification created/updated");
-    } else {
-      console.log("Notification not created: user voted on their own request");
     }
 
-    console.log("Revalidating path");
-    revalidatePath('/');
+    revalidatePath('/request/[id]');
   } catch (error) {
     console.error("Error in handleVote:", error);
+    throw error;
   }
 }
 
@@ -330,30 +305,20 @@ export async function handleMpesa(formData: FormData) {
 
 async function createNotification(type: NotificationType, recipientId: string, issuerId: string, requestId?: string) {
   try {
-    console.log("Creating notification:", { type, recipientId, issuerId, requestId });
-    const notification = await prisma.notification.create({
+    await prisma.notification.create({
       data: {
         type,
-        title: '',
-        content: '',
         recipientId,
         issuerId,
         requestId,
       },
     });
-    console.log("Notification created:", notification);
-    return notification;
   } catch (error) {
     console.error("Error creating notification:", error);
-    throw error;
   }
 }
 
-
-
-
 export async function handlePayPalPayment(formData: FormData) {
-  const USD_TO_KES = 129.00; // Temporary conversion rate
   const { getUser } = getKindeServerSession();
   const user = await getUser();
 
@@ -361,142 +326,52 @@ export async function handlePayPalPayment(formData: FormData) {
     return redirect('/api/auth/login');
   }
 
-  const paymentId = formData.get('id') as string;
-  const amount = parseFloat(formData.get('amount') as string);
-  const createTime = formData.get('create_time') as string;
+  const amount = Number(formData.get('amount'));
   const requestId = formData.get('requestId') as string;
-  const currency = 'USD'; // Currently hardcoded
-  const amountKES = currency === "USD" ? amount * USD_TO_KES : amount; // Convert to KES
-  const invoiceId = `PAYPAL_${paymentId}`;
 
   try {
-    const userEmail = user.email;
-    if (!userEmail) {
-      return { success: false, message: "User email not found" };
-    }
-
-    const giver = await prisma.user.findUnique({ where: { email: userEmail.toLowerCase() } });
-    if (!giver) {
-      return { success: false, message: "User not found" };
-    }
-
-    const request = await prisma.request.findUnique({ where: { id: requestId }, include: { User: true } });
-    if (!request) {
-      return { success: false, message: "Request not found" };
-    }
-
-    const receiver = await prisma.user.findUnique({ where: { id: request.userId } });
-    if (!receiver) {
-      return { success: false, message: "Receiver not found" };
-    }
-
     const payment = await prisma.payment.create({
       data: {
-        id: paymentId,
-        userId: giver.id,
-        amount: amountKES,
-        requestId: requestId,
-        status: "COMPLETED",
-        paymentMethod: PaymentMethod.PAYPAL,
-        createdAt: new Date(createTime),
-        updatedAt: new Date(),
-        currency: "KES",
-        mpesaReceiptNumber: invoiceId,
-        userts: new Date(),
+        amount,
+        method: PaymentMethod.PAYPAL,
+        status: 'PENDING',
+        userId: user.id,
+        requestId,
       },
     });
 
-    // Create a donation record
-    const donation = await prisma.donation.create({
-      data: {
-        userId: giver.id,
-        requestId: requestId,
-        amount: amount,
-        payment: { connect: { id: payment.id } },
-        status: "COMPLETED",
-        invoice: invoiceId
-      },
-    });
-    console.log(`Donation recorded successfully: ${donation.id}`);
-
-    const pointsEarned = Math.floor(amountKES / 50);
-    await prisma.points.create({ data: { userId: giver.id, amount: pointsEarned, paymentId: payment.id } });
-
-    const totalPoints = await prisma.points.aggregate({ where: { userId: giver.id }, _sum: { amount: true } });
-    const newLevel = calculateLevel(totalPoints._sum.amount || 0);
-    await prisma.user.update({ where: { id: giver.id }, data: { level: newLevel } });
-
-    const updatedRequest = await prisma.request.update({
-      where: { id: requestId },
-      data: { amount: { increment: amountKES } },
-    });
-
-    if (updatedRequest.amount >= updatedRequest.pointsUsed) {
-      await prisma.request.update({ where: { id: requestId }, data: { status: "FUNDED" } });
-    }
-
-    await prisma.transaction.create({ data: { giverId: giver.id, receiverId: receiver.id, amount: amountKES } });
-
-    let receiverWallet = await prisma.wallet.findUnique({ where: { userId: receiver.id } });
-    if (!receiverWallet) {
-      receiverWallet = await prisma.wallet.create({ data: { userId: receiver.id, balance: amountKES } });
-    } else {
-      await prisma.wallet.update({
-        where: { userId: receiver.id },
-        data: { balance: { increment: amountKES } },
-      });
-    }
-    console.log({ success: true, message: 'Payment processed successfully', payment })
-
-    return { success: true, message: 'Payment processed successfully', payment };
+    return payment;
   } catch (error) {
-    console.error('Error processing PayPal payment:', error);
-    return { success: false, message: 'An error occurred while processing the PayPal payment' };
+    console.error("Error in handlePayPalPayment:", error);
+    throw error;
   }
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
 export async function handleTillPayment(formData: FormData) {
+  const { getUser } = getKindeServerSession();
+  const user = await getUser();
+
+  if (!user) {
+    return redirect('/api/auth/login');
+  }
+
+  const amount = Number(formData.get('amount'));
+  const requestId = formData.get('requestId') as string;
+
   try {
-    const amount = formData.get('amount');
-    const requestId = formData.get('requestId');
-    const phoneNumber = formData.get('phoneNumber');
-
-    if (!amount || !requestId || !phoneNumber) {
-      return { success: false, message: 'Missing required fields' };
-    }
-
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://fitrii.com';
-    const response = await fetch(`${baseUrl}/api/initiate-till-payment`, {
-      method: 'POST',
-      body: JSON.stringify({
-        amount: parseFloat(amount.toString()),
+    const payment = await prisma.payment.create({
+      data: {
+        amount,
+        method: PaymentMethod.TILL,
+        status: 'PENDING',
+        userId: user.id,
         requestId,
-        phoneNumber: phoneNumber.toString(),
-      }),
-      headers: {
-        'Content-Type': 'application/json',
       },
     });
 
-    const data = await response.json();
-    return data;
+    return payment;
   } catch (error) {
-    console.error('Error in handleTillPayment:', error);
-    return {
-      success: false,
-      message: 'Failed to process Till payment',
-    };
+    console.error("Error in handleTillPayment:", error);
+    throw error;
   }
 }
