@@ -201,9 +201,9 @@ export default function ShowItems({ params, searchParams }: { searchParams: { pa
               <div key={request.id} className="transition-all hover:translate-y-[-2px]">
                 <RequestCard
                   textContent={request.textContent}
+                  funded={request.funded}
                   userId={request.User?.id}
                   id={request.id}
-                  email={request.User?.email}
                   communityName={data?.name || params.id}
                   title={request.title}
                   amount={request.amount}

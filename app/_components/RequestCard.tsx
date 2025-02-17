@@ -20,6 +20,7 @@ import { motion } from 'framer-motion';
 
 interface RequestCardProps {
   id: string;
+  funded: number;
   title: string;
   amount: number;
   jsonContent?: any;
@@ -42,6 +43,7 @@ interface RequestCardProps {
 export function RequestCard({
   id,
   title,
+  funded,
   amount,
   jsonContent,
   textContent,
@@ -68,7 +70,7 @@ export function RequestCard({
         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary/80 via-primary to-secondary/80" />
         
         {/* Funded Badge */}
-        {amount - 700 <= 0 && (
+        {amount - funded <= 0 && (
           <div className="absolute -right-8 top-4 rotate-45 z-10">
             <div className="bg-[#00262f] text-white px-8 py-0.5 text-xs font-medium shadow">
               Funded
@@ -176,7 +178,7 @@ export function RequestCard({
             <div className="flex justify-between items-center mb-2">
               <div className="flex items-center gap-3">
                 <p className="text-base font-semibold text-primary">
-                  KES 700
+                  KES {funded}
                   <span className="text-xs font-normal opacity-70 ml-1">/=</span>
                 </p>
                 <p className="text-sm font-medium text-gray-600 dark:text-gray-300">
@@ -184,13 +186,13 @@ export function RequestCard({
                 </p>
               </div>
               <div className="text-xs font-medium">
-                {((700 / amount) * 100).toFixed(1)}% funded
+                {((funded / amount) * 100).toFixed(1)}% funded
               </div>
             </div>
 
             {/* Progress Bar */}
             <div className="relative mb-2">
-              <Slider contributed={700} total={amount} />
+              <Slider contributed={funded} total={amount} />
             </div>
 
             <div className="flex justify-between items-center text-xs text-gray-500">
@@ -198,7 +200,7 @@ export function RequestCard({
                 <Users className="w-3.5 h-3.5" />
                 <span>12 contributors</span>
               </div>
-              {amount - 700 > 0 ? (
+              {amount - funded > 0 ? (
                 <span className="text-orange-600">
                   KES {(amount - 700).toLocaleString()}/= remaining
                 </span>
