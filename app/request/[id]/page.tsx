@@ -122,7 +122,6 @@ export default async function Request({params}: {params: {id: string}}) {
     <div className='my-10'>
     <RequestCard
     key={data.id}
-    email={data.User?.email as string}
     userId={data.User?.id ?? ''}
     title={data.title}
     id={data.id}

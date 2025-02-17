@@ -73,8 +73,8 @@ const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({ selectedM
   );
 };
 
-const MpesaPay = ({ requestId, userEmail }: { requestId: string; userEmail: string }) => {
-  console.log(userEmail,'useremaildf..')
+const MpesaPay = ({ requestId }: { requestId: string }) => {
+  
   const numbers = [20, 50, 100, 200, 500, 1000, 2000];
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
   const [customAmount, setCustomAmount] = useState('');
@@ -236,18 +236,18 @@ const handleSubmit = async () => {
 
     else if (paymentMethod === "Paystack") {
       const initiatePaystackPayment = async () => {
-        if (!userEmail || !selectedAmount || !requestId) {
+        if (!selectedAmount || !requestId) {
           setError("Please enter a valid email, amount, and ensure request ID is set.");
           toast.error("Invalid email, amount, or request ID for Paystack.");
           return;
         }
-        console.log(userEmail, selectedAmount, requestId, "userEmail, selectedAmount, requestId");
+        console.log(selectedAmount, requestId, "userEmail, selectedAmount, requestId");
 
     
         try {
           const response = await fetch("/api/initiate", {
             method: "POST",
-            body: JSON.stringify({ email:userEmail, amount: selectedAmount, requestId }), 
+            body: JSON.stringify({ amount: selectedAmount, requestId }), 
             headers: { "Content-Type": "application/json" },
           });
     

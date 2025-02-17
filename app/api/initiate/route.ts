@@ -5,20 +5,21 @@ export async function POST(req: Request) {
   try {
     const { getUser } = getKindeServerSession();
     const user = await getUser();
-    const userId = user?.id;
-
-    console.log(userId, "this is tobias user id...");
-
-    if (!userId) {
+    
+    if (!user || !user.email) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { email, amount, requestId } = await req.json(); // ✅ Include requestId
+    const userId = user.id;
+    const email = user.email; 
 
-    if (!email || !amount || !requestId) {
-      console.log(email, amount,requestId, 'none of those are empty...')
+    console.log(userId, email, "Logged-in user's details");
+
+    const { amount, requestId } = await req.json(); // ✅ No need to get email from request
+
+    if (!amount || !requestId) {
       return NextResponse.json(
-        { error: "Email, amount, and requestId are required" },
+        { error: "Amount and requestId are required" },
         { status: 400 }
       );
     }
@@ -54,6 +55,64 @@ export async function POST(req: Request) {
     );
   }
 }
+
+// import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
+// import { NextResponse } from "next/server";
+
+// export async function POST(req: Request) {
+//   try {
+//     const { getUser } = getKindeServerSession();
+//     const user = await getUser();
+//     const userId = user?.id;
+
+//     console.log(userId, "this is tobias user id...");
+
+//     if (!userId) {
+//       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+//     }
+
+    
+//     const { email, amount, requestId } = await req.json(); // ✅ Include requestId
+
+//     if (!email || !amount || !requestId) {
+//       console.log(email, amount,requestId, 'none of those are empty...')
+//       return NextResponse.json(
+//         { error: "Email, amount, and requestId are required" },
+//         { status: 400 }
+//       );
+//     }
+
+//     const response = await fetch("https://api.paystack.co/transaction/initialize", {
+//       method: "POST",
+//       headers: {
+//         Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+//         "Content-Type": "application/json",
+//       },
+//       body: JSON.stringify({
+//         email,
+//         amount: amount * 100, // Convert to kobo (Paystack requirement)
+//         callback_url: process.env.NEXT_PUBLIC_PAYSTACK_CALLBACK_URL || "https://fitrii.com",
+//         metadata: { requestId, userId }, // Attach requestId & userId in metadata
+//       }),
+//     });
+
+//     const data = await response.json();
+
+//     if (!response.ok) {
+//       throw new Error(data?.message || "Failed to initialize transaction");
+//     }
+
+//     console.log(data, "successful...");
+//     return NextResponse.json({ data }, { status: 200 });
+
+//   } catch (error: any) {
+//     console.error("Paystack API Error:", error);
+//     return NextResponse.json(
+//       { error: error.message || "Internal Server Error" },
+//       { status: 500 }
+//     );
+//   }
+// }
 
 // import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
 // import { NextResponse } from "next/server";

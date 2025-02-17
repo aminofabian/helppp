@@ -93,7 +93,6 @@ export function ShowItems() {
           >
             <RequestCard
               id={request.id}
-              email={request.User?.email}
               title={request.title}
               amount={request.amount}
               commentCount={request.Comment.length}

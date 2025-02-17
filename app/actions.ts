@@ -364,8 +364,6 @@ export async function handlePayPalPayment(formData: FormData) {
   const paymentId = formData.get('id') as string;
   const amount = parseFloat(formData.get('amount') as string);
   const createTime = formData.get('create_time') as string;
-  const payerEmail = formData.get('payer_email') as string;
-  const payerName = formData.get('payer_name') as string;
   const requestId = formData.get('requestId') as string;
   const currency = 'USD'; // Currently hardcoded
   const amountKES = currency === "USD" ? amount * USD_TO_KES : amount; // Convert to KES
@@ -407,6 +405,19 @@ export async function handlePayPalPayment(formData: FormData) {
         userts: new Date(),
       },
     });
+
+    // Create a donation record
+    const donation = await prisma.donation.create({
+      data: {
+        userId: giver.id,
+        requestId: requestId,
+        amount: amount,
+        payment: { connect: { id: payment.id } },
+        status: "COMPLETED",
+        invoice: invoiceId
+      },
+    });
+    console.log(`Donation recorded successfully: ${donation.id}`);
 
     const pointsEarned = Math.floor(amountKES / 50);
     await prisma.points.create({ data: { userId: giver.id, amount: pointsEarned, paymentId: payment.id } });
