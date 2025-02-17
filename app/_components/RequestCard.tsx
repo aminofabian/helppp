@@ -204,7 +204,7 @@ export function RequestCard({
               </div>
               {amount - funded > 0 ? (
                 <span className="text-orange-600">
-                  KES {(amount - 700).toLocaleString()}/= remaining
+                  KES {(amount - funded).toLocaleString()}/= remaining
                 </span>
               ) : (
                 <span className="text-green-600">
