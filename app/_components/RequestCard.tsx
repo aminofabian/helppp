@@ -20,6 +20,7 @@ import { motion } from 'framer-motion';
 
 interface RequestCardProps {
   id: string;
+  email: string;
   title: string;
   amount: number;
   jsonContent?: any;
@@ -42,6 +43,7 @@ interface RequestCardProps {
 export function RequestCard({
   id,
   title,
+  email,
   amount,
   jsonContent,
   textContent,
@@ -209,6 +211,7 @@ export function RequestCard({
               )}
             </div>
           </div>
+          
 
           {/* Action Buttons - More Compact */}
           <div className="flex justify-between items-center">
@@ -273,8 +276,8 @@ export function RequestCard({
               Your contribution will help {userName.split(' ')[0]} reach their goal of KES {amount.toLocaleString()}/=
             </DialogDescription>
           </DialogHeader>
-          <MpesaPay requestId={id} />
-          <DialogFooter className="gap-2 sm:gap-0">
+            <MpesaPay requestId={id} userEmail={email} />
+            <DialogFooter className="gap-2 sm:gap-0">
             <DialogClose asChild>
               <Button type="button" variant="outline">Maybe Later</Button>
             </DialogClose>

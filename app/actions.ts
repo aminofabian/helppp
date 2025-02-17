@@ -1,6 +1,7 @@
 'use server';
 
 import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
+import { NextResponse } from 'next/server';
 import { redirect } from "next/navigation";
 import prisma from "./lib/db";
 import { Prisma, TypeOfVote, NotificationType, PaymentMethod } from "@prisma/client";
@@ -9,6 +10,8 @@ import { revalidatePath } from "next/cache";
 import { mpesa } from './mpesaone/mpesa';
 import { v4 as uuidv4 } from 'uuid';
 import crypto from 'crypto';
+import { calculateLevel } from "@/app/lib/levelCalculator";
+
 
 
 
@@ -350,6 +353,7 @@ async function createNotification(type: NotificationType, recipientId: string, i
 
 
 export async function handlePayPalPayment(formData: FormData) {
+  const USD_TO_KES = 129.00; // Temporary conversion rate
   const { getUser } = getKindeServerSession();
   const user = await getUser();
 
@@ -363,36 +367,94 @@ export async function handlePayPalPayment(formData: FormData) {
   const payerEmail = formData.get('payer_email') as string;
   const payerName = formData.get('payer_name') as string;
   const requestId = formData.get('requestId') as string;
-
+  const currency = 'USD'; // Currently hardcoded
+  const amountKES = currency === "USD" ? amount * USD_TO_KES : amount; // Convert to KES
   const invoiceId = `PAYPAL_${paymentId}`;
 
   try {
-    const paymentRecord = await prisma.payment.create({
+    const userEmail = user.email;
+    if (!userEmail) {
+      return { success: false, message: "User email not found" };
+    }
+
+    const giver = await prisma.user.findUnique({ where: { email: userEmail.toLowerCase() } });
+    if (!giver) {
+      return { success: false, message: "User not found" };
+    }
+
+    const request = await prisma.request.findUnique({ where: { id: requestId }, include: { User: true } });
+    if (!request) {
+      return { success: false, message: "Request not found" };
+    }
+
+    const receiver = await prisma.user.findUnique({ where: { id: request.userId } });
+    if (!receiver) {
+      return { success: false, message: "Receiver not found" };
+    }
+
+    const payment = await prisma.payment.create({
       data: {
         id: paymentId,
-        amount: amount,
-        userId: user.id,
-        requestId: requestId || undefined,
-        donationId: undefined,
+        userId: giver.id,
+        amount: amountKES,
+        requestId: requestId,
+        status: "COMPLETED",
+        paymentMethod: PaymentMethod.PAYPAL,
         createdAt: new Date(createTime),
         updatedAt: new Date(),
-        phoneNumber: null,
-        paymentMethod: PaymentMethod.PAYPAL,
+        currency: "KES",
         mpesaReceiptNumber: invoiceId,
-        resultCode: 'COMPLETED',
-        resultDesc: `Paid by ${payerName} (${payerEmail})`,
-        merchantRequestId: '',
-        checkoutRequestId: '',
         userts: new Date(),
-      }
+      },
     });
 
-    return { success: true, message: 'Payment processed successfully', paymentRecord };
+    const pointsEarned = Math.floor(amountKES / 50);
+    await prisma.points.create({ data: { userId: giver.id, amount: pointsEarned, paymentId: payment.id } });
+
+    const totalPoints = await prisma.points.aggregate({ where: { userId: giver.id }, _sum: { amount: true } });
+    const newLevel = calculateLevel(totalPoints._sum.amount || 0);
+    await prisma.user.update({ where: { id: giver.id }, data: { level: newLevel } });
+
+    const updatedRequest = await prisma.request.update({
+      where: { id: requestId },
+      data: { amount: { increment: amountKES } },
+    });
+
+    if (updatedRequest.amount >= updatedRequest.pointsUsed) {
+      await prisma.request.update({ where: { id: requestId }, data: { status: "FUNDED" } });
+    }
+
+    await prisma.transaction.create({ data: { giverId: giver.id, receiverId: receiver.id, amount: amountKES } });
+
+    let receiverWallet = await prisma.wallet.findUnique({ where: { userId: receiver.id } });
+    if (!receiverWallet) {
+      receiverWallet = await prisma.wallet.create({ data: { userId: receiver.id, balance: amountKES } });
+    } else {
+      await prisma.wallet.update({
+        where: { userId: receiver.id },
+        data: { balance: { increment: amountKES } },
+      });
+    }
+    console.log({ success: true, message: 'Payment processed successfully', payment })
+
+    return { success: true, message: 'Payment processed successfully', payment };
   } catch (error) {
     console.error('Error processing PayPal payment:', error);
     return { success: false, message: 'An error occurred while processing the PayPal payment' };
   }
 }
+
+
+
+
+
+
+
+
+
+
+
+
 
 export async function handleTillPayment(formData: FormData) {
   try {

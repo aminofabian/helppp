@@ -59,7 +59,7 @@ export function ShowItems() {
         throw new Error('Network response was not ok');
       }
       const { data, count } = await response.json();
-      console.log('Received data:', data);
+      // console.log('Received data:', data);
       setItems(prevItems => [...prevItems, ...data]);
       setPage(prevPage => prevPage + 1);
       setHasMore(items.length + data.length < count);
@@ -93,6 +93,7 @@ export function ShowItems() {
           >
             <RequestCard
               id={request.id}
+              email={request.User?.email}
               title={request.title}
               amount={request.amount}
               commentCount={request.Comment.length}

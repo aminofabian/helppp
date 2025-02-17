@@ -73,7 +73,8 @@ const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({ selectedM
   );
 };
 
-const MpesaPay = ({ requestId }: { requestId: string }) => {
+const MpesaPay = ({ requestId, userEmail }: { requestId: string; userEmail: string }) => {
+  console.log(userEmail,'useremaildf..')
   const numbers = [20, 50, 100, 200, 500, 1000, 2000];
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
   const [customAmount, setCustomAmount] = useState('');
@@ -133,10 +134,10 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
     setError(null);
   };
 
-  const handleEmailChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setEmail(event.target.value);
-    setError(null);
-  };
+  // const handleEmailChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  //   setEmail(event.target.value);
+  //   setError(null);
+  // };
   const validateForm = () => {
     if (!selectedAmount || selectedAmount <= 0) {
       setError('Please select a valid amount');
@@ -146,10 +147,7 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
       setError('Please enter a valid Kenyan phone number');
       return false;
     }
-    if (paymentMethod === 'Paystack' && (!email || !/\S+@\S+\.\S+/.test(email))) {
-      setError('Please enter a valid email address');
-      return false;
-    }
+   
 
     
     return true;
@@ -238,16 +236,18 @@ const handleSubmit = async () => {
 
     else if (paymentMethod === "Paystack") {
       const initiatePaystackPayment = async () => {
-        if (!email || !selectedAmount || !requestId) {
+        if (!userEmail || !selectedAmount || !requestId) {
           setError("Please enter a valid email, amount, and ensure request ID is set.");
           toast.error("Invalid email, amount, or request ID for Paystack.");
           return;
         }
+        console.log(userEmail, selectedAmount, requestId, "userEmail, selectedAmount, requestId");
+
     
         try {
           const response = await fetch("/api/initiate", {
             method: "POST",
-            body: JSON.stringify({ email, amount: selectedAmount, requestId }), 
+            body: JSON.stringify({ email:userEmail, amount: selectedAmount, requestId }), 
             headers: { "Content-Type": "application/json" },
           });
     
@@ -283,61 +283,6 @@ const handleSubmit = async () => {
       await initiatePaystackPayment();
     }
     
-
-    // else if (paymentMethod === "Paystack") {
-    //   const initiatePaystackPayment = async () => {
-    //     if (!email || !selectedAmount) {
-    //       setError("Please enter a valid email and amount for Paystack.");
-    //       toast.error("Invalid email or amount for Paystack.");
-    //       return;
-    //     }
-    
-    //     try {
-    //       const response = await fetch("/api/initiate", {
-    //         method: "POST",
-    //         body: JSON.stringify({ email, amount: selectedAmount }),
-    //         headers: { "Content-Type": "application/json" },
-    //       });
-    
-    //       if (!response.ok) {
-    //         if (response.status === 401) {
-    //           window.location.href = "/api/auth/login"; // Redirect user to login
-    //           return; // Stop further execution
-    //         }
-            
-    //         console.error("Error initializing Paystack payment:", await response.json());
-    //         return; // Stop execution without throwing an error
-    //       }
-    
-    //       const result = await response.json();
-    //       console.log(result, "result");
-    //       const authorization_url = result?.data?.data?.authorization_url; 
-    
-    //       if (!authorization_url) {
-    //         throw new Error("Failed to retrieve authorization URL.");
-    //       }
-    
-    //       console.log("Paystack Payment URL:", authorization_url);
-
-    //       window.location.href = authorization_url;
-    
-    //     } catch (error) {
-    //       console.error("Paystack Payment Error:", error);
-    //       if (error instanceof Error) {
-    //         setError(error.message || "An error occurred with Paystack.");
-    //       } else {
-    //         setError("An error occurred with Paystack.");
-    //       }
-    //       if (error instanceof Error) {
-    //         toast.error(error.message || "An error occurred with Paystack.");
-    //       } else {
-    //         toast.error("An error occurred with Paystack.");
-    //       }
-    //     }
-    //   };
-    
-    //   await initiatePaystackPayment();
-    // }
 
     else {
       setError("This payment method is not yet implemented.");
@@ -507,7 +452,7 @@ const handleSubmit = async () => {
                       <label className="block text-sm font-medium text-gray-600 mb-1.5">Email Addressses</label>
                       <div className="relative">
                         <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-primary" size={16} />
-                        <input
+                        {/* <input
                           type="email"
                           placeholder="Enter your email address"
                           name='email'
@@ -516,7 +461,7 @@ const handleSubmit = async () => {
                                     border border-gray-200 focus:border-primary/30"
                           value={email}
                           onChange={handleEmailChange}
-                        />
+                        /> */}
                       </div>
                     </div>
                   )}
@@ -555,6 +500,7 @@ const handleSubmit = async () => {
   <PayPalScriptProvider options={{ clientId }}>
 
   <PayPalButtonWrapper
+    requestId={requestId}
     onPaymentSuccess={(details) => {
       console.log("Payment Successful:", details);
       toast.success("Payment was successful!");

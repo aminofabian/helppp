@@ -10,6 +10,7 @@ import { useRouter } from "next/navigation";
 
 
 interface PayPalButtonWrapperProps {
+  requestId: string;
     onPaymentSuccess: (details: any) => void;
     onPaymentError: (error: any) => void;
     selectedAmount: number;
@@ -22,7 +23,8 @@ const PayPalButtonWrapper: React.FC<PayPalButtonWrapperProps> = ({
   onPaymentError,
   selectedAmount,
   setErrorMessage,
-  errorMessage
+  errorMessage,
+  requestId,
 }) => {
   const router = useRouter();
   const [isPayPalReady, setIsPayPalReady] = useState(false);
@@ -112,7 +114,7 @@ const PayPalButtonWrapper: React.FC<PayPalButtonWrapperProps> = ({
               formData.append('create_time', details.create_time || '');
               formData.append('payer_email', details.payer?.email_address || '');
               formData.append('payer_name', `${details.payer?.name?.given_name || ''} ${details.payer?.name?.surname || ''}`);
-              formData.append('requestId', data.orderID || ''); 
+              formData.append('requestId', requestId);
       
               const paymentResponse = await handlePayPalPayment(formData);
       

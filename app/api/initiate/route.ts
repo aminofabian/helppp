@@ -16,6 +16,7 @@ export async function POST(req: Request) {
     const { email, amount, requestId } = await req.json(); // ✅ Include requestId
 
     if (!email || !amount || !requestId) {
+      console.log(email, amount,requestId, 'none of those are empty...')
       return NextResponse.json(
         { error: "Email, amount, and requestId are required" },
         { status: 400 }

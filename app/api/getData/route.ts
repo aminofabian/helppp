@@ -30,6 +30,7 @@ export async function GET(request: Request) {
           User: {
             select: {
               userName: true,
+              email: true,
               id: true,
             },
           },
