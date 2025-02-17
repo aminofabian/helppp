@@ -122,7 +122,9 @@ export default async function Request({params}: {params: {id: string}}) {
     <div className='my-10'>
     <RequestCard
     key={data.id}
+    
     userId={data.User?.id ?? ''}
+   
     title={data.title}
     id={data.id}
     amount={data.amount}
@@ -144,6 +146,8 @@ export default async function Request({params}: {params: {id: string}}) {
       if (vote.voteType === "SUSPISION") return acc + 1;
       return acc;
     }, 0)}
+    funded={data.funded}
+    contributors={data.contributors}
     />
     <CommentForm requestId={params.id} userName={data.User?.userName as string} />
     

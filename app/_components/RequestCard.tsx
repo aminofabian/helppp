@@ -21,6 +21,7 @@ import { motion } from 'framer-motion';
 interface RequestCardProps {
   id: string;
   funded: number;
+  contributors: number;
   title: string;
   amount: number;
   jsonContent?: any;
@@ -44,6 +45,7 @@ export function RequestCard({
   id,
   title,
   funded,
+  contributors,
   amount,
   jsonContent,
   textContent,
@@ -198,7 +200,7 @@ export function RequestCard({
             <div className="flex justify-between items-center text-xs text-gray-500">
               <div className="flex items-center gap-1.5">
                 <Users className="w-3.5 h-3.5" />
-                <span>12 contributors</span>
+                <span>{contributors} contributors</span>
               </div>
               {amount - funded > 0 ? (
                 <span className="text-orange-600">

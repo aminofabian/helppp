@@ -94,6 +94,7 @@ export function ShowItems() {
             <RequestCard
               id={request.id}
               funded={request.funded}
+              contributors={request.contributors}
               title={request.title}
               amount={request.amount}
               commentCount={request.Comment.length}
