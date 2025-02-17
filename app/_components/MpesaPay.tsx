@@ -447,12 +447,12 @@ const handleSubmit = async () => {
                     </div>
                   )}
 
-                  {paymentMethod === 'Paystack' && (
+                  {/* {paymentMethod === 'Paystack' && (
                     <div>
                       <label className="block text-sm font-medium text-gray-600 mb-1.5">Email Addressses</label>
                       <div className="relative">
                         <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-primary" size={16} />
-                        {/* <input
+                        <input
                           type="email"
                           placeholder="Enter your email address"
                           name='email'
@@ -461,10 +461,10 @@ const handleSubmit = async () => {
                                     border border-gray-200 focus:border-primary/30"
                           value={email}
                           onChange={handleEmailChange}
-                        /> */}
+                        /> 
                       </div>
                     </div>
-                  )}
+                  )} */}
                 </div>
               </div>
             </div>
