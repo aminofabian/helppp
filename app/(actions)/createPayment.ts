@@ -1,4 +1,5 @@
 import prisma from '@/app/lib/db';
+import { PaymentMethod } from '@prisma/client';
 
 export async function createPayment(
   callbackData: any,
@@ -18,6 +19,8 @@ export async function createPayment(
       mpesaReceiptNumber,
       phoneNumber,
       transactionDate,
+      userts: new Date(),
+      paymentMethod: PaymentMethod.MPESA,
       sender: { connect: { id: donation.userId } },
       donation: { connect: { id: donation.id } },
       request: { connect: { id: donation.requestId } },
