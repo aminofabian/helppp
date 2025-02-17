@@ -55,12 +55,12 @@ export async function GET(request: Request) {
 
     // Calculate total funded amount & number of contributors
     const enrichedData = filteredData.map((request) => {
-      const totalFunded = request.donations.reduce((sum, donation) => sum + donation.amount, 0);
+      const funded = request.donations.reduce((sum, donation) => sum + donation.amount, 0);
       const contributors = new Set(request.donations.map((donation) => donation.userId)).size; // Unique donors count
 
       return {
         ...request,
-        funded: totalFunded, // Total funded amount
+        funded, // Total funded amount
         contributors, // Number of unique donors
       };
     });

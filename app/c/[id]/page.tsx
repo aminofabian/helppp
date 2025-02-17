@@ -36,6 +36,8 @@ interface CommunityData {
   totalDonations: number;
   requests: any[];
   members: string[];
+  
+  
 }
 
 type VoteType = {
@@ -202,6 +204,7 @@ export default function ShowItems({ params, searchParams }: { searchParams: { pa
                 <RequestCard
                   textContent={request.textContent}
                   funded={request.funded}
+                  contributors={request.contributors}
                   userId={request.User?.id}
                   id={request.id}
                   communityName={data?.name || params.id}
