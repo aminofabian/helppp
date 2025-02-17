@@ -118,7 +118,7 @@ const PayPalButtonWrapper: React.FC<PayPalButtonWrapperProps> = ({
       
               const paymentResponse = await handlePayPalPayment(formData);
       
-              if (paymentResponse.success) {
+              if (paymentResponse && paymentResponse.status === 'PENDING') {
                 onPaymentSuccess(details.id);
       
                 // Show success message using alert
@@ -127,7 +127,7 @@ const PayPalButtonWrapper: React.FC<PayPalButtonWrapperProps> = ({
                 // Reload and redirect to the homepage
                 window.location.href = '/';
               } else {
-                throw new Error(paymentResponse.message || 'Unknown error while saving payment');
+                throw new Error('Failed to save payment details');
               }
             } else {
               throw new Error("PayPal order ID is undefined");
