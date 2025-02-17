@@ -219,17 +219,16 @@ const handleSubmit = async () => {
       const result = await handleTillPayment(createPaymentFormData());
       console.log(result, "result from handleTillPayment");
 
-      if (result.success) {
+      if (result && result.status === 'PENDING') {
         toast.success("Payment initiated successfully. Please check your phone to complete the transaction.", {
           duration: 5000,
           position: "top-center",
         });
       } else {
-        toast.error(result.message || "Failed to initiate payment", {
+        toast.error("Failed to initiate payment", {
           duration: 5000,
           position: "top-center",
         });
-        setError(result.message || "Failed to initiate payment");
       }
     }
 
