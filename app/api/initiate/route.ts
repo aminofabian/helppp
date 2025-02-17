@@ -7,22 +7,33 @@ export async function POST(req: Request) {
     const user = await getUser();
     
     if (!user || !user.email) {
+      console.error('Authentication failed:', { user });
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const userId = user.id;
     const email = user.email; 
 
-    console.log(userId, email, "Logged-in user's details");
+    console.log('User details:', { userId, email });
 
-    const { amount, requestId } = await req.json(); // ✅ No need to get email from request
+    const { amount, requestId } = await req.json();
+    console.log('Payment details:', { amount, requestId });
 
     if (!amount || !requestId) {
+      console.error('Missing required fields:', { amount, requestId });
       return NextResponse.json(
         { error: "Amount and requestId are required" },
         { status: 400 }
       );
     }
+
+    const paymentData = {
+      email,
+      amount: amount * 100,
+      callback_url: process.env.NEXT_PUBLIC_PAYSTACK_CALLBACK_URL || "https://fitrii.com",
+      metadata: { requestId, userId },
+    };
+    console.log('Paystack request data:', paymentData);
 
     const response = await fetch("https://api.paystack.co/transaction/initialize", {
       method: "POST",
@@ -30,25 +41,28 @@ export async function POST(req: Request) {
         Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        email,
-        amount: amount * 100, // Convert to kobo (Paystack requirement)
-        callback_url: process.env.NEXT_PUBLIC_PAYSTACK_CALLBACK_URL || "https://fitrii.com",
-        metadata: { requestId, userId }, // Attach requestId & userId in metadata
-      }),
+      body: JSON.stringify(paymentData),
     });
 
     const data = await response.json();
+    console.log('Paystack API response:', { 
+      status: response.status,
+      statusText: response.statusText,
+      data 
+    });
 
     if (!response.ok) {
+      console.error('Paystack API error:', data);
       throw new Error(data?.message || "Failed to initialize transaction");
     }
 
-    console.log(data, "successful...");
     return NextResponse.json({ data }, { status: 200 });
 
   } catch (error: any) {
-    console.error("Paystack API Error:", error);
+    console.error("Paystack API Error:", {
+      message: error.message,
+      stack: error.stack,
+    });
     return NextResponse.json(
       { error: error.message || "Internal Server Error" },
       { status: 500 }
@@ -65,14 +79,12 @@ export async function POST(req: Request) {
 //     const user = await getUser();
 //     const userId = user?.id;
 
-//     console.log(userId, "this is tobias user id...");
+//     console.log(userId, 'this is tobias user id...')
 
 //     if (!userId) {
 //       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 //     }
-
-    
-//     const { email, amount, requestId } = await req.json(); // ✅ Include requestId
+//     const { email, amount, requestId } = await req.json();
 
 //     if (!email || !amount || !requestId) {
 //       console.log(email, amount,requestId, 'none of those are empty...')

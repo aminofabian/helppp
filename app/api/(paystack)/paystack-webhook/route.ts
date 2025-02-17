@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
     .digest('hex');
 
   if (sig !== computedSignature) {
-    console.error('Invalid signature');
+    console.error('Invalid signature from paystack');
     return NextResponse.json({ status: 'error', message: 'Invalid signature' }, { status: 400 });
   }
 

@@ -236,46 +236,54 @@ const handleSubmit = async () => {
     else if (paymentMethod === "Paystack") {
       const initiatePaystackPayment = async () => {
         if (!selectedAmount || !requestId) {
-          setError("Please enter a valid email, amount, and ensure request ID is set.");
-          toast.error("Invalid email, amount, or request ID for Paystack.");
+          setError("Please enter a valid amount");
+          toast.error("Please enter a valid amount");
           return;
         }
-        console.log(selectedAmount, requestId, "userEmail, selectedAmount, requestId");
 
-    
+        setIsLoading(true);
+        
         try {
           const response = await fetch("/api/initiate", {
             method: "POST",
-            body: JSON.stringify({ amount: selectedAmount, requestId }), 
-            headers: { "Content-Type": "application/json" },
+            headers: { 
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ 
+              amount: selectedAmount,
+              requestId: requestId
+            }),
+            credentials: 'include' // Include credentials for authentication
           });
     
           if (!response.ok) {
+            const errorData = await response.json();
+            
             if (response.status === 401) {
+              toast.error("Please log in to continue");
               window.location.href = "/api/auth/login"; 
-              return; 
+              return;
             }
             
-            console.error("Error initializing Paystack payment:", await response.json());
-            return;
+            throw new Error(errorData.error || "Failed to initialize payment");
           }
     
           const result = await response.json();
-          console.log(result, "result");
           const authorization_url = result?.data?.data?.authorization_url;
     
           if (!authorization_url) {
-            throw new Error("Failed to retrieve authorization URL.");
+            throw new Error("Failed to retrieve authorization URL");
           }
-    
-          console.log("Paystack Payment URL:", authorization_url);
     
           window.location.href = authorization_url;
     
         } catch (error) {
           console.error("Paystack Payment Error:", error);
-          setError(error instanceof Error ? error.message : "An error occurred with Paystack.");
-          toast.error(error instanceof Error ? error.message : "An error occurred with Paystack.");
+          const errorMessage = error instanceof Error ? error.message : "An error occurred with Paystack";
+          setError(errorMessage);
+          toast.error(errorMessage);
+        } finally {
+          setIsLoading(false);
         }
       };
     
