@@ -102,9 +102,9 @@ export default async function Request({params}: {params: {id: string}}) {
     <div className="p-6 py-12 dark:bg-violet-600 dark:text-gray-50">
     <div className="container mx-auto">
     <div className="flex flex-col lg:flex-row items-center justify-between">
-    <h2 className="text-center text-4xl tracking-tighter font-bold"> {Math.floor(700 / data?.amount * 100)}% of <span className='text-4xl text-primary'><span className='text-xl mr'>KES</span>{data?.amount}</span>
+    <h2 className="text-center text-4xl tracking-tighter font-bold"> {Math.floor(data.funded / data?.amount * 100)}% of <span className='text-4xl text-primary'><span className='text-xl mr'>KES</span>{data?.amount}</span>
     <br className="sm:hidden" /> Covered
-    <Slider contributed={700} total={data?.amount || 1} />
+    <Slider contributed={data.funded} total={data?.amount || 1} />
     </h2>
     <div className="space-x-2 text-center py-2 lg:py-0">
     <span>    <p className='text-xs'> Created By: <a href={`/u/${data.User?.userName}`}>u/{data.User?.userName}</a> </p></span>
@@ -124,7 +124,7 @@ export default async function Request({params}: {params: {id: string}}) {
     </div>
     </div>
     
-    
+     
     
     <p className='text-xs'> Created By: <a href={`/u/${data.User?.userName}`}>u/{data.User?.userName}</a> </p>
     

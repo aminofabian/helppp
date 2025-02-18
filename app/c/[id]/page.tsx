@@ -246,12 +246,12 @@ export default function ShowItems({ params, searchParams }: { searchParams: { pa
                 <p className="text-2xl font-bold">{count || 0}</p>
                 <p className="text-sm text-muted-foreground">Requests</p>
               </div>
-              <div>
+              <div> 
                 <p className="text-2xl font-bold">{data?.totalDonations || 0}</p>
                 <p className="text-sm text-muted-foreground">Total Donations</p>
               </div>
             </div>
-          </Card>
+          </Card> 
           <div className="flex space-x-4">
             <img alt="" src={`https://avatar.vercel.sh/${data?.name}`} className="object-cover w-12 h-12 rounded-full shadow dark:bg-gray-500" />
             <div className="flex flex-col space-y-1">
