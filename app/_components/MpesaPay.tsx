@@ -89,7 +89,7 @@ const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({ selectedM
 
 const MpesaPay = ({ requestId }: { requestId: string }) => {
   
-  const numbers = [20, 50, 100, 200, 500, 1000, 2000];
+  const numbers = [10, 25, 50, 100, 250, 500, 1000];
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
   const [customAmount, setCustomAmount] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -377,7 +377,7 @@ const handleSubmit = async () => {
         }}
       />
       <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-        <div className="w-full max-w-2xl lg:max-w-3xl xl:max-w-4xl bg-white dark:bg-gray-900 rounded-2xl shadow-2xl 
+        <div className="w-full max-w-2xl lg:max-w-4xl xl:max-w-6xl bg-white dark:bg-gray-900 rounded-2xl shadow-2xl 
                       overflow-hidden animate-in slide-in-from-bottom duration-300 
                       max-h-[90vh] overflow-y-auto
                       border border-gray-200/50 dark:border-gray-800/30">
@@ -392,216 +392,131 @@ const handleSubmit = async () => {
           </div>
 
           <div className="p-5 sm:p-6 lg:p-8">
-            <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_0.8fr] gap-6">
-              {/* Left Column */}
-              <div className="space-y-6">
-                {/* Amount Selection */}
-                <div>
-                  <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200 mb-3 
-                               flex items-center gap-2">
-                    <span className="w-6 h-6 rounded-full bg-primary/10 dark:bg-gray-800 
-                                 flex items-center justify-center text-primary dark:text-blue-400 text-xs">
-                      1
-                    </span>
-                    Choose Amount
-                  </h3>
-                  <div className="grid grid-cols-4 sm:grid-cols-7 lg:grid-cols-4 gap-2">
-                    {numbers.map((number) => (
-                      <button
-                        key={number}
-                        onClick={() => handleAmountSelect(number)}
-                        className={`
-                          relative h-[68px] group overflow-hidden rounded-xl
-                          transition-all duration-300 transform hover:scale-[1.02]
-                          ${selectedAmount === number 
-                            ? 'bg-gradient-to-br from-primary to-primary/90 dark:from-blue-600 dark:to-blue-700'
-                            : 'bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/80'
-                          }
-                          ${selectedAmount === number 
-                            ? 'shadow-lg ring-1 ring-primary/20 dark:ring-blue-500/20'
-                            : 'shadow-sm hover:shadow border border-gray-100 dark:border-gray-700'
-                          }
-                        `}
-                      >
-                        <div className="absolute inset-0 bg-white/10 opacity-0 
-                                    group-hover:opacity-100 transition-opacity duration-300" />
-                        <div className="relative h-full flex items-center justify-center">
-                          <div className="text-center">
-                            <div className={`
-                              text-base font-semibold leading-none mb-0.5
-                              ${selectedAmount === number ? 'text-white' : 'text-gray-700 dark:text-gray-200'}
-                            `}>
-                              {number.toLocaleString()}
-                              <span className={`
-                                text-[10px] ml-0.5 font-normal
-                                ${selectedAmount === number ? 'text-white/70' : 'text-gray-400 dark:text-gray-500'}
-                              `}>
-                                {paymentMethod === 'PayPal' ? 'USD' : 'KES'}
-                              </span>
-                            </div>
-                            <div className={`
-                              text-[9px] font-normal tracking-wide
-                              ${selectedAmount === number ? 'text-white/70' : 'text-primary dark:text-blue-400'}
-                            `}>
-                              {number/50} pts
-                            </div>
-                          </div>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Payment Details */}
-                <div>
-                  <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200 mb-3 
-                               flex items-center gap-2">
-                    <span className="w-6 h-6 rounded-full bg-primary/10 dark:bg-gray-800 
-                                 flex items-center justify-center text-primary dark:text-blue-400 text-xs">
-                      2
-                    </span>
-                    Enter Details
-                  </h3>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
-                        Amount
-                      </label>
-                      <div className="relative">
-                        <input
-                          type="number"
-                          className="w-full h-12 pl-4 pr-16 
-                                   bg-gray-50 dark:bg-gray-800 
-                                   text-gray-700 dark:text-gray-200 
-                                   rounded-xl
-                                   focus:ring-2 focus:ring-primary/20 dark:focus:ring-blue-500/20 
-                                   outline-none text-sm
-                                   border border-gray-200 dark:border-gray-700 
-                                   focus:border-primary/30 dark:focus:border-blue-500/30
-                                   transition-all duration-300"
-                          value={customAmount}
-                          onChange={handleInputChange}
-                          placeholder="Enter amount"
-                        />
-                        <span className="absolute right-4 top-1/2 -translate-y-1/2 
-                                     text-gray-400 dark:text-gray-500 text-sm">
-                          KES
+            {/* Amount Selection */}
+            <div className="mb-8">
+              <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200 mb-4 
+                           flex items-center gap-2">
+                <span className="w-6 h-6 rounded-full bg-primary/10 dark:bg-gray-800 
+                             flex items-center justify-center text-primary dark:text-blue-400 text-xs">
+                  1
+                </span>
+                Choose Amount
+              </h3>
+              <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-4 xl:grid-cols-4 gap-4">
+                {numbers.map((number) => (
+                  <button
+                    key={number}
+                    onClick={() => handleAmountSelect(number)}
+                    className={`
+                      relative min-h-[5rem] group overflow-hidden rounded-xl p-3
+                      transition-all duration-300
+                      aspect-[2/1] w-full
+                      flex flex-col items-center justify-center
+                      ${selectedAmount === number 
+                        ? 'bg-gradient-to-br from-primary to-primary/90 dark:from-blue-600 dark:to-blue-700 scale-100'
+                        : 'bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/80 hover:scale-[1.02]'
+                      }
+                      ${selectedAmount === number 
+                        ? 'shadow-lg ring-2 ring-primary/20 dark:ring-blue-500/20'
+                        : 'shadow-sm hover:shadow-md border border-gray-200 dark:border-gray-700'
+                      }
+                    `}
+                  >
+                    <div className="absolute inset-0 bg-white/10 opacity-0 
+                                group-hover:opacity-100 transition-opacity duration-300" />
+                    <div className="flex flex-col items-center gap-1.5">
+                      <div className={`
+                        text-lg sm:text-xl font-semibold leading-none
+                        ${selectedAmount === number ? 'text-white' : 'text-gray-700 dark:text-gray-200'}
+                      `}>
+                        {number}
+                        <span className={`
+                          text-sm ml-1 font-normal
+                          ${selectedAmount === number ? 'text-white/70' : 'text-gray-400 dark:text-gray-500'}
+                        `}>
+                          {paymentMethod === 'PayPal' ? 'USD' : 'KES'}
                         </span>
                       </div>
-                    </div>
-
-                    {(paymentMethod === 'Mpesa' || paymentMethod === 'Till') && (
-                      <div>
-                        <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
-                          {paymentMethod === 'Till' ? 'Phone Number for Till Payment' : 'Phone Number'}
-                        </label>
-                        <div className="relative">
-                          {paymentMethod === 'Till' ? (
-                            <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 
-                                              text-primary dark:text-blue-400" size={16} />
-                          ) : (
-                            <Phone className="absolute left-4 top-1/2 -translate-y-1/2 
-                                          text-primary dark:text-blue-400" size={16} />
-                          )}
-                          <input
-                            type="tel"
-                            placeholder="Enter your phone number"
-                            name='phoneNumber'
-                            className="w-full h-12 pl-11 pr-4 
-                                   bg-gray-50 dark:bg-gray-800 
-                                   text-gray-700 dark:text-gray-200 
-                                   rounded-xl
-                                   focus:ring-2 focus:ring-primary/20 dark:focus:ring-blue-500/20 
-                                   outline-none text-sm
-                                   border border-gray-200 dark:border-gray-700 
-                                   focus:border-primary/30 dark:focus:border-blue-500/30
-                                   transition-all duration-300"
-                            value={phoneNumber}
-                            onChange={handlePhoneChange}
-                          />
-                        </div>
-                        {paymentMethod === 'Till' && (
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                            Till Number: {process.env.NEXT_PUBLIC_KOPOKOPO_TILL_NUMBER}
-                          </p>
-                        )}
+                      <div className={`
+                        text-xs font-normal
+                        ${selectedAmount === number ? 'text-white/70' : 'text-primary dark:text-blue-400'}
+                      `}>
+                        {number/50} pts
                       </div>
-                    )}
+                    </div>
+                  </button>
+                ))}
+              </div>
+
+              {/* Custom Amount Input */}
+              <div className="mt-4">
+                <div className="relative">
+                  <input
+                    type="number"
+                    className="block w-full pl-4 pr-12 py-3 text-base
+                           bg-white dark:bg-gray-800 
+                           border border-gray-200 dark:border-gray-700
+                           rounded-xl
+                           focus:outline-none focus:ring-2 focus:ring-primary/20 dark:focus:ring-blue-500/20
+                           focus:border-primary dark:focus:border-blue-500
+                           placeholder-gray-400 dark:placeholder-gray-500
+                           text-gray-900 dark:text-gray-100"
+                    value={customAmount}
+                    onChange={handleInputChange}
+                    placeholder="Or enter custom amount"
+                  />
+                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                    <span className="text-gray-400 dark:text-gray-500 text-sm">
+                      {paymentMethod === 'PayPal' ? 'USD' : 'KES'}
+                    </span>
                   </div>
                 </div>
               </div>
+            </div>
 
-              {/* Right Column */}
-              <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-6">
-                <div className="bg-gradient-to-br from-primary to-primary/90 
-                             dark:from-blue-600 dark:to-blue-700
-                             rounded-xl p-6 mb-6">
-                  <div className="text-center">
-                    <div className="w-12 h-12 bg-white/20 rounded-full 
-                                flex items-center justify-center mx-auto mb-4">
-                      {paymentMethod === 'Till' ? (
-                        <Building2 size={24} className="text-white" />
-                      ) : (
-                        <CreditCard size={24} className="text-white" />
-                      )}
-                    </div>
-                    <div className="text-3xl text-white font-bold mb-1">
-                      {selectedAmount ? selectedAmount.toLocaleString() : '0'}
-                      <span className="text-lg ml-1 font-medium opacity-90">KES</span>
-                    </div>
-                    <p className="text-white/70 text-xs tracking-wide">
-                      {selectedAmount ? `${selectedAmount / 50} points` : '0 points'}
-                    </p>
+            {/* Payment Details Section */}
+            <div className="space-y-6">
+              {/* Phone Number Input */}
+              <div>
+                <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200 mb-4 
+                           flex items-center gap-2">
+                  <span className="w-6 h-6 rounded-full bg-primary/10 dark:bg-gray-800 
+                               flex items-center justify-center text-primary dark:text-blue-400 text-xs">
+                    2
+                  </span>
+                  Enter Phone Number
+                </h3>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Phone className="h-5 w-5 text-gray-400" />
                   </div>
-                </div>
-
-                {error && (
-                  <div className="bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 
-                               p-4 mb-6 rounded-xl">
-                    <p className="text-red-700 dark:text-red-400 text-sm">{error}</p>
-                  </div>
-                )}
-
-                {paymentMethod === "PayPal" && clientId ? (
-                  <PayPalScriptProvider options={{ clientId }}>
-                    <PayPalButtonWrapper
-                      requestId={requestId}
-                      onPaymentSuccess={(details) => {
-                        console.log("Payment Successful:", details);
-                        toast.success("Payment was successful!");
-                        setShowPayPal(false);
-                      }}
-                      onPaymentError={(error) => {
-                        console.error("Payment Error:", error);
-                        toast.error("Payment failed. Please try again.");
-                        setShowPayPal(false);
-                      }}
-                      selectedAmount={selectedAmount || 0}
-                      setErrorMessage={setError}
-                      errorMessage={error || ""}
-                    />
-                  </PayPalScriptProvider>
-                ) : (paymentMethod === "Mpesa" || paymentMethod === "Till" || paymentMethod === "Paystack") ? (
-                  <SubmitButton 
-                    ButtonName={`Complete ${paymentMethod} Payment`}
-                    isLoading={isLoading}
-                    onClick={handleSubmit}
+                  <input
+                    type="tel"
+                    value={phoneNumber}
+                    onChange={handlePhoneChange}
+                    className="block w-full pl-10 pr-3 py-3 text-base
+                           bg-white dark:bg-gray-800 
+                           border border-gray-200 dark:border-gray-700
+                           rounded-xl
+                           focus:outline-none focus:ring-2 focus:ring-primary/20 dark:focus:ring-blue-500/20
+                           focus:border-primary dark:focus:border-blue-500
+                           placeholder-gray-400 dark:placeholder-gray-500
+                           text-gray-900 dark:text-gray-100"
+                    placeholder="Enter your M-Pesa number"
                   />
-                ) : (
-                  <button 
-                    className="w-full py-4 font-medium text-gray-400 dark:text-gray-500 
-                             bg-gray-100 dark:bg-gray-800/80 
-                             rounded-xl opacity-75 cursor-not-allowed
-                             transition-all duration-300"
-                    disabled
-                  >
-                    Select a payment method
-                  </button>
-                )}
+                </div>
+              </div>
 
-                <p className="text-xs text-gray-500 dark:text-gray-400 text-center mt-4">
-                  By completing this payment, you agree to our terms of service
-                </p>
+              {/* Submit Button */}
+              <SubmitButton
+                ButtonName={`Pay ${selectedAmount || customAmount || 0} ${paymentMethod === 'PayPal' ? 'USD' : 'KES'}`}
+                isLoading={isLoading}
+                onClick={handleSubmit}
+              />
+
+              {/* Points Display */}
+              <div className="text-center text-sm text-gray-500 dark:text-gray-400">
+                You will receive {((selectedAmount || customAmount || 0) / 50).toFixed(1)} points
               </div>
             </div>
           </div>
