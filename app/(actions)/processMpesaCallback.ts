@@ -99,6 +99,11 @@ export async function processMpesaCallback(callbackData: any) {
         console.error('Request part of donation is null');
       }
 
+      // Trigger revalidation
+      await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/revalidate-donation`, {
+        method: 'POST',
+      });
+
       return { success: true };
     });
 

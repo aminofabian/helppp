@@ -8,6 +8,7 @@ import { getKindeServerSession } from '@kinde-oss/kinde-auth-nextjs/server';
 import prisma from '../lib/db';
 import { CreditCard, Users, Trophy, HandHeart, Star, Activity } from 'lucide-react';
 import { Progress } from "@/components/ui/progress";
+import DonationCount from './DonationCount';
 
 import {
   Dialog,
@@ -147,15 +148,7 @@ export default async function HomeNavRight() {
     KES {stats?.totalDonated?.toLocaleString() || '0'}
     </p>
     </div>
-    <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
-    <div className="flex items-center gap-2 mb-1">
-    <Activity className="w-4 h-4 text-blue-500" />
-    <span className="text-sm text-gray-600 dark:text-gray-400">Helped</span>
-    </div>
-    <p className="text-lg font-semibold text-blue-600 dark:text-blue-400">
-    {stats?.donationCount || 0} people
-    </p>
-    </div>
+    <DonationCount initialCount={stats?.donationCount || 0} />
     </div>
     
     <div className="space-y-4">

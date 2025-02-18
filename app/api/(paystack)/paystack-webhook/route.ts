@@ -243,6 +243,11 @@ export async function POST(request: NextRequest) {
         }
       }
 
+      // Trigger revalidation
+      await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/revalidate-donation`, {
+        method: 'POST',
+      });
+
     } catch (error) {
       console.error('Error processing payment:', error);
       return NextResponse.json({ status: 'error', message: 'Error processing payment' }, { status: 500 });
