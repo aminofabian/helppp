@@ -41,6 +41,7 @@ export type RequestData = {
     userName: string;
     email: string;
     imageUrl: string | null;
+    level?: number;
   } | null;
   Community: {
     name: string;
