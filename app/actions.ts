@@ -238,25 +238,33 @@ export async function handleVote(formData: FormData) {
   }
 }
 
-export async function createComment(formData: FormData) {
+export async function createComment(data: { comment: string; requestId: string }) {
   const { getUser } = getKindeServerSession();
   const user = await getUser();
 
   if (!user) {
-    return redirect('/api/auth/login')
+    throw new Error('Authentication required');
   }
-  const comment = formData.get('comment') as string;
-  const requestId = formData.get('requestId') as string;
 
-  const data = await prisma.comment.create({
-    data: {
-      text: comment,
-      userId: user.id,
-      requestId: requestId,
-    }
+  if (!data.comment || !data.requestId) {
+    throw new Error('Comment and request ID are required');
+  }
 
-  })
-  revalidatePath(`/request/${requestId}`)
+  try {
+    const comment = await prisma.comment.create({
+      data: {
+        text: data.comment,
+        userId: user.id,
+        requestId: data.requestId,
+      }
+    });
+
+    revalidatePath(`/request/${data.requestId}`);
+    return comment;
+  } catch (error) {
+    console.error('Error creating comment:', error);
+    throw new Error('Failed to create comment');
+  }
 }
 
 export async function handleMpesa(formData: FormData) {

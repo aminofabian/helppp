@@ -4,17 +4,17 @@ import prisma from '@/app/lib/db';
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
+    const kindeId = searchParams.get('userId');
 
-    if (!userId) {
+    if (!kindeId) {
       return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
     }
 
-    console.log('API: Fetching stats for user:', userId);
+    console.log('API: Fetching stats for Kinde user:', kindeId);
 
-    // Get base user stats
+    // Get base user stats using Kinde ID
     const stats = await prisma.user.findUnique({
-      where: { id: userId },
+      where: { id: kindeId },
       select: {
         id: true,
         level: true,
@@ -35,7 +35,7 @@ export async function GET(request: Request) {
     // Calculate actual totals from donations
     const donations = await prisma.donation.aggregate({
       where: {
-        userId: userId,
+        userId: stats.id,
         status: {
           in: ['Paid', 'PAID', 'paid', 'COMPLETED', 'Completed', 'completed', 'SUCCESS', 'success']
         }
@@ -63,4 +63,4 @@ export async function GET(request: Request) {
     console.error('API: Error fetching user stats:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
-} 
+}

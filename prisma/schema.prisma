@@ -10,7 +10,7 @@ generator client {
 }
 
 model User {
-  id                String @id @default(uuid())
+  id                String @id @default(cuid())
   email             String @unique
   firstName         String
   lastName          String
@@ -42,7 +42,7 @@ model User {
   testimonies      Testimony[]
   prayers         Prayer[]  
   answers         Answer[]  
-
+  commentReactions CommentReaction[]
   leaderboard Leaderboard[] @relation("UserLeaderboard")
   
   @@map("users")
@@ -145,10 +145,10 @@ model CommunityMember {
 }
 
 model Request {
-  id          String @id @default(uuid())
+  id           String     @id @default(cuid())
   title String
-  textContent Json?
-  imageString String?
+  textContent  Json?
+  imageString  String?
   deadline DateTime @default(now()) 
   donations Donation[]
   payments Payment[]
@@ -191,18 +191,35 @@ model Vote {
 }
 
 model Comment {
-  id String @id @default(uuid())
-  text String
+  id        String   @id @default(cuid())
+  text      String
   createdAt DateTime @default(now())
+  userId    String
+  requestId String
+  parentId  String?  // Optional parent comment ID
+  User      User     @relation(fields: [userId], references: [id])
+  Request   Request  @relation(fields: [requestId], references: [id])
+  parent    Comment? @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  replies   Comment[] @relation("CommentReplies")
+  reactions CommentReaction[]
 
-  User User? @relation(fields: [userId], references: [id])
-  userId String?
+  @@index([userId])
+  @@index([requestId])
+  @@index([parentId])
+}
 
-  Request  Request? @relation(fields: [requestId], references: [id])
-  requestId String? 
+model CommentReaction {
+  id        String   @id @default(uuid())
+  isLike    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  userId    String
+  commentId String
+  user      User     @relation(fields: [userId], references: [id])
+  comment   Comment  @relation(fields: [commentId], references: [id])
 
-  @@index([userId]) // Add this line to create an index on userId
-  @@index([requestId]) // Add this line to create an index on requestId
+  @@unique([userId, commentId])
+  @@index([userId])
+  @@index([commentId])
 }
 
 model Donation {
