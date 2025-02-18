@@ -158,15 +158,6 @@ export async function POST(request: NextRequest) {
         }
       });
 
-      await prisma.request.update({
-        where: { id: donation.requestId },
-        data: {
-          amount: {
-            increment: event.data.amount / 100
-          }
-        }
-      });
-
       const updatedRequest = await prisma.request.findUnique({
         where: { id: donation.requestId }
       });
