@@ -40,6 +40,21 @@ interface RequestCardProps {
   isOwner?: boolean;
 }
 
+interface TipTapTextNode {
+  type: 'text';
+  text: string;
+}
+
+interface TipTapParagraphNode {
+  type: 'paragraph';
+  content: TipTapTextNode[];
+}
+
+interface TipTapDocument {
+  type: 'doc';
+  content: TipTapParagraphNode[];
+}
+
 export function RequestCard({
   id,
   title,
@@ -185,62 +200,78 @@ export function RequestCard({
           {/* Description */}
           {(textContent || jsonContent) && (
             <div className="mb-3 mt-2">
-              {textContent ? (
-                <div>
-                  <div className={`relative text-base font-medium
-                                p-6 rounded-xl
-                                bg-white dark:bg-gray-800/50
-                                border-2 border-white/20 dark:border-white/5
-                                shadow-[0_0_15px_rgba(255,255,255,0.1)]
-                                dark:shadow-[0_4px_24px_rgba(0,0,0,0.4)]
-                                backdrop-blur-sm
-                                ${!isExpanded && "line-clamp-2"}`}>
-                    <div className="absolute inset-0 bg-gradient-to-r from-white/5 to-slate-400/5 
-                                  dark:from-green-500/5 dark:to-purple-500/5
-                                  rounded-xl opacity-100" />
-                    <div className="relative z-10 leading-relaxed tracking-wide
-                                  text-gray-900 dark:text-slate-50">
-                      {typeof textContent === 'object' && textContent?.content?.[0]?.content?.[0]?.text || 'No description provided'}
-                    </div>
-                  </div>
-                  <button 
-                    onClick={() => setIsExpanded(!isExpanded)}
-                    className="text-sm font-semibold
-                             mt-3 px-5 py-2 rounded-full
-                             bg-white/10 hover:bg-white/20
-                             text-slate-50
-                             transition-all duration-300
-                             shadow-md hover:shadow-lg"
-                  >
-                    {isExpanded ? 'Show less' : 'Read more'}
-                  </button>
+              <div className={`relative text-base font-medium
+                            p-6 rounded-xl
+                            bg-white dark:bg-gray-800/50
+                            border-2 border-white/20 dark:border-white/5
+                            shadow-[0_0_15px_rgba(255,255,255,0.1)]
+                            dark:shadow-[0_4px_24px_rgba(0,0,0,0.4)]
+                            backdrop-blur-sm
+                            ${!isExpanded && "line-clamp-2"}`}>
+                <div className="absolute inset-0 bg-gradient-to-r from-white/5 to-slate-400/5 
+                              dark:from-green-500/5 dark:to-purple-500/5
+                              rounded-xl opacity-100" />
+                <div className="relative z-10 leading-relaxed tracking-wide
+                              text-gray-900 dark:text-gray-100
+                              text-[15px] font-medium dark:font-normal
+                              dark:text-gray-100 dark:drop-shadow-[0_1px_1px_rgba(0,0,0,0.4)]">
+                  {(() => {
+                    // Get the content from either source
+                    const content = jsonContent || textContent;
+                    
+                    // If no content, show default message
+                    if (!content) return 'No description provided';
+                    
+                    try {
+                      // If it's already a string, return it
+                      if (typeof content === 'string') return content;
+                      
+                      // If it's an object (TipTap JSON structure)
+                      if (typeof content === 'object') {
+                        // If it's a TipTap document
+                        if (content.type === 'doc' && Array.isArray(content.content)) {
+                          return (content as TipTapDocument).content
+                            .filter((node: TipTapParagraphNode) => node.type === 'paragraph' && Array.isArray(node.content))
+                            .map((node: TipTapParagraphNode) => 
+                              node.content
+                                .filter((textNode: TipTapTextNode) => textNode.type === 'text')
+                                .map((textNode: TipTapTextNode) => textNode.text || '')
+                                .join('')
+                            )
+                            .filter((text: string) => text)
+                            .join('\n');
+                        }
+                        
+                        // Try to get text from other JSON structures
+                        if (content.text) return content.text;
+                        if (content.content?.[0]?.content?.[0]?.text) {
+                          return content.content[0].content[0].text;
+                        }
+                      }
+                      
+                      // If we can't parse it any other way, stringify it
+                      return typeof content === 'string' ? content : JSON.stringify(content);
+                    } catch (error) {
+                      console.error('Error parsing content:', error);
+                      return 'Error displaying content';
+                    }
+                  })()}
                 </div>
-              ) : jsonContent ? (
-                <div>
-                  <div className={`relative text-base font-medium
-                                p-6 rounded-xl
-                                bg-white dark:bg-gray-800/50
-                                border-2 border-white/20 dark:border-white/5
-                                shadow-[0_0_15px_rgba(255,255,255,0.1)]
-                                dark:shadow-[0_4px_24px_rgba(0,0,0,0.4)]
-                                backdrop-blur-sm
-                                ${!isExpanded && "line-clamp-2"}`}>
-                    <div className="absolute inset-0
-                                  rounded-xl" />
-                    <div className="relative z-50 leading-relaxed tracking-wide
-                                  text-gray-400 dark:text-white">
-                      <RenderToJson data={jsonContent} />
-                    </div>
-                  </div>
-                  <button 
-                    onClick={() => setIsExpanded(!isExpanded)}
-                    className="text-sm font-semibold
-                             mt-3 px-5 py-2 rounded-full"
-                  >
-                    {isExpanded ? 'Show less' : 'Read more'}
-                  </button>
-                </div>
-              ) : null}
+              </div>
+              {(textContent || jsonContent) && (
+                <button 
+                  onClick={() => setIsExpanded(!isExpanded)}
+                  className="text-sm font-semibold
+                           mt-3 px-5 py-2 rounded-full
+                           bg-primary/10 hover:bg-primary/20
+                           text-primary dark:text-green-300
+                           transition-all duration-300
+                           shadow-md hover:shadow-lg
+                           border border-primary/20 dark:border-green-400/20"
+                >
+                  {isExpanded ? 'Show less' : 'Read more'}
+                </button>
+              )}
             </div>
           )}
 
