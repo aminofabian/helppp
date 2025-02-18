@@ -220,14 +220,56 @@ const handleSubmit = async () => {
       console.log(result, "result from handleTillPayment");
 
       if (result && result.status === 'PENDING') {
-        toast.success("Payment initiated successfully. Please check your phone to complete the transaction.", {
-          duration: 5000,
+        // First toast - STK Push notification
+        toast.custom((t) => (
+          <div className={`${
+            t.visible ? 'animate-enter' : 'animate-leave'
+          } max-w-md w-full bg-white shadow-lg rounded-lg pointer-events-auto flex ring-1 ring-black ring-opacity-5`}>
+            <div className="flex-1 w-0 p-4">
+              <div className="flex items-center">
+                <div className="flex-shrink-0 pt-0.5">
+                  <Phone className="h-10 w-10 text-primary" />
+                </div>
+                <div className="ml-3 flex-1">
+                  <p className="text-sm font-medium text-gray-900">
+                    Check Your Phone
+                  </p>
+                  <p className="mt-1 text-sm text-gray-500">
+                    An M-Pesa STK push has been sent to your phone. Please enter your PIN to complete the payment.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        ), {
+          duration: 10000,
           position: "top-center",
         });
+
+        // Second toast after delay
+        setTimeout(() => {
+          toast.loading("Waiting for your payment confirmation...", {
+            duration: 5000,
+            position: "top-center",
+            icon: '⌛',
+            style: {
+              background: '#4B5563',
+              color: '#fff',
+              padding: '16px',
+              borderRadius: '8px',
+            },
+          });
+        }, 10000);
       } else {
-        toast.error("Failed to initiate payment", {
+        toast.error("Failed to initiate payment. Please try again.", {
           duration: 5000,
           position: "top-center",
+          style: {
+            background: '#EF4444',
+            color: '#fff',
+            padding: '16px',
+            borderRadius: '8px',
+          },
         });
       }
     }
@@ -305,203 +347,216 @@ const handleSubmit = async () => {
   
 
   return (
+    <>
+      <Toaster
+        position="top-center"
+        reverseOrder={false}
+        toastOptions={{
+          duration: 8000,
+          style: {
+            background: '#333',
+            color: '#fff',
+            padding: '16px',
+            borderRadius: '8px',
+          },
+        }}
+      />
+      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-2 z-50">
+        <div className="w-full max-w-3xl bg-white rounded-2xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom duration-300">
+          {/* Header - Made more compact */}
+          <div className="bg-gradient-to-r from-primary to-secondary p-4">
+            <h2 className="text-xl font-bold text-center text-white mb-3">
+              Complete Your Payment
+            </h2>
+            <PaymentMethodSelector selectedMethod={paymentMethod} onSelect={setPaymentMethod} />
+          </div>
 
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-2 z-50">
-      <div className="w-full max-w-3xl bg-white rounded-2xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom duration-300">
-        {/* Header - Made more compact */}
-        <div className="bg-gradient-to-r from-primary to-secondary p-4">
-          <h2 className="text-xl font-bold text-center text-white mb-3">
-            Complete Your Payment
-          </h2>
-          <PaymentMethodSelector selectedMethod={paymentMethod} onSelect={setPaymentMethod} />
-        </div>
-
-        <div className="p-4">
-          <div className="grid lg:grid-cols-[1.2fr_0.8fr] gap-4">
-            {/* Left Column */}
-            <div className="space-y-4">
-              {/* Amount Selection */}
-              <div>
-                <h3 className="text-base font-semibold text-gray-800 mb-2 flex items-center gap-2">
-                  <span className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs">1</span>
-                  Choose Amount
-                </h3>
-                <div className="grid grid-cols-3 gap-2">
-                  {numbers.map((number) => (
-                    <button
-                      key={number}
-                      onClick={() => handleAmountSelect(number)}
-                      className={`
-                        relative h-[68px] group
-                        ${selectedAmount === number 
-                          ? 'bg-gradient-to-br from-primary to-secondary'
-                          : 'bg-white hover:bg-gray-50'
-                        }
-                        rounded-xl transition-all duration-300
-                        overflow-hidden
-                        ${selectedAmount === number 
-                          ? 'shadow-md ring-1 ring-primary'
-                          : 'shadow-sm hover:shadow border border-gray-100'
-                        }
-                      `}
-                    >
-                      {/* Decorative Elements - Made smaller */}
-                      <div className="absolute inset-0 bg-grid-pattern opacity-5" />
-                      <div className={`
-                        absolute top-0 left-0 w-full h-0.5
-                        ${selectedAmount === number ? 'bg-white/20' : 'bg-primary/10'}
-                      `} />
-                      
-                      {/* Content Container */}
-                      <div className="relative h-full flex items-center justify-center">
-                        {/* Left Circle Decoration */}
+          <div className="p-4">
+            <div className="grid lg:grid-cols-[1.2fr_0.8fr] gap-4">
+              {/* Left Column */}
+              <div className="space-y-4">
+                {/* Amount Selection */}
+                <div>
+                  <h3 className="text-base font-semibold text-gray-800 mb-2 flex items-center gap-2">
+                    <span className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs">1</span>
+                    Choose Amount
+                  </h3>
+                  <div className="grid grid-cols-3 gap-2">
+                    {numbers.map((number) => (
+                      <button
+                        key={number}
+                        onClick={() => handleAmountSelect(number)}
+                        className={`
+                          relative h-[68px] group
+                          ${selectedAmount === number 
+                            ? 'bg-gradient-to-br from-primary to-secondary'
+                            : 'bg-white hover:bg-gray-50'
+                          }
+                          rounded-xl transition-all duration-300
+                          overflow-hidden
+                          ${selectedAmount === number 
+                            ? 'shadow-md ring-1 ring-primary'
+                            : 'shadow-sm hover:shadow border border-gray-100'
+                          }
+                        `}
+                      >
+                        {/* Decorative Elements - Made smaller */}
+                        <div className="absolute inset-0 bg-grid-pattern opacity-5" />
                         <div className={`
-                          absolute left-1.5 top-1/2 -translate-y-1/2 w-1 h-1 rounded-full
-                          ${selectedAmount === number ? 'bg-white/40' : 'bg-primary/20'}
+                          absolute top-0 left-0 w-full h-0.5
+                          ${selectedAmount === number ? 'bg-white/20' : 'bg-primary/10'}
                         `} />
                         
-                        {/* Main Content - Reduced font sizes */}
-                        <div className="text-center px-2">
+                        {/* Content Container */}
+                        <div className="relative h-full flex items-center justify-center">
+                          {/* Left Circle Decoration */}
                           <div className={`
-                            text-base font-bold leading-none mb-1
-                            ${selectedAmount === number ? 'text-white' : 'text-gray-700'}
-                          `}>
-                            {number.toLocaleString()}
-                            <span className={`
-                              text-xs ml-0.5 font-medium
-                              ${selectedAmount === number ? 'text-white/70' : 'text-gray-400'}
+                            absolute left-1.5 top-1/2 -translate-y-1/2 w-1 h-1 rounded-full
+                            ${selectedAmount === number ? 'bg-white/40' : 'bg-primary/20'}
+                          `} />
+                          
+                          {/* Main Content - Reduced font sizes */}
+                          <div className="text-center px-2">
+                            <div className={`
+                              text-base font-bold leading-none mb-1
+                              ${selectedAmount === number ? 'text-white' : 'text-gray-700'}
                             `}>
-                              {paymentMethod === 'PayPal' ? 'USD' : 'UD'}
-                            </span>
+                              {number.toLocaleString()}
+                              <span className={`
+                                text-xs ml-0.5 font-medium
+                                ${selectedAmount === number ? 'text-white/70' : 'text-gray-400'}
+                              `}>
+                                {paymentMethod === 'PayPal' ? 'USD' : 'UD'}
+                              </span>
+                            </div>
+                            <div className={`
+                              text-[9px] font-medium leading-none
+                              ${selectedAmount === number ? 'text-white/70' : 'text-primary'}
+                            `}>
+                              {number/50} pts
+                            </div>
                           </div>
+
+                          {/* Right Circle Decoration */}
                           <div className={`
-                            text-[9px] font-medium leading-none
-                            ${selectedAmount === number ? 'text-white/70' : 'text-primary'}
-                          `}>
-                            {number/50} pts
-                          </div>
+                            absolute right-1.5 top-1/2 -translate-y-1/2 w-1 h-1 rounded-full
+                            ${selectedAmount === number ? 'bg-white/40' : 'bg-primary/20'}
+                          `} />
                         </div>
 
-                        {/* Right Circle Decoration */}
+                        {/* Bottom Line Decoration */}
                         <div className={`
-                          absolute right-1.5 top-1/2 -translate-y-1/2 w-1 h-1 rounded-full
-                          ${selectedAmount === number ? 'bg-white/40' : 'bg-primary/20'}
+                          absolute bottom-0 left-1/2 -translate-x-1/2 w-8 h-0.5 rounded-full
+                          ${selectedAmount === number ? 'bg-white/20' : 'bg-primary/10'}
                         `} />
-                      </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
 
-                      {/* Bottom Line Decoration */}
-                      <div className={`
-                        absolute bottom-0 left-1/2 -translate-x-1/2 w-8 h-0.5 rounded-full
-                        ${selectedAmount === number ? 'bg-white/20' : 'bg-primary/10'}
-                      `} />
-                    </button>
-                  ))}
+                {/* Payment Details */}
+                <div>
+                  <h3 className="text-base font-semibold text-gray-800 mb-2 flex items-center gap-2">
+                    <span className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs">2</span>
+                    Enter Details
+                  </h3>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-600 mb-1.5">Amount</label>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          className="w-full h-11 pl-4 pr-16 bg-gray-50 text-gray-700 rounded-lg
+                                    focus:ring-2 focus:ring-primary/20 outline-none text-sm
+                                    border border-gray-200 focus:border-primary/30"
+                          value={customAmount}
+                          onChange={handleInputChange}
+                          placeholder="Enter amount"
+                        />
+                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
+                          KES
+                        </span>
+                      </div>
+                    </div>
+
+                    {(paymentMethod === 'Mpesa' || paymentMethod === 'Till') && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-600 mb-1.5">
+                          {paymentMethod === 'Till' ? 'Phone Number for Till Payment' : 'Phone Number'}
+                        </label>
+                        <div className="relative">
+                          {paymentMethod === 'Till' ? (
+                            <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 text-primary" size={16} />
+                          ) : (
+                            <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-primary" size={16} />
+                          )}
+                          <input
+                            type="tel"
+                            placeholder="Enter your phone number"
+                            name='phoneNumber'
+                            className="w-full h-11 pl-11 pr-4 bg-gray-50 text-gray-700 rounded-lg
+                                      focus:ring-2 focus:ring-primary/20 outline-none text-sm
+                                      border border-gray-200 focus:border-primary/30"
+                            value={phoneNumber}
+                            onChange={handlePhoneChange}
+                          />
+                        </div>
+                        {paymentMethod === 'Till' && (
+                          <p className="text-xs text-gray-500 mt-1">
+                            Till Number: {process.env.NEXT_PUBLIC_KOPOKOPO_TILL_NUMBER}
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    {/* {paymentMethod === 'Paystack' && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-600 mb-1.5">Email Addressses</label>
+                        <div className="relative">
+                          <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-primary" size={16} />
+                          <input
+                            type="email"
+                            placeholder="Enter your email address"
+                            name='email'
+                            className="w-full h-11 pl-11 pr-4 bg-gray-50 text-gray-700 rounded-lg
+                                      focus:ring-2 focus:ring-primary/20 outline-none text-sm
+                                      border border-gray-200 focus:border-primary/30"
+                            value={email}
+                            onChange={handleEmailChange}
+                          /> 
+                        </div>
+                      </div>
+                    )} */}
+                  </div>
                 </div>
               </div>
 
-              {/* Payment Details */}
-              <div>
-                <h3 className="text-base font-semibold text-gray-800 mb-2 flex items-center gap-2">
-                  <span className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs">2</span>
-                  Enter Details
-                </h3>
-                <div className="space-y-3">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-600 mb-1.5">Amount</label>
-                    <div className="relative">
-                      <input
-                        type="number"
-                        className="w-full h-11 pl-4 pr-16 bg-gray-50 text-gray-700 rounded-lg
-                                  focus:ring-2 focus:ring-primary/20 outline-none text-sm
-                                  border border-gray-200 focus:border-primary/30"
-                        value={customAmount}
-                        onChange={handleInputChange}
-                        placeholder="Enter amount"
-                      />
-                      <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
-                        KES
-                      </span>
-                    </div>
-                  </div>
-
-                  {(paymentMethod === 'Mpesa' || paymentMethod === 'Till') && (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-600 mb-1.5">
-                        {paymentMethod === 'Till' ? 'Phone Number for Till Payment' : 'Phone Number'}
-                      </label>
-                      <div className="relative">
-                        {paymentMethod === 'Till' ? (
-                          <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 text-primary" size={16} />
-                        ) : (
-                          <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-primary" size={16} />
-                        )}
-                        <input
-                          type="tel"
-                          placeholder="Enter your phone number"
-                          name='phoneNumber'
-                          className="w-full h-11 pl-11 pr-4 bg-gray-50 text-gray-700 rounded-lg
-                                    focus:ring-2 focus:ring-primary/20 outline-none text-sm
-                                    border border-gray-200 focus:border-primary/30"
-                          value={phoneNumber}
-                          onChange={handlePhoneChange}
-                        />
-                      </div>
-                      {paymentMethod === 'Till' && (
-                        <p className="text-xs text-gray-500 mt-1">
-                          Till Number: {process.env.NEXT_PUBLIC_KOPOKOPO_TILL_NUMBER}
-                        </p>
+              {/* Right Column - Made more compact */}
+              <div className="bg-gray-50 rounded-xl p-4">
+                <div className="bg-gradient-to-br from-primary to-secondary rounded-lg p-4 mb-4">
+                  <div className="text-center">
+                    <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                      {paymentMethod === 'Till' ? (
+                        <Building2 size={24} className="text-white" />
+                      ) : (
+                        <CreditCard size={24} className="text-white" />
                       )}
                     </div>
-                  )}
-
-                  {/* {paymentMethod === 'Paystack' && (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-600 mb-1.5">Email Addressses</label>
-                      <div className="relative">
-                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-primary" size={16} />
-                        <input
-                          type="email"
-                          placeholder="Enter your email address"
-                          name='email'
-                          className="w-full h-11 pl-11 pr-4 bg-gray-50 text-gray-700 rounded-lg
-                                    focus:ring-2 focus:ring-primary/20 outline-none text-sm
-                                    border border-gray-200 focus:border-primary/30"
-                          value={email}
-                          onChange={handleEmailChange}
-                        /> 
-                      </div>
+                    <div className="text-3xl text-white font-bold mb-1">
+                      {selectedAmount ? selectedAmount.toLocaleString() : '0'}
+                      <span className="text-xl ml-1">KES</span>
                     </div>
-                  )} */}
-                </div>
-              </div>
-            </div>
-
-            {/* Right Column - Made more compact */}
-            <div className="bg-gray-50 rounded-xl p-4">
-              <div className="bg-gradient-to-br from-primary to-secondary rounded-lg p-4 mb-4">
-                <div className="text-center">
-                  <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                    {paymentMethod === 'Till' ? (
-                      <Building2 size={24} className="text-white" />
-                    ) : (
-                      <CreditCard size={24} className="text-white" />
-                    )}
+                    <p className="text-white/80 text-sm">
+                      {selectedAmount ? `${selectedAmount / 50} points` : '0 points'}
+                    </p>
                   </div>
-                  <div className="text-3xl text-white font-bold mb-1">
-                    {selectedAmount ? selectedAmount.toLocaleString() : '0'}
-                    <span className="text-xl ml-1">KES</span>
-                  </div>
-                  <p className="text-white/80 text-sm">
-                    {selectedAmount ? `${selectedAmount / 50} points` : '0 points'}
-                  </p>
                 </div>
-              </div>
 
-              {error && (
-                <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-4 rounded-lg">
-                  <p className="text-red-700 text-sm">{error}</p>
-                </div>
-              )}
+                {error && (
+                  <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-4 rounded-lg">
+                    <p className="text-red-700 text-sm">{error}</p>
+                  </div>
+                )}
 
 {paymentMethod === "PayPal" && clientId ? (
   <PayPalScriptProvider options={{ clientId }}>
@@ -585,15 +640,15 @@ const handleSubmit = async () => {
                 </button>
               )} */}
 
-              <p className="text-xs text-gray-500 text-center mt-4">
-                By completing this payment, you agree to our terms of service
-              </p>
+                <p className="text-xs text-gray-500 text-center mt-4">
+                  By completing this payment, you agree to our terms of service
+                </p>
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
-
+    </>
   );
 };
 
