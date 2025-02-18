@@ -9,6 +9,7 @@ import Link from "next/link";
 import { CreditCard, Users, Trophy, HandHeart, Star, Activity } from 'lucide-react';
 import { Progress } from "@/components/ui/progress";
 import DonationCount from './DonationCount';
+import { calculateLevel } from '@/app/lib/levelCalculator';
 import {
   Dialog,
   DialogContent,
@@ -33,6 +34,91 @@ interface WalletData {
   balance: number;
 }
 
+const LEVEL_PERKS = {
+  1: {
+    perks: [
+      { icon: <Users className="w-4 h-4 text-blue-500" />, text: "Can browse and view help requests" }
+    ],
+    limit: "Cannot post help requests",
+    maxAmount: 0
+  },
+  2: {
+    perks: [
+      { icon: <HandHeart className="w-4 h-4 text-emerald-500" />, text: "Can post help requests" }
+    ],
+    limit: "Maximum help request amount: KES 1,000",
+    maxAmount: 1000
+  },
+  3: {
+    perks: [
+      { icon: <HandHeart className="w-4 h-4 text-emerald-500" />, text: "Can post help requests" },
+      { icon: <Users className="w-4 h-4 text-blue-500" />, text: "Can view detailed profiles" },
+      { icon: <Activity className="w-4 h-4 text-purple-500" />, text: "Receive local notifications" }
+    ],
+    limit: "Maximum help request amount: KES 3,000",
+    maxAmount: 3000
+  },
+  4: {
+    perks: [
+      { icon: <Trophy className="w-4 h-4 text-amber-500" />, text: "Can see top contributors" },
+      { icon: <Activity className="w-4 h-4 text-purple-500" />, text: "Access basic analytics" }
+    ],
+    limit: "Maximum help request amount: KES 5,000",
+    maxAmount: 5000
+  },
+  5: {
+    perks: [
+      { icon: <Users className="w-4 h-4 text-blue-500" />, text: "Create and moderate communities" }
+    ],
+    limit: "Maximum help request amount: KES 10,000",
+    maxAmount: 10000
+  },
+  6: {
+    perks: [
+      { icon: <Star className="w-4 h-4 text-amber-500" />, text: "Priority support" },
+      { icon: <Users className="w-4 h-4 text-blue-500" />, text: "Create public fundraising events" }
+    ],
+    limit: "Maximum help request amount: KES 20,000",
+    maxAmount: 20000
+  },
+  7: {
+    perks: [
+      { icon: <Star className="w-4 h-4 text-amber-500" />, text: "Access premium templates" },
+      { icon: <Activity className="w-4 h-4 text-purple-500" />, text: "Priority Funding available" },
+      { icon: <HandHeart className="w-4 h-4 text-emerald-500" />, text: "Monthly impact reports" }
+    ],
+    limit: "Maximum help request amount: KES 50,000",
+    maxAmount: 50000
+  },
+  8: {
+    perks: [
+      { icon: <Star className="w-4 h-4 text-amber-500" />, text: "Exclusive giver matching" },
+      { icon: <Users className="w-4 h-4 text-blue-500" />, text: "Create recurring campaigns" },
+      { icon: <Activity className="w-4 h-4 text-purple-500" />, text: "Early access to features" }
+    ],
+    limit: "Maximum help request amount: KES 100,000",
+    maxAmount: 100000
+  },
+  9: {
+    perks: [
+      { icon: <Star className="w-4 h-4 text-amber-500" />, text: "Mentorship from top donors" },
+      { icon: <Users className="w-4 h-4 text-blue-500" />, text: "Create Social Circles" },
+      { icon: <HandHeart className="w-4 h-4 text-emerald-500" />, text: "Priority Funding at 15%" }
+    ],
+    limit: "Maximum help request amount: KES 1,000,000",
+    maxAmount: 1000000
+  },
+  10: {
+    perks: [
+      { icon: <Star className="w-4 h-4 text-amber-500" />, text: "Featured on main page" },
+      { icon: <Users className="w-4 h-4 text-blue-500" />, text: "Advanced Social Circles" },
+      { icon: <Activity className="w-4 h-4 text-purple-500" />, text: "Advanced analytics" }
+    ],
+    limit: "Maximum help request amount: KES 100,000,000",
+    maxAmount: 100000000
+  }
+};
+
 export default function HomeNavRight({ 
   initialUser, 
   initialStats, 
@@ -45,9 +131,32 @@ export default function HomeNavRight({
   const [stats, setStats] = useState<UserStats>(initialStats);
   const [wallet, setWallet] = useState<WalletData>(initialWallet);
   
-  const totalPoints = stats?.points.reduce((sum, point) => sum + point.amount, 0) || 0;
-  const nextLevel = ((stats?.level || 1) + 1) * 1000;
-  const progress = (totalPoints / nextLevel) * 100;
+  // Calculate points based on total donations
+  const calculatedPoints = Math.floor((stats?.calculatedTotalDonated || stats?.totalDonated || 0) / 50);
+  const currentLevel = calculateLevel(calculatedPoints);
+  
+  // Get the next level threshold from the level calculator
+  const LEVEL_THRESHOLDS = [
+    { level: 10, points: 10000 },
+    { level: 9, points: 5000 },
+    { level: 8, points: 2000 },
+    { level: 7, points: 1200 },
+    { level: 6, points: 500 },
+    { level: 5, points: 120 },
+    { level: 4, points: 30 },
+    { level: 3, points: 70 },
+    { level: 2, points: 12 },
+    { level: 1, points: 0 }
+  ];
+  
+  const currentThreshold = LEVEL_THRESHOLDS.find(t => t.level === currentLevel);
+  const nextThreshold = LEVEL_THRESHOLDS.find(t => t.level === currentLevel + 1);
+  const pointsNeeded = nextThreshold ? nextThreshold.points - calculatedPoints : 0;
+  const progress = nextThreshold ? ((calculatedPoints - (currentThreshold?.points || 0)) / (nextThreshold.points - (currentThreshold?.points || 0))) * 100 : 100;
+
+  const nextLevel = currentLevel + 1;
+  const currentPerks = LEVEL_PERKS[currentLevel as keyof typeof LEVEL_PERKS];
+  const nextPerks = LEVEL_PERKS[nextLevel as keyof typeof LEVEL_PERKS];
 
   useEffect(() => {
     // Function to fetch updated stats
@@ -150,16 +259,85 @@ export default function HomeNavRight({
     </h1>
     
     <div className="bg-gradient-to-r from-primary/5 to-primary/10 p-4 rounded-lg space-y-2">
-    <div className="flex items-center justify-between">
-    <div className="flex items-center gap-2">
-    <Trophy className="w-5 h-5 text-amber-500" />
-    <span className="font-semibold">Level {stats?.level || 1}</span>
-    </div>
-    <div className="text-sm text-muted-foreground">
-    {totalPoints} / {nextLevel} XP
-    </div>
-    </div>
-    <Progress value={progress} className="h-2" />
+      <Dialog>
+        <DialogTrigger asChild>
+          <div className="flex items-center justify-between cursor-pointer hover:opacity-80">
+            <div className="flex items-center gap-2">
+              <Trophy className="w-5 h-5 text-amber-500" />
+              <span className="font-semibold">Level {currentLevel}</span>
+            </div>
+            <div className="text-sm text-muted-foreground">
+              {calculatedPoints} / {nextThreshold?.points || calculatedPoints} XP
+            </div>
+          </div>
+        </DialogTrigger>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Trophy className="w-5 h-5 text-amber-500" />
+              Level Progress
+            </DialogTitle>
+            <DialogDescription>
+              <div className="space-y-4 mt-2">
+                <div>
+                  <div className="flex justify-between mb-2">
+                    <span>Current Level: {currentLevel}</span>
+                    <span>Points: {calculatedPoints}</span>
+                  </div>
+                  <Progress value={progress} className="h-2" />
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {pointsNeeded} points needed for Level {currentLevel + 1}
+                  </p>
+                  {currentPerks && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Current limit: {currentPerks.limit}
+                    </p>
+                  )}
+                </div>
+                
+                <div className="border-t pt-4">
+                  <h4 className="font-medium mb-2">Current Level Perks</h4>
+                  <ul className="space-y-2">
+                    {currentPerks?.perks.map((perk, index) => (
+                      <li key={index} className="flex items-center gap-2 text-sm">
+                        {perk.icon}
+                        {perk.text}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {nextPerks && (
+                  <div className="border-t pt-4">
+                    <h4 className="font-medium mb-2">Next Level Perks</h4>
+                    <ul className="space-y-2">
+                      {nextPerks.perks.map((perk, index) => (
+                        <li key={index} className="flex items-center gap-2 text-sm">
+                          {perk.icon}
+                          {perk.text}
+                        </li>
+                      ))}
+                    </ul>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Next level limit: {nextPerks.limit}
+                    </p>
+                  </div>
+                )}
+
+                <div className="bg-muted p-3 rounded-lg mt-4">
+                  <h4 className="font-medium mb-2">How to Earn Points</h4>
+                  <ul className="space-y-1 text-sm">
+                    <li>• Donate to help requests (1 point per KES 50)</li>
+                    <li>• Create help communities (100 points)</li>
+                    <li>• Receive successful donations (50 points)</li>
+                  </ul>
+                </div>
+              </div>
+            </DialogDescription>
+          </DialogHeader>
+        </DialogContent>
+      </Dialog>
+      <Progress value={progress} className="h-2" />
     </div>
     
     <div className="grid grid-cols-2 gap-4">

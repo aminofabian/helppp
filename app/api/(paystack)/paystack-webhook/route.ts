@@ -74,6 +74,7 @@ export async function POST(request: NextRequest) {
         }
       });
 
+      // Calculate points based on donation amount (1 point per KES 50)
       const pointsEarned = Math.floor((event.data.amount / 100) / 50);
 
       await prisma.points.create({
@@ -84,13 +85,21 @@ export async function POST(request: NextRequest) {
         }
       });
 
-      const totalPoints = await prisma.points.aggregate({
-        where: { userId: donation.userId },
-        _sum: { amount: true }
+      // Calculate total points from all donations
+      const totalDonated = await prisma.donation.aggregate({
+        where: {
+          userId: donation.userId,
+          status: {
+            in: ['Paid', 'PAID', 'paid', 'COMPLETED', 'Completed', 'completed', 'SUCCESS', 'success']
+          }
+        },
+        _sum: {
+          amount: true
+        }
       });
 
-      const userTotalPoints = totalPoints._sum.amount || 0;
-      const newLevel = calculateLevel(userTotalPoints);
+      const totalPoints = Math.floor((totalDonated._sum.amount || 0) / 50);
+      const newLevel = calculateLevel(totalPoints);
 
       await prisma.user.update({
         where: { id: donation.userId },
