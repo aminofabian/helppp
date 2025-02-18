@@ -516,7 +516,7 @@ const handleSubmit = async () => {
 
               {/* Points Display */}
               <div className="text-center text-sm text-gray-500 dark:text-gray-400">
-                You will receive {((selectedAmount || customAmount || 0) / 50).toFixed(1)} points
+                You will receive {(Number(selectedAmount || customAmount || 0) / 50).toFixed(1)} points
               </div>
             </div>
           </div>
