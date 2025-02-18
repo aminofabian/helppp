@@ -114,6 +114,7 @@ export function ShowItems() {
                 if (vote.voteType === "SUSPISION") return acc + 1;
                 return acc;
               }, 0)}
+              pointsUsed={request.pointsUsed}
             />
             {index < items.length - 1 && (
               <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 w-48 opacity-30">
