@@ -362,37 +362,37 @@ const handleSubmit = async () => {
         }}
       />
       <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-2 z-50">
-        <div className="w-full max-w-3xl bg-white rounded-2xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom duration-300">
+        <div className="w-full max-w-3xl bg-white rounded-2xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom duration-300 max-h-[90vh] overflow-y-auto">
           {/* Header - Made more compact */}
-          <div className="bg-gradient-to-r from-primary to-secondary p-4">
-            <h2 className="text-xl font-bold text-center text-white mb-3">
+          <div className="bg-gradient-to-r from-primary to-secondary p-3 sm:p-4">
+            <h2 className="text-lg sm:text-xl font-bold text-center text-white mb-2 sm:mb-3">
               Complete Your Payment
             </h2>
             <PaymentMethodSelector selectedMethod={paymentMethod} onSelect={setPaymentMethod} />
           </div>
 
-          <div className="p-4">
-            <div className="grid lg:grid-cols-[1.2fr_0.8fr] gap-4">
+          <div className="p-3 sm:p-4">
+            <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_0.8fr] gap-3 sm:gap-4">
               {/* Left Column */}
-              <div className="space-y-4">
+              <div className="space-y-3 sm:space-y-4">
                 {/* Amount Selection */}
                 <div>
-                  <h3 className="text-base font-semibold text-gray-800 mb-2 flex items-center gap-2">
-                    <span className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs">1</span>
+                  <h3 className="text-sm sm:text-base font-semibold text-gray-800 mb-2 flex items-center gap-2">
+                    <span className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs">1</span>
                     Choose Amount
                   </h3>
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-4 sm:grid-cols-3 gap-1.5 sm:gap-2">
                     {numbers.map((number) => (
                       <button
                         key={number}
                         onClick={() => handleAmountSelect(number)}
                         className={`
-                          relative h-[68px] group
+                          relative h-[50px] sm:h-[68px] group
                           ${selectedAmount === number 
                             ? 'bg-gradient-to-br from-primary to-secondary'
                             : 'bg-white hover:bg-gray-50'
                           }
-                          rounded-xl transition-all duration-300
+                          rounded-lg sm:rounded-xl transition-all duration-300
                           overflow-hidden
                           ${selectedAmount === number 
                             ? 'shadow-md ring-1 ring-primary'
@@ -400,55 +400,30 @@ const handleSubmit = async () => {
                           }
                         `}
                       >
-                        {/* Decorative Elements - Made smaller */}
-                        <div className="absolute inset-0 bg-grid-pattern opacity-5" />
-                        <div className={`
-                          absolute top-0 left-0 w-full h-0.5
-                          ${selectedAmount === number ? 'bg-white/20' : 'bg-primary/10'}
-                        `} />
-                        
                         {/* Content Container */}
                         <div className="relative h-full flex items-center justify-center">
-                          {/* Left Circle Decoration */}
-                          <div className={`
-                            absolute left-1.5 top-1/2 -translate-y-1/2 w-1 h-1 rounded-full
-                            ${selectedAmount === number ? 'bg-white/40' : 'bg-primary/20'}
-                          `} />
-                          
                           {/* Main Content - Reduced font sizes */}
-                          <div className="text-center px-2">
+                          <div className="text-center px-1 sm:px-2">
                             <div className={`
-                              text-base font-bold leading-none mb-1
+                              text-sm sm:text-base font-bold leading-none mb-0.5 sm:mb-1
                               ${selectedAmount === number ? 'text-white' : 'text-gray-700'}
                             `}>
                               {number.toLocaleString()}
                               <span className={`
-                                text-xs ml-0.5 font-medium
+                                text-[10px] sm:text-xs ml-0.5 font-medium
                                 ${selectedAmount === number ? 'text-white/70' : 'text-gray-400'}
                               `}>
-                                {paymentMethod === 'PayPal' ? 'USD' : 'UD'}
+                                {paymentMethod === 'PayPal' ? 'USD' : 'KES'}
                               </span>
                             </div>
                             <div className={`
-                              text-[9px] font-medium leading-none
+                              text-[8px] sm:text-[9px] font-medium leading-none
                               ${selectedAmount === number ? 'text-white/70' : 'text-primary'}
                             `}>
                               {number/50} pts
                             </div>
                           </div>
-
-                          {/* Right Circle Decoration */}
-                          <div className={`
-                            absolute right-1.5 top-1/2 -translate-y-1/2 w-1 h-1 rounded-full
-                            ${selectedAmount === number ? 'bg-white/40' : 'bg-primary/20'}
-                          `} />
                         </div>
-
-                        {/* Bottom Line Decoration */}
-                        <div className={`
-                          absolute bottom-0 left-1/2 -translate-x-1/2 w-8 h-0.5 rounded-full
-                          ${selectedAmount === number ? 'bg-white/20' : 'bg-primary/10'}
-                        `} />
                       </button>
                     ))}
                   </div>
@@ -456,24 +431,24 @@ const handleSubmit = async () => {
 
                 {/* Payment Details */}
                 <div>
-                  <h3 className="text-base font-semibold text-gray-800 mb-2 flex items-center gap-2">
-                    <span className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs">2</span>
+                  <h3 className="text-sm sm:text-base font-semibold text-gray-800 mb-2 flex items-center gap-2">
+                    <span className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs">2</span>
                     Enter Details
                   </h3>
                   <div className="space-y-3">
                     <div>
-                      <label className="block text-sm font-medium text-gray-600 mb-1.5">Amount</label>
+                      <label className="block text-xs sm:text-sm font-medium text-gray-600 mb-1.5">Amount</label>
                       <div className="relative">
                         <input
                           type="number"
-                          className="w-full h-11 pl-4 pr-16 bg-gray-50 text-gray-700 rounded-lg
+                          className="w-full h-10 sm:h-11 pl-3 sm:pl-4 pr-12 sm:pr-16 bg-gray-50 text-gray-700 rounded-lg
                                     focus:ring-2 focus:ring-primary/20 outline-none text-sm
                                     border border-gray-200 focus:border-primary/30"
                           value={customAmount}
                           onChange={handleInputChange}
                           placeholder="Enter amount"
                         />
-                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
+                        <span className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 text-gray-400 text-xs sm:text-sm">
                           KES
                         </span>
                       </div>
@@ -481,20 +456,20 @@ const handleSubmit = async () => {
 
                     {(paymentMethod === 'Mpesa' || paymentMethod === 'Till') && (
                       <div>
-                        <label className="block text-sm font-medium text-gray-600 mb-1.5">
+                        <label className="block text-xs sm:text-sm font-medium text-gray-600 mb-1.5">
                           {paymentMethod === 'Till' ? 'Phone Number for Till Payment' : 'Phone Number'}
                         </label>
                         <div className="relative">
                           {paymentMethod === 'Till' ? (
-                            <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 text-primary" size={16} />
+                            <Building2 className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-primary" size={16} />
                           ) : (
-                            <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-primary" size={16} />
+                            <Phone className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-primary" size={16} />
                           )}
                           <input
                             type="tel"
                             placeholder="Enter your phone number"
                             name='phoneNumber'
-                            className="w-full h-11 pl-11 pr-4 bg-gray-50 text-gray-700 rounded-lg
+                            className="w-full h-10 sm:h-11 pl-10 sm:pl-11 pr-3 sm:pr-4 bg-gray-50 text-gray-700 rounded-lg
                                       focus:ring-2 focus:ring-primary/20 outline-none text-sm
                                       border border-gray-200 focus:border-primary/30"
                             value={phoneNumber}
@@ -502,7 +477,7 @@ const handleSubmit = async () => {
                           />
                         </div>
                         {paymentMethod === 'Till' && (
-                          <p className="text-xs text-gray-500 mt-1">
+                          <p className="text-[10px] sm:text-xs text-gray-500 mt-1">
                             Till Number: {process.env.NEXT_PUBLIC_KOPOKOPO_TILL_NUMBER}
                           </p>
                         )}
@@ -532,21 +507,21 @@ const handleSubmit = async () => {
               </div>
 
               {/* Right Column - Made more compact */}
-              <div className="bg-gray-50 rounded-xl p-4">
-                <div className="bg-gradient-to-br from-primary to-secondary rounded-lg p-4 mb-4">
+              <div className="bg-gray-50 rounded-xl p-3 sm:p-4">
+                <div className="bg-gradient-to-br from-primary to-secondary rounded-lg p-3 sm:p-4 mb-3 sm:mb-4">
                   <div className="text-center">
-                    <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
                       {paymentMethod === 'Till' ? (
-                        <Building2 size={24} className="text-white" />
+                        <Building2 size={20} className="text-white" />
                       ) : (
-                        <CreditCard size={24} className="text-white" />
+                        <CreditCard size={20} className="text-white" />
                       )}
                     </div>
-                    <div className="text-3xl text-white font-bold mb-1">
+                    <div className="text-2xl sm:text-3xl text-white font-bold mb-1">
                       {selectedAmount ? selectedAmount.toLocaleString() : '0'}
-                      <span className="text-xl ml-1">KES</span>
+                      <span className="text-lg sm:text-xl ml-1">KES</span>
                     </div>
-                    <p className="text-white/80 text-sm">
+                    <p className="text-white/80 text-xs sm:text-sm">
                       {selectedAmount ? `${selectedAmount / 50} points` : '0 points'}
                     </p>
                   </div>
