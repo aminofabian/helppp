@@ -166,8 +166,7 @@ export async function POST(req: Request) {
     console.error("Webhook processing error:", error);
     return NextResponse.json({ error: error.message || "Server error" }, { status: 500 });
   }
-}
-// import { NextResponse } from "next/server";
+}// import { NextResponse } from "next/server";
 // import crypto from "crypto";
 // import prisma from "@/app/lib/db";
 // import { PaymentMethod } from "@prisma/client";
