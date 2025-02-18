@@ -65,6 +65,7 @@
     "react-intersection-observer": "^9.13.0",
     "react-nice-avatar": "^1.5.0",
     "react-paypal-js": "^0.0.1-security",
+    "react-paystack": "^6.0.0",
     "react-toastify": "^11.0.3",
     "sharp": "^0.33.4",
     "socket.io": "^4.7.5",

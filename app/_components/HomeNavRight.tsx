@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/dialog"
 import B2CPaymentForm from './B2CPaymentForm';
 import MenuBar from './MenuBar';
+import WalletDepositForm from './WalletDepositForm';
 
 interface UserStats {
   level: number;
@@ -368,9 +369,13 @@ export default function HomeNavRight({
     </DialogTrigger>
     <DialogContent>
     <DialogHeader>
-    <DialogTitle>Add Funds</DialogTitle>
+    <DialogTitle>Add Funds to Wallet</DialogTitle>
     <DialogDescription>
-    <B2CPaymentForm amountValue={wallet ? wallet.balance : 0} />
+    <WalletDepositForm 
+      onSuccess={(newBalance) => {
+        setWallet(prev => ({ ...prev, balance: newBalance }));
+      }} 
+    />
     </DialogDescription>
     </DialogHeader>
     </DialogContent>

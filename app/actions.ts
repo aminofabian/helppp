@@ -11,6 +11,7 @@ import { mpesa } from './mpesaone/mpesa';
 import { v4 as uuidv4 } from 'uuid';
 import crypto from 'crypto';
 import { calculateLevel } from "@/app/lib/levelCalculator";
+import axios from 'axios';
 
 export async function updateUsername(prevState: any, formData: FormData) {
   const { getUser } = getKindeServerSession();
@@ -405,8 +406,10 @@ export async function handleTillPayment(formData: FormData) {
 
   const amount = Number(formData.get('amount'));
   const requestId = formData.get('requestId') as string;
+  const phoneNumber = formData.get('phoneNumber') as string;
 
   try {
+    // First create the payment record
     const payment = await prisma.payment.create({
       data: {
         amount,
@@ -414,13 +417,33 @@ export async function handleTillPayment(formData: FormData) {
         status: PaymentStatus.PENDING,
         userId: user.id,
         requestId,
+        phoneNumber,
         userts: new Date(),
       },
     });
 
-    return payment;
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://fitrii.com';
+    // Then initiate the till payment
+    const response = await axios.post(
+      `${baseUrl}/api/initiate-till-payment`,
+      {
+        requestId,
+        amount,
+        phoneNumber,
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    return { ...payment, ...response.data };
   } catch (error) {
     console.error("Error in handleTillPayment:", error);
+    if (axios.isAxiosError(error)) {
+      throw new Error(error.response?.data?.message || error.message);
+    }
     throw error;
   }
 }

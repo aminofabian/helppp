@@ -25,7 +25,7 @@ export async function POST(request: Request) {
     console.log('Access token obtained');
 
     // Prepare payment request
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://fitrii.com';
+    const baseUrl = process.env.KOPOKOPO_CALLBACK_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://fitrii.com';
     const paymentData = {
       payment_channel: 'M-PESA STK Push',
       till_number: process.env.KOPOKOPO_TILL_NUMBER,
@@ -47,6 +47,13 @@ export async function POST(request: Request) {
         callback_url: `${baseUrl}/api/kopokopo-callback`
       }
     };
+
+    // Log the complete configuration
+    console.log('Kopokopo Configuration:', {
+      baseUrl,
+      tillNumber: process.env.KOPOKOPO_TILL_NUMBER,
+      callbackUrl: `${baseUrl}/api/kopokopo-callback`
+    });
 
     // Initiate payment
     console.log('Initiating payment with Kopokopo...', paymentData);
