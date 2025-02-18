@@ -33,20 +33,28 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ ButtonName, isLoading, onCl
       disabled={isLoading}
       onClick={onClick}
       className={`
-        px-6 py-3 font-medium bg-primary text-white w-full
-        transition-all duration-300 ease-in-out
-        shadow-[3px_3px_0px_orange] hover:shadow-none
-        hover:translate-x-[3px] hover:translate-y-[3px]
-        rounded-md relative overflow-hidden
-        ${isLoading ? 'bg-opacity-70' : ''}
+        relative w-full px-6 py-3.5 font-medium text-white
+        bg-gradient-to-r from-primary to-primary/90
+        dark:from-blue-600 dark:to-blue-700
+        rounded-xl overflow-hidden
+        transition-all duration-300
+        shadow-lg hover:shadow-xl
+        transform hover:translate-y-[-2px]
+        disabled:opacity-70 disabled:cursor-not-allowed
+        disabled:hover:translate-y-0
+        group
       `}
     >
-      <span className={`flex items-center justify-center ${isLoading ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300`}>
+      <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 
+                    transition-opacity duration-300" />
+      <span className={`flex items-center justify-center gap-2
+                     ${isLoading ? 'opacity-0' : 'opacity-100'} 
+                     transition-opacity duration-300`}>
         {ButtonName}
       </span>
       {isLoading && (
         <span className="absolute inset-0 flex items-center justify-center">
-          <Loader2 className="w-6 h-6 animate-spin" />
+          <Loader2 className="w-6 h-6 animate-spin text-white/90" />
         </span>
       )}
     </button>
@@ -56,15 +64,21 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ ButtonName, isLoading, onCl
 const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({ selectedMethod, onSelect }) => {
   const methods: PaymentMethod[] = ['Mpesa', 'Till', 'Paystack', 'PayPal'];
   return (
-    <div className="flex justify-center space-x-4 mb-6">
+    <div className="flex justify-center space-x-3">
       {methods.map((method) => (
         <button
           key={method}
           onClick={() => onSelect(method)}
-          className={`px-4 py-2 rounded-full transition-all ${selectedMethod === method
-              ? 'bg-primary text-white shadow-lg'
-              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-            }`}
+          className={`
+            px-4 py-2 rounded-xl text-sm font-medium
+            transition-all duration-300 transform
+            ${selectedMethod === method 
+              ? 'bg-white/95 text-primary shadow-lg scale-105 dark:bg-gray-800 dark:text-blue-400'
+              : 'bg-white/20 text-white hover:bg-white/30 dark:hover:bg-gray-700/50'
+            }
+            backdrop-blur-sm
+            hover:scale-105
+          `}
         >
           {method}
         </button>
@@ -354,71 +368,80 @@ const handleSubmit = async () => {
         toastOptions={{
           duration: 8000,
           style: {
-            background: '#333',
+            background: '#1F2937',
             color: '#fff',
+            borderRadius: '12px',
             padding: '16px',
-            borderRadius: '8px',
+            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.2)',
           },
         }}
       />
-      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-2 z-50">
-        <div className="w-full max-w-3xl bg-white rounded-2xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom duration-300 max-h-[90vh] overflow-y-auto">
-          {/* Header - Made more compact */}
-          <div className="bg-gradient-to-r from-primary to-secondary p-3 sm:p-4">
-            <h2 className="text-lg sm:text-xl font-bold text-center text-white mb-2 sm:mb-3">
+      <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+        <div className="w-full max-w-2xl lg:max-w-3xl xl:max-w-4xl bg-white dark:bg-gray-900 rounded-2xl shadow-2xl 
+                      overflow-hidden animate-in slide-in-from-bottom duration-300 
+                      max-h-[90vh] overflow-y-auto
+                      border border-gray-200/50 dark:border-gray-800/30">
+          {/* Header */}
+          <div className="bg-gradient-to-r from-primary to-primary/90 dark:from-gray-800 dark:to-gray-900
+                        p-5 sm:p-6 lg:p-8 relative overflow-hidden">
+            <div className="absolute inset-0 bg-grid-pattern opacity-10" />
+            <h2 className="text-xl font-bold text-center text-white mb-4 relative z-10">
               Complete Your Payment
             </h2>
             <PaymentMethodSelector selectedMethod={paymentMethod} onSelect={setPaymentMethod} />
           </div>
 
-          <div className="p-3 sm:p-4">
-            <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_0.8fr] gap-3 sm:gap-4">
+          <div className="p-5 sm:p-6 lg:p-8">
+            <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_0.8fr] gap-6">
               {/* Left Column */}
-              <div className="space-y-3 sm:space-y-4">
+              <div className="space-y-6">
                 {/* Amount Selection */}
                 <div>
-                  <h3 className="text-sm sm:text-base font-semibold text-gray-800 mb-2 flex items-center gap-2">
-                    <span className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs">1</span>
+                  <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200 mb-3 
+                               flex items-center gap-2">
+                    <span className="w-6 h-6 rounded-full bg-primary/10 dark:bg-gray-800 
+                                 flex items-center justify-center text-primary dark:text-blue-400 text-xs">
+                      1
+                    </span>
                     Choose Amount
                   </h3>
-                  <div className="grid grid-cols-4 sm:grid-cols-3 gap-1.5 sm:gap-2">
+                  <div className="grid grid-cols-4 sm:grid-cols-7 lg:grid-cols-4 gap-2">
                     {numbers.map((number) => (
                       <button
                         key={number}
                         onClick={() => handleAmountSelect(number)}
                         className={`
-                          relative h-[50px] sm:h-[68px] group
+                          relative h-[68px] group overflow-hidden rounded-xl
+                          transition-all duration-300 transform hover:scale-[1.02]
                           ${selectedAmount === number 
-                            ? 'bg-gradient-to-br from-primary to-secondary'
-                            : 'bg-white hover:bg-gray-50'
+                            ? 'bg-gradient-to-br from-primary to-primary/90 dark:from-blue-600 dark:to-blue-700'
+                            : 'bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/80'
                           }
-                          rounded-lg sm:rounded-xl transition-all duration-300
-                          overflow-hidden
                           ${selectedAmount === number 
-                            ? 'shadow-md ring-1 ring-primary'
-                            : 'shadow-sm hover:shadow border border-gray-100'
+                            ? 'shadow-lg ring-1 ring-primary/20 dark:ring-blue-500/20'
+                            : 'shadow-sm hover:shadow border border-gray-100 dark:border-gray-700'
                           }
                         `}
                       >
-                        {/* Content Container */}
+                        <div className="absolute inset-0 bg-white/10 opacity-0 
+                                    group-hover:opacity-100 transition-opacity duration-300" />
                         <div className="relative h-full flex items-center justify-center">
-                          {/* Main Content - Reduced font sizes */}
-                          <div className="text-center px-1 sm:px-2">
+                          <div className="text-center">
                             <div className={`
-                              text-sm sm:text-base font-bold leading-none mb-0.5 sm:mb-1
-                              ${selectedAmount === number ? 'text-white' : 'text-gray-700'}
+                              text-base font-semibold leading-none mb-0.5
+                              ${selectedAmount === number ? 'text-white' : 'text-gray-700 dark:text-gray-200'}
                             `}>
                               {number.toLocaleString()}
                               <span className={`
-                                text-[10px] sm:text-xs ml-0.5 font-medium
-                                ${selectedAmount === number ? 'text-white/70' : 'text-gray-400'}
+                                text-[10px] ml-0.5 font-normal
+                                ${selectedAmount === number ? 'text-white/70' : 'text-gray-400 dark:text-gray-500'}
                               `}>
                                 {paymentMethod === 'PayPal' ? 'USD' : 'KES'}
                               </span>
                             </div>
                             <div className={`
-                              text-[8px] sm:text-[9px] font-medium leading-none
-                              ${selectedAmount === number ? 'text-white/70' : 'text-primary'}
+                              text-[9px] font-normal tracking-wide
+                              ${selectedAmount === number ? 'text-white/70' : 'text-primary dark:text-blue-400'}
                             `}>
                               {number/50} pts
                             </div>
@@ -431,24 +454,37 @@ const handleSubmit = async () => {
 
                 {/* Payment Details */}
                 <div>
-                  <h3 className="text-sm sm:text-base font-semibold text-gray-800 mb-2 flex items-center gap-2">
-                    <span className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs">2</span>
+                  <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200 mb-3 
+                               flex items-center gap-2">
+                    <span className="w-6 h-6 rounded-full bg-primary/10 dark:bg-gray-800 
+                                 flex items-center justify-center text-primary dark:text-blue-400 text-xs">
+                      2
+                    </span>
                     Enter Details
                   </h3>
-                  <div className="space-y-3">
+                  <div className="space-y-4">
                     <div>
-                      <label className="block text-xs sm:text-sm font-medium text-gray-600 mb-1.5">Amount</label>
+                      <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+                        Amount
+                      </label>
                       <div className="relative">
                         <input
                           type="number"
-                          className="w-full h-10 sm:h-11 pl-3 sm:pl-4 pr-12 sm:pr-16 bg-gray-50 text-gray-700 rounded-lg
-                                    focus:ring-2 focus:ring-primary/20 outline-none text-sm
-                                    border border-gray-200 focus:border-primary/30"
+                          className="w-full h-12 pl-4 pr-16 
+                                   bg-gray-50 dark:bg-gray-800 
+                                   text-gray-700 dark:text-gray-200 
+                                   rounded-xl
+                                   focus:ring-2 focus:ring-primary/20 dark:focus:ring-blue-500/20 
+                                   outline-none text-sm
+                                   border border-gray-200 dark:border-gray-700 
+                                   focus:border-primary/30 dark:focus:border-blue-500/30
+                                   transition-all duration-300"
                           value={customAmount}
                           onChange={handleInputChange}
                           placeholder="Enter amount"
                         />
-                        <span className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 text-gray-400 text-xs sm:text-sm">
+                        <span className="absolute right-4 top-1/2 -translate-y-1/2 
+                                     text-gray-400 dark:text-gray-500 text-sm">
                           KES
                         </span>
                       </div>
@@ -456,166 +492,114 @@ const handleSubmit = async () => {
 
                     {(paymentMethod === 'Mpesa' || paymentMethod === 'Till') && (
                       <div>
-                        <label className="block text-xs sm:text-sm font-medium text-gray-600 mb-1.5">
+                        <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
                           {paymentMethod === 'Till' ? 'Phone Number for Till Payment' : 'Phone Number'}
                         </label>
                         <div className="relative">
                           {paymentMethod === 'Till' ? (
-                            <Building2 className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-primary" size={16} />
+                            <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 
+                                              text-primary dark:text-blue-400" size={16} />
                           ) : (
-                            <Phone className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-primary" size={16} />
+                            <Phone className="absolute left-4 top-1/2 -translate-y-1/2 
+                                          text-primary dark:text-blue-400" size={16} />
                           )}
                           <input
                             type="tel"
                             placeholder="Enter your phone number"
                             name='phoneNumber'
-                            className="w-full h-10 sm:h-11 pl-10 sm:pl-11 pr-3 sm:pr-4 bg-gray-50 text-gray-700 rounded-lg
-                                      focus:ring-2 focus:ring-primary/20 outline-none text-sm
-                                      border border-gray-200 focus:border-primary/30"
+                            className="w-full h-12 pl-11 pr-4 
+                                   bg-gray-50 dark:bg-gray-800 
+                                   text-gray-700 dark:text-gray-200 
+                                   rounded-xl
+                                   focus:ring-2 focus:ring-primary/20 dark:focus:ring-blue-500/20 
+                                   outline-none text-sm
+                                   border border-gray-200 dark:border-gray-700 
+                                   focus:border-primary/30 dark:focus:border-blue-500/30
+                                   transition-all duration-300"
                             value={phoneNumber}
                             onChange={handlePhoneChange}
                           />
                         </div>
                         {paymentMethod === 'Till' && (
-                          <p className="text-[10px] sm:text-xs text-gray-500 mt-1">
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
                             Till Number: {process.env.NEXT_PUBLIC_KOPOKOPO_TILL_NUMBER}
                           </p>
                         )}
                       </div>
                     )}
-
-                    {/* {paymentMethod === 'Paystack' && (
-                      <div>
-                        <label className="block text-sm font-medium text-gray-600 mb-1.5">Email Addressses</label>
-                        <div className="relative">
-                          <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-primary" size={16} />
-                          <input
-                            type="email"
-                            placeholder="Enter your email address"
-                            name='email'
-                            className="w-full h-11 pl-11 pr-4 bg-gray-50 text-gray-700 rounded-lg
-                                      focus:ring-2 focus:ring-primary/20 outline-none text-sm
-                                      border border-gray-200 focus:border-primary/30"
-                            value={email}
-                            onChange={handleEmailChange}
-                          /> 
-                        </div>
-                      </div>
-                    )} */}
                   </div>
                 </div>
               </div>
 
-              {/* Right Column - Made more compact */}
-              <div className="bg-gray-50 rounded-xl p-3 sm:p-4">
-                <div className="bg-gradient-to-br from-primary to-secondary rounded-lg p-3 sm:p-4 mb-3 sm:mb-4">
+              {/* Right Column */}
+              <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-6">
+                <div className="bg-gradient-to-br from-primary to-primary/90 
+                             dark:from-blue-600 dark:to-blue-700
+                             rounded-xl p-6 mb-6">
                   <div className="text-center">
-                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
+                    <div className="w-12 h-12 bg-white/20 rounded-full 
+                                flex items-center justify-center mx-auto mb-4">
                       {paymentMethod === 'Till' ? (
-                        <Building2 size={20} className="text-white" />
+                        <Building2 size={24} className="text-white" />
                       ) : (
-                        <CreditCard size={20} className="text-white" />
+                        <CreditCard size={24} className="text-white" />
                       )}
                     </div>
-                    <div className="text-2xl sm:text-3xl text-white font-bold mb-1">
+                    <div className="text-3xl text-white font-bold mb-1">
                       {selectedAmount ? selectedAmount.toLocaleString() : '0'}
-                      <span className="text-lg sm:text-xl ml-1">KES</span>
+                      <span className="text-lg ml-1 font-medium opacity-90">KES</span>
                     </div>
-                    <p className="text-white/80 text-xs sm:text-sm">
+                    <p className="text-white/70 text-xs tracking-wide">
                       {selectedAmount ? `${selectedAmount / 50} points` : '0 points'}
                     </p>
                   </div>
                 </div>
 
                 {error && (
-                  <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-4 rounded-lg">
-                    <p className="text-red-700 text-sm">{error}</p>
+                  <div className="bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 
+                               p-4 mb-6 rounded-xl">
+                    <p className="text-red-700 dark:text-red-400 text-sm">{error}</p>
                   </div>
                 )}
 
-{paymentMethod === "PayPal" && clientId ? (
-  <PayPalScriptProvider options={{ clientId }}>
+                {paymentMethod === "PayPal" && clientId ? (
+                  <PayPalScriptProvider options={{ clientId }}>
+                    <PayPalButtonWrapper
+                      requestId={requestId}
+                      onPaymentSuccess={(details) => {
+                        console.log("Payment Successful:", details);
+                        toast.success("Payment was successful!");
+                        setShowPayPal(false);
+                      }}
+                      onPaymentError={(error) => {
+                        console.error("Payment Error:", error);
+                        toast.error("Payment failed. Please try again.");
+                        setShowPayPal(false);
+                      }}
+                      selectedAmount={selectedAmount || 0}
+                      setErrorMessage={setError}
+                      errorMessage={error || ""}
+                    />
+                  </PayPalScriptProvider>
+                ) : (paymentMethod === "Mpesa" || paymentMethod === "Till" || paymentMethod === "Paystack") ? (
+                  <SubmitButton 
+                    ButtonName={`Complete ${paymentMethod} Payment`}
+                    isLoading={isLoading}
+                    onClick={handleSubmit}
+                  />
+                ) : (
+                  <button 
+                    className="w-full py-4 font-medium text-gray-400 dark:text-gray-500 
+                             bg-gray-100 dark:bg-gray-800/80 
+                             rounded-xl opacity-75 cursor-not-allowed
+                             transition-all duration-300"
+                    disabled
+                  >
+                    Select a payment method
+                  </button>
+                )}
 
-  <PayPalButtonWrapper
-    requestId={requestId}
-    onPaymentSuccess={(details) => {
-      console.log("Payment Successful:", details);
-      toast.success("Payment was successful!");
-      setShowPayPal(false); // Hide PayPal button after successful payment
-    }}
-    onPaymentError={(error) => {
-      console.error("Payment Error:", error);
-      toast.error("Payment failed. Please try again.");
-      setShowPayPal(false);
-    }}
-    selectedAmount={selectedAmount || 0}
-    setErrorMessage={setError}
-    errorMessage={error || ""}
-  />
-  </PayPalScriptProvider>
-) : (paymentMethod === "Mpesa" || paymentMethod === "Till" || paymentMethod === "Paystack") ? (
-  <SubmitButton 
-    ButtonName={`Complete ${paymentMethod} Payment`}
-    isLoading={isLoading}
-    onClick={handleSubmit}
-  />
-) : (
-  <button 
-    className="w-full py-4 font-bold bg-gray-400 text-white rounded-xl opacity-75 cursor-not-allowed"
-    disabled
-  >
-    Select a payment method
-  </button>
-)}
-
-
-
-{/* {paymentMethod === "PayPal" && clientId ? (
-  <PayPalScriptProvider options={{ clientId }}>
-    <PayPalButtonWrapper
-      onPaymentSuccess={(details) => {
-        console.log("Payment Successful:", details);
-        toast.success("Payment was successful!");
-        setShowPayPal(false);
-      }}
-      onPaymentError={(error) => {
-        console.error("Payment Error:", error);
-        toast.error("Payment failed. Please try again.");
-        setShowPayPal(false);
-      }}
-      selectedAmount={selectedAmount || 0}
-      setErrorMessage={setError}
-      errorMessage={error || ""}
-    />
-  </PayPalScriptProvider>
-) : (
-  <p>Loading PayPal...</p>
-)} */}
-
-
-
-              {/* {(paymentMethod === 'Mpesa' || paymentMethod === 'Till' || paymentMethod === 'Paystack' || paymentMethod === 'PayPal') ? (
-                <SubmitButton 
-                  ButtonName={`Complete ${paymentMethod} Payment`}
-                  isLoading={isLoading}
-                  onClick={handleSubmit}
-                />
-              ) : (
-                <button 
-                  className="w-full py-4 font-bold bg-gray-400 text-white rounded-xl
-                           opacity-75 cursor-not-allowed"
-                  disabled
-                >
-                  
-                 
-
-               
-    
-
-                </button>
-              )} */}
-
-                <p className="text-xs text-gray-500 text-center mt-4">
+                <p className="text-xs text-gray-500 dark:text-gray-400 text-center mt-4">
                   By completing this payment, you agree to our terms of service
                 </p>
               </div>
@@ -636,219 +620,3 @@ export default MpesaPay;
     background-size: 8px 8px;
   }
 `}</style>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  // const handleSubmit = async () => {
-  //   if (!validateForm()) return;
-  
-  //   setIsLoading(true);
-  //   setError(null);
-  
-  //   try {
-  //     const createPaymentFormData = () => {
-  //       const formData = new FormData();
-  //       formData.append("amount", selectedAmount?.toString() || "");
-  //       formData.append("requestId", requestId);
-  //       formData.append("phoneNumber", phoneNumber);
-  //       return formData;
-  //     };
-  
-  //     if (paymentMethod === "Mpesa") {
-  //       const result = await handleMpesa(createPaymentFormData());
-  //       console.log(result, "result from handleMpesa");
-  
-  //       if (result.success && result.response.CheckoutRequestID) {
-  //         stkPushQueryWithIntervals(result.response.CheckoutRequestID);
-  //       } else {
-  //         toast.error(result.message || "Failed to initiate payment", { duration: 5000, position: "top-center" });
-  //         setError(result.message || "Failed to initiate payment");
-  //       }
-  //     } 
-      
-  //     else if (paymentMethod === "Till") {
-  //       const result = await handleTillPayment(createPaymentFormData());
-  //       console.log(result, "result from handleTillPayment");
-  
-  //       if (result.success) {
-  //         toast.success("Payment initiated successfully. Please check your phone to complete the transaction.", {
-  //           duration: 5000, position: "top-center",
-  //         });
-  //       } else {
-  //         toast.error(result.message || "Failed to initiate payment", { duration: 5000, position: "top-center" });
-  //         setError(result.message || "Failed to initiate payment");
-  //       }
-  //     } 
-      
-  //     else if (paymentMethod === "Paystack") {
-  //       const initiatePaystackPayment = async () => {
-  //         const response = await fetch("/api/paystack/initiate", {
-  //           method: "POST",
-  //           body: JSON.stringify({ email: "tobiasbarakan@gmail.com", amount: 1 }),
-  //           headers: { "Content-Type": "application/json" },
-  //         });
-  
-  //         const { access_code } = await response.json();
-  //         console.log(access_code, "Access Code from Paystack");
-  
-  //         const paystack = new PaystackPop();
-  //         paystack.newTransaction({
-  //           key: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || '',
-  //           email: "tobiasbarakan@gmail.com",
-  //           amount: 1 * 100, // Convert to kobo
-  //           onSuccess: (response) => {
-  //             console.log("Transaction Successful:", response);
-  //             toast.success("Payment successful!");
-  //           },
-  //           onCancel: () => {
-  //             console.error("Transaction cancelled");
-  //             toast.error("Payment cancelled!");
-  //           },
-  //         });
-  //       };
-  
-  //       await initiatePaystackPayment();
-  //     } 
-      
-  //     else {
-  //       setError("This payment method is not yet implemented.");
-  //     }
-  //   } catch (error) {
-  //     console.error("Payment error:", error);
-  //     setError("An error occurred during payment. Please try again.");
-  //     toast.error("An error occurred during payment. Please try again.");
-  //   } finally {
-  //     setIsLoading(false);
-  //   }
-  // };
-  
-  
-  // const handleSubmit = async () => {
-  //   if (!validateForm()) return;
-
-  //   setIsLoading(true);
-  //   setError(null);
-
-  //   try {
-  //     if (paymentMethod === "Mpesa") {
-  //       const formData = new FormData();
-  //       formData.append("amount", selectedAmount?.toString() || "");
-  //       formData.append("requestId", requestId);
-  //       formData.append("phoneNumber", phoneNumber);
-
-  //       const result = await handleMpesa(formData);
-  //       console.log(result, 'result from handleMpesa');
-
-  //       if (result.success && result.response.CheckoutRequestID) {
-  //         stkPushQueryWithIntervals(result.response.CheckoutRequestID);
-  //       } else if (!result.success) {
-  //         toast.error(result.message || "Failed to initiate payment", {
-  //           duration: 5000,
-  //           position: "top-center",
-  //         });
-  //         setIsLoading(false);
-  //         setError(result.message || "Failed to initiate payment");
-  //       } else {
-  //         setIsLoading(false);
-  //         setError("An unexpected error occurred");
-  //       }
-  //     } else if (paymentMethod === "Till") {
-  //       const formData = new FormData();
-  //       formData.append("amount", selectedAmount?.toString() || "");
-  //       formData.append("requestId", requestId);
-  //       formData.append("phoneNumber", phoneNumber);
-
-  //       const result = await handleTillPayment(formData);
-  //       console.log(result, 'result from handleTillPayment');
-
-  //       if (result.success) {
-  //         toast.success("Payment initiated successfully. Please check your phone to complete the transaction.", {
-  //           duration: 5000,
-  //           position: "top-center",
-  //         });
-  //         setIsLoading(false);
-  //       } else {
-  //         toast.error(result.message || "Failed to initiate payment", {
-  //           duration: 5000,
-  //           position: "top-center",
-  //         });
-  //         setIsLoading(false);
-  //         setError(result.message || "Failed to initiate payment");
-  //       }
-  //     } else if (paymentMethod === 'Paystack') {
-
-
-
-  //       const initiatePaystackPayment = async () => {
-  //         const response = await fetch("/api/paystack/initiate", {
-  //           method: "POST",
-  //           body: JSON.stringify({ email: "tobiasbarakan@gmail.com", amount: 1 }),
-  //           headers: { "Content-Type": "application/json" },
-  //         });
-        
-  //         const { access_code } = await response.json();
-  //         console.log(access_code, 'what is this')
-        
-  //         const paystack = new PaystackPop();
-  //         paystack.resumeTransaction(access_code);
-  //       };
-
-  //       // ✅ Fix: useEffect executes only once
-  // useEffect(() => {
-  //   initiatePaystackPayment();
-  // }, []);
-  //       // const script = document.createElement('script');
-  //       // script.src = 'https://js.paystack.co/v1/inline.js';
-  //       // script.onload = () => {
-  //       //   const handler = (window as any).PaystackPop.setup({
-  //       //     key: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY!,
-  //       //     email: email,
-  //       //     amount: (selectedAmount || 0) * 100,
-  //       //     currency: 'KES',
-  //       //     ref: `${Date.now()}`, // Generate a unique reference
-  //       //     callback: function (response: any) {
-  //       //       console.log('Payment successful:', response);
-  //       //       toast.success('Payment successful!');
-  //       //     },
-  //       //     onClose: function () {
-  //       //       console.log('Payment window closed');
-  //       //       toast.error('Payment cancelled');
-  //       //     },
-  //       //   });
-  //       //   handler.openIframe();
-  //       // };
-  //       // document.body.appendChild(script);
-  //     } 
-     
-        
-  //       else {
-  //       setError('This payment method is not yet implemented.');
-  //     }
-  //   } catch (error) {
-  //     console.error('Payment error:', error);
-  //     setError('An error occurred during payment. Please try again.');
-  //     toast.error('An error occurred during payment. Please try again.');
-  //   } finally {
-  //     setIsLoading(false);
-  //   }
-  // };
