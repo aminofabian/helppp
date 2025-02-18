@@ -6,27 +6,43 @@ import { calculateLevel } from "@/app/lib/levelCalculator";
 
 export async function POST(req: Request) {
   try {
+    console.log("Webhook received - Starting processing");
     const rawBody = await req.text();
     const signature = req.headers.get("x-paystack-signature");
+    console.log("Signature received:", signature);
 
     // Verify Paystack webhook authenticity
     const hash = crypto.createHmac("sha512", process.env.PAYSTACK_SECRET_KEY!)
       .update(rawBody)
       .digest("hex");
 
+    console.log("Calculated hash:", hash);
+    console.log("Received signature:", signature);
+
     if (hash !== signature) {
+      console.log("Signature verification failed");
       return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
     }
 
+    console.log("Signature verification successful");
     const event = JSON.parse(rawBody);
     console.log("Webhook Data Received:", JSON.stringify(event, null, 2));
 
     if (event.event === "charge.success") {
+      console.log("Processing charge.success event");
       const email = event.data.customer.email?.toLowerCase().trim();
       const amount = event.data.amount / 100; // Convert from kobo to KES
       const reference = event.data.reference;
       const currency = event.data.currency;
       const requestId = event.data.metadata?.requestId;
+
+      console.log("Extracted data:", {
+        email,
+        amount,
+        reference,
+        currency,
+        requestId
+      });
 
       if (!email || !requestId) {
         return NextResponse.json({ message: "Email or requestId missing" }, { status: 400 });

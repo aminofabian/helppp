@@ -16,28 +16,27 @@ import { ClientAvatar } from './ClientAvatar';
 import RenderToJson from './RenderToJson';
 import { motion } from 'framer-motion';
 
-
-
 interface RequestCardProps {
   id: string;
   funded: number;
   contributors: number;
   title: string;
   amount: number;
+  status?: string | null;
   jsonContent?: any;
   textContent?: any; 
-  imageString?: string;
-  createdAt: string | Date;
-  deadline: string | Date;
+  imageString?: string | null;
+  createdAt: Date | string;
+  deadline: Date | string;
   updatedAt?: Date | string;
   userName: string;
-  communityName: string;
+  communityName: string | null;
   userId: string;
   voteCount1: number;
   voteCount2: number;
   level?: number;
   commentCount?: number;
-  pointsUsed?: number;
+  pointsUsed: number;
   isOwner?: boolean;
 }
 
@@ -47,6 +46,7 @@ export function RequestCard({
   funded,
   contributors,
   amount,
+  status,
   jsonContent,
   textContent,
   imageString,
@@ -64,6 +64,9 @@ export function RequestCard({
   isOwner = false,
 }: RequestCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const isFunded = status === 'FUNDED' || amount - funded <= 0;
+  const fundedPercentage = ((funded / amount) * 100);
+  const remainingAmount = amount - funded;
 
   return (
     <Card className="w-full max-w-xl mx-auto border-0 rounded-lg shadow hover:shadow-md transition-all duration-300 bg-white dark:bg-gray-800 overflow-hidden my-3">
@@ -72,7 +75,7 @@ export function RequestCard({
         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary/80 via-primary to-secondary/80" />
         
         {/* Funded Badge */}
-        {amount - funded <= 0 && (
+        {isFunded && (
           <div className="absolute -right-8 top-4 rotate-45 z-10">
             <div className="bg-[#00262f] text-white px-8 py-0.5 text-xs font-medium shadow">
               Funded
@@ -83,15 +86,17 @@ export function RequestCard({
         <div className="p-4">
           {/* Header - Community and Time */}
           <div className="flex justify-between items-center mb-3">
-            <Link 
-              href={`/c/${communityName}`} 
-              className="group flex items-center gap-1.5 px-2 py-1 bg-primary/5 hover:bg-primary/10 rounded-full transition-colors"
-            >
-              <Users className="w-3.5 h-3.5 text-primary" />
-              <span className="text-xs font-medium text-primary">
-                c/{communityName.replace(/_/g, ' ')}
-              </span>
-            </Link>
+            {communityName && (
+              <Link 
+                href={`/c/${communityName}`} 
+                className="group flex items-center gap-1.5 px-2 py-1 bg-primary/5 hover:bg-primary/10 rounded-full transition-colors"
+              >
+                <Users className="w-3.5 h-3.5 text-primary" />
+                <span className="text-xs font-medium text-primary">
+                  c/{communityName.replace(/_/g, ' ')}
+                </span>
+              </Link>
+            )}
             <div className="text-xs font-medium">
               <div className="px-2 py-1 bg-orange-50 text-orange-600 dark:bg-orange-500/10 dark:text-orange-400 rounded-full flex items-center">
                 <Clock className="w-3 h-3 mr-1" />
@@ -103,7 +108,7 @@ export function RequestCard({
             </div>
           </div>
           
-          {/* Title and User Info - More Compact */}
+          {/* Title and User Info */}
           <div className="flex items-start gap-3 mb-3">
             <div className="relative flex-shrink-0">
               <ClientAvatar className="w-10 h-10 rounded-full ring-2 ring-primary/10" />
@@ -162,12 +167,12 @@ export function RequestCard({
             </div>
           )}
 
-          {/* Image - If exists, show it smaller */}
+          {/* Image */}
           {imageString && (
             <div className="mb-3 rounded-lg overflow-hidden h-48">
               <Image
                 src={imageString}
-                alt="Request image"
+                alt={title}
                 width={400}
                 height={200}
                 className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
@@ -175,12 +180,12 @@ export function RequestCard({
             </div>
           )}
 
-          {/* Contribution Info - More Compact */}
+          {/* Contribution Info */}
           <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-3 mb-3">
             <div className="flex justify-between items-center mb-2">
               <div className="flex items-center gap-3">
                 <p className="text-base font-semibold text-primary">
-                  KES {funded}
+                  KES {funded.toLocaleString()}
                   <span className="text-xs font-normal opacity-70 ml-1">/=</span>
                 </p>
                 <p className="text-sm font-medium text-gray-600 dark:text-gray-300">
@@ -188,7 +193,7 @@ export function RequestCard({
                 </p>
               </div>
               <div className="text-xs font-medium">
-                {((funded / amount) * 100).toFixed(1)}% funded
+                {fundedPercentage.toFixed(1)}% funded
               </div>
             </div>
 
@@ -200,11 +205,11 @@ export function RequestCard({
             <div className="flex justify-between items-center text-xs text-gray-500">
               <div className="flex items-center gap-1.5">
                 <Users className="w-3.5 h-3.5" />
-                <span>{contributors} contributors</span>
+                <span>{contributors} contributor{contributors !== 1 ? 's' : ''}</span>
               </div>
-              {amount - funded > 0 ? (
+              {remainingAmount > 0 ? (
                 <span className="text-orange-600">
-                  KES {(amount - funded).toLocaleString()}/= remaining
+                  KES {remainingAmount.toLocaleString()}/= remaining
                 </span>
               ) : (
                 <span className="text-green-600">
@@ -213,9 +218,8 @@ export function RequestCard({
               )}
             </div>
           </div>
-          
 
-          {/* Action Buttons - More Compact */}
+          {/* Action Buttons */}
           <div className="flex justify-between items-center">
             <div className="flex items-center">
               <VoteButtons
@@ -260,14 +264,14 @@ export function RequestCard({
           <Button 
             variant="default" 
             className={`w-full py-2 rounded-none transition-all
-              ${amount - 700 <= 0 
+              ${isFunded
                 ? 'bg-[#00262f] hover:bg-[#003a47]'
                 : 'bg-gradient-to-r from-primary to-secondary hover:opacity-90'
               } text-white`}
-            disabled={amount - 700 <= 0}
+            disabled={isFunded}
           >
             <span className="relative flex items-center gap-2 justify-center text-sm">
-              {amount - 700 <= 0 ? 'Goal Achieved!' : `Support ${userName.split(' ')[0]}`}
+              {isFunded ? 'Goal Achieved!' : `Support ${userName.split(' ')[0]}`}
             </span>
           </Button>
         </DialogTrigger>
@@ -278,8 +282,8 @@ export function RequestCard({
               Your contribution will help {userName.split(' ')[0]} reach their goal of KES {amount.toLocaleString()}/=
             </DialogDescription>
           </DialogHeader>
-            <MpesaPay requestId={id} />
-            <DialogFooter className="gap-2 sm:gap-0">
+          <MpesaPay requestId={id} />
+          <DialogFooter className="gap-2 sm:gap-0">
             <DialogClose asChild>
               <Button type="button" variant="outline">Maybe Later</Button>
             </DialogClose>
