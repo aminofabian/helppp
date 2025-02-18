@@ -242,14 +242,14 @@ export default function HomeNavRight({
   return (
     <div className="max-w-md mx-auto">
       <Card className="overflow-hidden bg-white/95 backdrop-blur-sm 
-                      dark:bg-gray-900/40 dark:backdrop-blur-md
+                      dark:bg-gray-900/30 dark:backdrop-blur-md
                       shadow-lg hover:shadow-xl transition-all duration-300
                       dark:shadow-[0_4px_20px_rgba(0,0,0,0.2)]
-                      dark:border-gray-800/50 rounded-lg">
+                      dark:border-gray-800/30 rounded-lg">
         <div className="p-6 space-y-6">
           <h1 className='text-sm font-medium text-green-600 
                         bg-green-100/80 backdrop-blur-sm
-                        dark:bg-green-900/30 dark:text-green-400
+                        dark:bg-green-900/20 dark:text-green-400
                         p-3 rounded-lg shadow-inner text-center
                         transition-all duration-300'>
             Welcome aboard{' '}
@@ -268,7 +268,7 @@ export default function HomeNavRight({
           </h1>
 
           <div className="bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 
-                          dark:from-blue-600/10 dark:via-blue-600/20 dark:to-blue-600/10 
+                          dark:from-gray-800/40 dark:via-gray-800/60 dark:to-gray-800/40 
                           p-4 rounded-lg space-y-2 shadow-inner
                           transition-all duration-300">
             <Dialog>
@@ -351,17 +351,17 @@ export default function HomeNavRight({
                 </DialogHeader>
               </DialogContent>
             </Dialog>
-            <Progress value={progress} className="h-2 dark:bg-gray-700/50" />
+            <Progress value={progress} className="h-2 dark:bg-gray-800/50" />
           </div>
           
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-emerald-50/80 backdrop-blur-sm
-                          dark:bg-emerald-900/20 dark:backdrop-blur-md
+                          dark:bg-gray-800/30 dark:backdrop-blur-md
                           p-3 rounded-lg shadow-sm hover:shadow-md
                           transition-all duration-300">
               <div className="flex items-center gap-2 mb-1">
                 <HandHeart className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
-                <span className="text-sm text-gray-600 dark:text-gray-400">Total Given</span>
+                <span className="text-sm text-gray-600 dark:text-gray-300">Total Given</span>
               </div>
               <p className="text-lg font-semibold text-emerald-600 dark:text-emerald-400">
                 KES {(stats?.calculatedTotalDonated || stats?.totalDonated || 0).toLocaleString()}
@@ -375,15 +375,15 @@ export default function HomeNavRight({
           
           <div className="space-y-4">
             <div className="bg-primary/95 backdrop-blur-sm text-white 
-                          dark:bg-blue-600/80 dark:backdrop-blur-md
+                          dark:bg-gray-800/60 dark:backdrop-blur-md
                           p-4 rounded-lg shadow-lg
                           transition-all duration-300">
               <div className="text-xs uppercase mb-1 opacity-90">Account balance</div>
-              <div className="text-2xl font-bold">{wallet ? `${wallet.balance} KES` : '0 KES'}</div>
+              <div className="text-2xl font-bold dark:text-gray-100">{wallet ? `${wallet.balance} KES` : '0 KES'}</div>
               <Dialog>
                 <DialogTrigger asChild>
                   <Button className="w-full mt-3 bg-green-500/90 hover:bg-green-600 
-                                   dark:bg-green-500/80 dark:hover:bg-green-600/90
+                                   dark:bg-green-600/80 dark:hover:bg-green-700
                                    text-white shadow-md hover:shadow-lg
                                    transition-all duration-300">
                     Add funds
@@ -405,7 +405,7 @@ export default function HomeNavRight({
             </div>
             
             <div className="bg-green-50/80 backdrop-blur-sm
-                          dark:bg-gray-800/50 dark:backdrop-blur-md
+                          dark:bg-gray-800/40 dark:backdrop-blur-md
                           p-4 rounded-lg shadow-md
                           transition-all duration-300">
               <div className="text-xs text-primary dark:text-gray-300 uppercase mb-1">Current balance</div>
@@ -417,7 +417,7 @@ export default function HomeNavRight({
                   <DialogTrigger asChild>
                     <Button variant="outline" 
                             className="w-full lowercase text-xs text-primary
-                                     dark:text-blue-400 dark:border-gray-700
+                                     dark:text-gray-300 dark:border-gray-700
                                      dark:hover:bg-gray-700/50
                                      transition-all duration-300">
                       Withdraw
@@ -434,7 +434,7 @@ export default function HomeNavRight({
                 </Dialog>
                 <Button variant="outline" 
                         className="w-full lowercase text-xs text-primary
-                                 dark:text-blue-400 dark:border-gray-700
+                                 dark:text-gray-300 dark:border-gray-700
                                  dark:hover:bg-gray-700/50
                                  transition-all duration-300">
                   Deposit
@@ -443,11 +443,11 @@ export default function HomeNavRight({
             </div>
           </div>
           
-          <Separator className='my-6 dark:bg-gray-700/50' />
+          <Separator className='my-6 dark:bg-gray-700/30' />
           
           <div className='space-y-4'>
             <Button className="w-full bg-primary/90 hover:bg-green-600/90 
-                             dark:bg-blue-600/80 dark:hover:bg-blue-700/90
+                             dark:bg-gray-800/80 dark:hover:bg-gray-700
                              text-white shadow-md hover:shadow-lg
                              transition-all duration-300" asChild>
               <Link href='/c/eldoret/create'>
@@ -458,7 +458,7 @@ export default function HomeNavRight({
             <Button variant='outline' 
                     className="w-full border-green-50 shadow-md 
                              text-primary hover:bg-green-100/50
-                             dark:border-gray-700 dark:text-blue-400
+                             dark:border-gray-700 dark:text-gray-300
                              dark:hover:bg-gray-700/50
                              transition-all duration-300" asChild>
               <Link href='/c/create'>
@@ -470,18 +470,18 @@ export default function HomeNavRight({
         </div>
       </Card>
       <Card className='hidden sm:block w-full mt-4 
-                      bg-white/95 dark:bg-gray-900/40 
+                      bg-white/95 dark:bg-gray-900/30 
                       backdrop-blur-sm dark:backdrop-blur-md
                       shadow-lg dark:shadow-[0_4px_20px_rgba(0,0,0,0.2)]
-                      dark:border-gray-800/50
+                      dark:border-gray-800/30
                       transition-all duration-300'>      
         <div className='sticky flex bottom-0 w-full justify-evenly gap-2 
-                       border-t dark:border-gray-800/50 
-                       bg-card dark:bg-gray-900/40 p-3
+                       border-t dark:border-gray-800/30 
+                       bg-card dark:bg-gray-800/40 p-3
                        transition-all duration-300'>
           <MenuBar className='sticky flex bottom-0 w-full justify-evenly gap-2 
-                            border-t dark:border-gray-800/50 
-                            bg-card dark:bg-gray-900/40 p-3'/>
+                            border-t dark:border-gray-800/30 
+                            bg-card dark:bg-gray-800/40 p-3'/>
         </div>
       </Card>
     </div>
