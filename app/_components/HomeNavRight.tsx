@@ -1,15 +1,14 @@
-import React from 'react';
+'use client';
+
+import React, { useEffect, useState } from 'react';
 import Image from "next/image";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { getKindeServerSession } from '@kinde-oss/kinde-auth-nextjs/server';
-import prisma from '../lib/db';
 import { CreditCard, Users, Trophy, HandHeart, Star, Activity } from 'lucide-react';
 import { Progress } from "@/components/ui/progress";
 import DonationCount from './DonationCount';
-
 import {
   Dialog,
   DialogContent,
@@ -21,43 +20,75 @@ import {
 import B2CPaymentForm from './B2CPaymentForm';
 import MenuBar from './MenuBar';
 
-export async function getWalletData(userId: string) {
-  const wallet = await prisma.wallet.findUnique({
-    where: { userId },
-    select: {
-      balance: true,
-    },
-  });
-  return wallet;
+interface UserStats {
+  level: number;
+  totalDonated: number;
+  donationCount: number;
+  calculatedDonationCount?: number;
+  calculatedTotalDonated?: number;
+  points: { amount: number }[];
 }
 
-async function getUserStats(userId: string) {
-  const stats = await prisma.user.findUnique({
-    where: { id: userId },
-    select: {
-      level: true,
-      totalDonated: true,
-      donationCount: true,
-      points: {
-        select: {
-          amount: true,
-        }
-      },
-      _count: {
-        select: {
-          requests: true,
-        }
-      }
-    }
-  });
-  return stats;
+interface WalletData {
+  balance: number;
 }
 
-export default async function HomeNavRight() {
-  const { getUser } = getKindeServerSession();
-  const user = await getUser();
+export default function HomeNavRight({ 
+  initialUser, 
+  initialStats, 
+  initialWallet 
+}: { 
+  initialUser: any;
+  initialStats: UserStats;
+  initialWallet: WalletData;
+}) {
+  const [stats, setStats] = useState<UserStats>(initialStats);
+  const [wallet, setWallet] = useState<WalletData>(initialWallet);
   
-  if (!user) {
+  const totalPoints = stats?.points.reduce((sum, point) => sum + point.amount, 0) || 0;
+  const nextLevel = ((stats?.level || 1) + 1) * 1000;
+  const progress = (totalPoints / nextLevel) * 100;
+
+  useEffect(() => {
+    // Function to fetch updated stats
+    const fetchUpdatedStats = async () => {
+      try {
+        const response = await fetch(`/api/user-stats?userId=${initialUser.id}`);
+        if (response.ok) {
+          const data = await response.json();
+          console.log('Fetched updated stats:', data);
+          
+          // Only update if we have valid non-zero values
+          setStats(prevStats => ({
+            ...prevStats,
+            level: data.level > 0 ? data.level : prevStats.level,
+            totalDonated: data.totalDonated > 0 ? data.totalDonated : prevStats.totalDonated,
+            donationCount: data.donationCount > 0 ? data.donationCount : prevStats.donationCount,
+            points: data.points?.length > 0 ? data.points : prevStats.points,
+            calculatedDonationCount: data.calculatedDonationCount > 0 ? data.calculatedDonationCount : prevStats.calculatedDonationCount,
+            calculatedTotalDonated: data.calculatedTotalDonated > 0 ? data.calculatedTotalDonated : prevStats.calculatedTotalDonated
+          }));
+        }
+      } catch (error) {
+        console.error('Error fetching updated stats:', error);
+      }
+    };
+
+    // Poll for updates every 30 seconds instead of 10
+    const interval = setInterval(fetchUpdatedStats, 30000);
+
+    // Clean up interval on unmount
+    return () => clearInterval(interval);
+  }, [initialUser.id]);
+
+  // Ensure we always have the latest initial stats
+  useEffect(() => {
+    if ((initialStats.calculatedTotalDonated ?? 0) > 0 || (initialStats.calculatedDonationCount ?? 0) > 0) {
+      setStats(initialStats);
+    }
+  }, [initialStats]);
+
+  if (!initialUser) {
     return <div>
     
     <div className="mt-6 mb-2">
@@ -98,26 +129,19 @@ export default async function HomeNavRight() {
     
   }
   
-  const wallet = await getWalletData(user.id);
-  const stats = await getUserStats(user.id);
-  
-  const totalPoints = stats?.points.reduce((sum, point) => sum + point.amount, 0) || 0;
-  const nextLevel = ((stats?.level || 1) + 1) * 1000;
-  const progress = (totalPoints / nextLevel) * 100;
-
   return (
     <div className="max-w-md mx-auto">
     <Card className="overflow-hidden bg-white dark:bg-gray-800 shadow-lg rounded-lg">
     <div className="p-6 space-y-6">
     <h1 className='text-sm font-medium text-green-600 bg-green-100 dark:bg-green-900 dark:text-green-300 p-3 rounded-lg shadow-inner text-center'>
     Welcome aboard{' '}
-    {user.given_name || user.family_name ? (
+    {initialUser.given_name || initialUser.family_name ? (
       <>
-      {user.given_name && (
-        <span className="capitalize">{user.given_name.toLowerCase()} </span>
+      {initialUser.given_name && (
+        <span className="capitalize">{initialUser.given_name.toLowerCase()} </span>
       )}
-      {user.family_name && (
-        <span className="capitalize">{user.family_name.toLowerCase()}</span>
+      {initialUser.family_name && (
+        <span className="capitalize">{initialUser.family_name.toLowerCase()}</span>
       )}
       </>
     ) : (
@@ -145,10 +169,13 @@ export default async function HomeNavRight() {
     <span className="text-sm text-gray-600 dark:text-gray-400">Total Given</span>
     </div>
     <p className="text-lg font-semibold text-emerald-600 dark:text-emerald-400">
-    KES {stats?.totalDonated?.toLocaleString() || '0'}
+    KES {(stats?.calculatedTotalDonated || stats?.totalDonated || 0).toLocaleString()}
     </p>
     </div>
-    <DonationCount initialCount={stats?.donationCount || 0} />
+    <DonationCount 
+      initialCount={stats?.calculatedDonationCount || stats?.donationCount || 0} 
+      userId={initialUser.id} 
+    />
     </div>
     
     <div className="space-y-4">

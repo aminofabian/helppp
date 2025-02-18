@@ -1,5 +1,5 @@
 import CreatePostCard from "./_components/CreatePostCard";
-import HomeNavRight from "./_components/HomeNavRight";
+import HomeNavRightWrapper from "./_components/HomeNavRightWrapper";
 import { Suspense } from "react";
 import RightNavHome from "./_components/RightNavHome";
 
@@ -29,7 +29,7 @@ export default function Home({ searchParams }: { searchParams: { page: string } 
     </div>
     
     <div className="h-fit rounded-lg sticky shadow-lg border-green-50 p-5">
-    <HomeNavRight />
+    <HomeNavRightWrapper />
     </div>
     
     </div>

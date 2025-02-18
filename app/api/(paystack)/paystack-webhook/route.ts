@@ -243,9 +243,13 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // Trigger revalidation
+      // Trigger revalidation with user ID
       await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/revalidate-donation`, {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId: donation.userId }),
       });
 
     } catch (error) {

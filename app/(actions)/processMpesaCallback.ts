@@ -99,9 +99,13 @@ export async function processMpesaCallback(callbackData: any) {
         console.error('Request part of donation is null');
       }
 
-      // Trigger revalidation
+      // Trigger revalidation with user ID
       await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/revalidate-donation`, {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId: donation.userId }),
       });
 
       return { success: true };

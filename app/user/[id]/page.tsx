@@ -3,7 +3,7 @@ import ProfileHeader from '../_profileComponents/profileheader'
 import { getKindeServerSession } from '@kinde-oss/kinde-auth-nextjs/server'
 import { notFound, redirect } from 'next/navigation';
 import prisma from '@/app/lib/db';
-import HomeNavRight from '@/app/_components/HomeNavRight';
+import HomeNavRightWrapper from '@/app/_components/HomeNavRightWrapper';
 import { Verified, Heart, HandHeart, Trophy, Activity, Calendar, HelpCircle, TrendingUp, Users, Medal, History } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
@@ -217,7 +217,7 @@ export default async function UserProfile({ params }: { params: { id: string } }
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-4 lg:gap-8 my-5">
       {/* Left Sidebar - Navigation */}
       <div className="h-fit rounded-lg bg-gray-100 dark:bg-gray-800 p-4">
-        <HomeNavRight />
+        <HomeNavRightWrapper />
       </div>
 
       {/* Main Content */}
