@@ -79,6 +79,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
               voteType: true
             }
           },
+          donations: true,
           _count: {
             select: {
               Comment: true,
@@ -89,20 +90,33 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
       })
     ]);
 
+    // Calculate funded amount and contributors for each request
+    const enrichedRequests = requests[0].map(request => {
+      const funded = request.donations.reduce((sum, donation) => sum + donation.amount, 0);
+      const contributors = new Set(request.donations.map(donation => donation.userId)).size;
+      
+      return {
+        ...request,
+        funded,
+        contributors,
+        donations: undefined // Remove raw donations data from response
+      };
+    });
+
     // Get members usernames
-    const members = await prisma.communityMember.findMany({
+    const members = await prisma.user.findMany({
       where: {
-        communityId: community.id
-      },
-      select: {
-        user: {
-          select: {
-            userName: true
+        memberships: {
+          some: {
+            communityId: community.id
           }
         }
       },
+      select: {
+        userName: true
+      },
       orderBy: {
-        createdAt: 'desc'
+        userName: 'asc'
       }
     });
 
@@ -123,11 +137,11 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
     return NextResponse.json({
       data: {
         ...community,
-        requests: requests[0],
+        requests: enrichedRequests,
         memberCount: community._count.memberships,
         requestCount: community._count.requests,
         isMember,
-        members: members.map(m => m.user.userName)
+        members: members.map(m => m.userName)
       },
       count: totalRequests,
       currentPage: page,

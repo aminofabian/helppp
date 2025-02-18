@@ -1,5 +1,4 @@
 'use client';
-import prisma from '@/app/lib/db';
 import { Button } from '@/components/ui/button';
 import { Card, CardTitle } from '@/components/ui/card';
 import React, { useState, useEffect } from 'react';
@@ -100,23 +99,11 @@ export default function ShowItems({ params, searchParams }: { searchParams: { pa
         throw new Error(result.message || 'Failed to join community');
       }
 
-      if (result.message === 'Already a member') {
-        setData(prevData => prevData ? {
-          ...prevData,
-          isMember: true,
-          memberCount: result.memberCount
-        } : null);
-        toast.info('You are already a member of this community');
-        return;
-      }
-
-      // Update the data with new member count and status
-      setData(prevData => prevData ? {
-        ...prevData,
-        isMember: true,
-        memberCount: result.memberCount,
-        members: [...(prevData.members || []), kindeUser.given_name || kindeUser.email?.split('@')[0] || 'Anonymous']
-      } : null);
+      // Refresh the community data after joining
+      const communityResponse = await fetch(`/api/community/${params.id}?page=${searchParams.page}`);
+      const communityResult = await communityResponse.json();
+      setData(communityResult.data);
+      setCount(communityResult.count);
       
       toast.success('Successfully joined community!');
     } catch (error) {
@@ -277,8 +264,10 @@ export default function ShowItems({ params, searchParams }: { searchParams: { pa
                   <Link href="/api/auth/login">Login to Join</Link>
                 </Button>
               ) : data?.isMember ? (
-                <Button asChild>
-                  <Link href={`/c/${data?.name}/create`}>Create a Request</Link>
+                <Button asChild variant="default" className="flex items-center gap-2">
+                  <Link href={`/c/${data?.name}/create`}>
+                    Create a Request
+                  </Link>
                 </Button>
               ) : (
                 <Button 
