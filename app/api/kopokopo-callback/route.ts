@@ -127,7 +127,7 @@ export async function POST(request: Request) {
 }
 
 async function handleBuyGoodsTransaction(event: any) {
-  console.log('Processing buygoods transaction - START');
+  console.log('Processing transaction - START');
   const { type, resource } = event;
   console.log('Transaction details:', { 
     type, 
@@ -137,101 +137,153 @@ async function handleBuyGoodsTransaction(event: any) {
     metadata: resource?.metadata 
   });
 
-  // Find the payment by merchantRequestId
-  const payment = await prisma.payment.findFirst({
-    where: {
-      OR: [
-        { merchantRequestId: resource.reference },
-        { checkoutRequestId: resource.reference }
-      ]
-    }
-  });
-
-  console.log('Payment lookup result:', payment ? 'Found' : 'Not found', 
-    payment ? `(ID: ${payment.id})` : `(Reference: ${resource.reference})`);
-
-  if (!payment) {
-    console.log('Payment not found, checking metadata');
-    // Try to find the request ID from the metadata
-    const requestId = resource.metadata?.requestId;
-    console.log('Metadata requestId:', requestId);
-    
-    if (requestId) {
-      // Create a new payment record if we can find the request
-      const request = await prisma.request.findUnique({
-        where: { id: requestId },
-        include: { User: true }
-      });
-
-      console.log('Request lookup result:', request ? 'Found' : 'Not found',
-        request ? `(ID: ${request.id})` : `(RequestID: ${requestId})`);
-
-      if (request) {
-        const newPayment = await prisma.payment.create({
-          data: {
-            requestId: requestId,
-            userId: request.userId,
-            amount: parseFloat(resource.amount),
-            merchantRequestId: resource.reference,
-            resultCode: resource.status === 'Received' ? '0' : '1',
-            resultDesc: resource.status,
-            mpesaReceiptNumber: resource.reference,
-            transactionDate: new Date(resource.origination_time),
-            paymentMethod: PaymentMethod.MPESA,
-            status: resource.status === 'Received' ? PaymentStatus.COMPLETED : PaymentStatus.FAILED,
-            phoneNumber: resource.sender_phone_number,
-            userts: new Date(),
-          }
-        });
-        console.log('Created new payment record:', JSON.stringify(newPayment, null, 2));
-        
-        if (resource.status === 'Received') {
-          console.log('Payment received, processing successful payment');
-          await handleSuccessfulPayment(newPayment, request);
-        }
-        
-        return NextResponse.json({ 
-          status: 'success',
-          message: 'New payment record created and processed' 
-        });
-      }
-    }
-    
-    console.log('Could not process payment - no matching request found');
+  if (resource.status !== 'Received') {
+    console.log('Payment not received, status:', resource.status);
     return NextResponse.json({ 
       status: 'error',
-      message: 'Payment not found' 
-    }, { status: 404 });
+      message: 'Payment not received' 
+    });
   }
 
-  console.log('Found existing payment record:', JSON.stringify(payment, null, 2));
+  const requestId = resource.metadata?.requestId;
+  const phoneNumber = resource.sender_phone_number;
+  
+  if (!requestId || !phoneNumber) {
+    console.error('Missing required data:', { requestId, phoneNumber });
+    return NextResponse.json({ message: "Required data missing" }, { status: 400 });
+  }
 
-  // Update the payment record
-  const updatedPayment = await prisma.payment.update({
-    where: {
-      id: payment.id
-    },
-    data: {
-      resultCode: resource.status === 'Received' ? '0' : '1',
-      resultDesc: resource.status,
-      mpesaReceiptNumber: resource.reference,
-      transactionDate: new Date(resource.origination_time),
-      status: resource.status === 'Received' ? PaymentStatus.COMPLETED : PaymentStatus.FAILED
+  try {
+    // Find the request and associated user (receiver)
+    const request = await prisma.request.findUnique({ 
+      where: { id: requestId },
+      include: { User: true }
+    });
+
+    if (!request) {
+      console.error('Request not found for requestId:', requestId);
+      return NextResponse.json({ message: "Request not found" }, { status: 404 });
     }
-  });
-  console.log('Updated payment record:', JSON.stringify(updatedPayment, null, 2));
 
-  // If payment was successful, update the request status and create donation
-  if (resource.status === 'Received') {
-    console.log('Payment received, processing successful payment');
-    await handleSuccessfulPayment(updatedPayment);
+    // Find or create giver based on phone number
+    let giver = await prisma.user.findFirst({ 
+      where: { phoneNumber: phoneNumber }
+    });
+
+    if (!giver) {
+      // Create a temporary user for the giver if not found
+      giver = await prisma.user.create({
+        data: {
+          phoneNumber: phoneNumber,
+          name: 'Anonymous Giver',
+          email: `${phoneNumber.replace('+', '')}@temporary.com`,
+          level: 1
+        }
+      });
+      console.log('Created temporary user for giver:', giver.id);
+    }
+
+    const amount = parseFloat(resource.amount);
+
+    // Start a transaction for all database operations
+    const result = await prisma.$transaction(async (prisma) => {
+      // Create payment record
+      const payment = await prisma.payment.create({
+        data: {
+          userId: giver.id,
+          amount: amount,
+          status: PaymentStatus.COMPLETED,
+          paymentMethod: PaymentMethod.MPESA,
+          mpesaReceiptNumber: resource.reference,
+          currency: resource.currency,
+          requestId: requestId,
+          userts: new Date(),
+          phoneNumber: phoneNumber
+        }
+      });
+      console.log('Payment recorded:', payment.id);
+
+      // Create donation record
+      const donation = await prisma.donation.create({
+        data: {
+          userId: giver.id,
+          requestId: requestId,
+          amount: amount,
+          payment: { connect: { id: payment.id } },
+          status: "COMPLETED",
+          invoice: resource.reference
+        }
+      });
+      console.log('Donation recorded:', donation.id);
+
+      // Update giver's points
+      const pointsEarned = Math.floor(amount / 50);
+      await prisma.points.create({
+        data: { 
+          userId: giver.id, 
+          amount: pointsEarned,
+          paymentId: payment.id 
+        }
+      });
+
+      const totalPoints = await prisma.points.aggregate({
+        where: { userId: giver.id },
+        _sum: { amount: true }
+      });
+      const newLevel = calculateLevel(totalPoints._sum.amount || 0);
+      await prisma.user.update({
+        where: { id: giver.id },
+        data: { level: newLevel }
+      });
+
+      // Create transaction record
+      await prisma.transaction.create({
+        data: {
+          giverId: giver.id,
+          receiverId: request.userId,
+          amount: amount
+        }
+      });
+      console.log('Transaction recorded between:', { giver: giver.id, receiver: request.userId });
+
+      // Update receiver's wallet
+      let receiverWallet = await prisma.wallet.findUnique({
+        where: { userId: request.userId }
+      });
+
+      if (!receiverWallet) {
+        receiverWallet = await prisma.wallet.create({
+          data: { userId: request.userId, balance: amount }
+        });
+        console.log('Created new wallet for receiver:', request.userId);
+      } else {
+        await prisma.wallet.update({
+          where: { userId: request.userId },
+          data: { balance: { increment: amount } }
+        });
+        console.log('Updated receiver wallet:', request.userId);
+      }
+
+      return { payment, donation };
+    });
+
+    console.log('All database operations completed successfully');
+    return NextResponse.json({
+      status: 'success',
+      message: 'Payment processed successfully',
+      data: {
+        paymentId: result.payment.id,
+        donationId: result.donation.id
+      }
+    });
+
+  } catch (error) {
+    console.error('Error processing transaction:', error);
+    return NextResponse.json({
+      status: 'error',
+      message: error instanceof Error ? error.message : 'Unknown error occurred'
+    }, { status: 500 });
   }
-
-  console.log('Processing buygoods transaction - END');
-  return NextResponse.json({ 
-    status: 'success',
-    message: 'Transaction processed successfully' 
-  });
 }
 
 async function handleSuccessfulPayment(payment: any, request?: any) {
