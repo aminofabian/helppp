@@ -443,24 +443,25 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
           {/* Payment Details Section */}
           <div className="space-y-6">
             {/* Phone Number Input */}
-            <div>
-              <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200 mb-4 
+            {paymentMethod !== 'PayPal' && (
+              <div>
+                <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200 mb-4 
                              flex items-center gap-2">
-                <span className="w-6 h-6 rounded-full bg-primary/10 dark:bg-gray-800 
+                  <span className="w-6 h-6 rounded-full bg-primary/10 dark:bg-gray-800 
                                flex items-center justify-center text-primary dark:text-blue-400 text-xs">
-                  2
-                </span>
-                Enter Phone Number
-              </h3>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Phone className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  type="tel"
-                  value={phoneNumber}
-                  onChange={handlePhoneChange}
-                  className="block w-full pl-10 pr-3 py-3 text-base
+                    2
+                  </span>
+                  Enter Phone Number
+                </h3>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Phone className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    type="tel"
+                    value={phoneNumber}
+                    onChange={handlePhoneChange}
+                    className="block w-full pl-10 pr-3 py-3 text-base
                          bg-white dark:bg-gray-800 
                          border border-gray-200 dark:border-gray-700
                          rounded-xl
@@ -468,30 +469,32 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
                          focus:border-primary dark:focus:border-blue-500
                          placeholder-gray-400 dark:placeholder-gray-500
                          text-gray-900 dark:text-gray-100"
-                  placeholder="Enter your M-Pesa number"
-                />
+                    placeholder="Enter your M-Pesa number"
+                  />
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Email Input */}
-            <div>
-              <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200 mb-4 
+            {paymentMethod === 'PayPal' && (
+              <div>
+                <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200 mb-4 
                              flex items-center gap-2">
-                <span className="w-6 h-6 rounded-full bg-primary/10 dark:bg-gray-800 
+                  <span className="w-6 h-6 rounded-full bg-primary/10 dark:bg-gray-800 
                                flex items-center justify-center text-primary dark:text-blue-400 text-xs">
-                  3
-                </span>
-                Enter Email
-              </h3>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Mail className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="block w-full pl-10 pr-3 py-3 text-base
+                    2
+                  </span>
+                  Enter Email
+                </h3>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Mail className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="block w-full pl-10 pr-3 py-3 text-base
                          bg-white dark:bg-gray-800 
                          border border-gray-200 dark:border-gray-700
                          rounded-xl
@@ -499,10 +502,11 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
                          focus:border-primary dark:focus:border-blue-500
                          placeholder-gray-400 dark:placeholder-gray-500
                          text-gray-900 dark:text-gray-100"
-                  placeholder="Enter your email address"
-                />
+                    placeholder="Enter your email address"
+                  />
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Submit Button or PayStack Button */}
             {showPaystackButton ? (
