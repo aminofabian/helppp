@@ -6,9 +6,14 @@ import { calculateLevel } from '@/app/lib/levelCalculator';
 
 // Validate Kopokopo webhook signature
 function validateWebhookSignature(body: string, signature: string | null, apiKey: string): boolean {
-  if (!signature) return false;
+  if (!signature) {
+    console.log('No signature provided');
+    return false;
+  }
+  console.log('Validating signature:', { signature, apiKey: apiKey.substring(0, 4) + '...' });
   const hmac = crypto.createHmac('sha256', apiKey);
   const calculatedSignature = hmac.update(body).digest('hex');
+  console.log('Calculated signature:', calculatedSignature);
   return crypto.timingSafeEqual(
     Buffer.from(signature),
     Buffer.from(calculatedSignature)
@@ -16,14 +21,23 @@ function validateWebhookSignature(body: string, signature: string | null, apiKey
 }
 
 export async function POST(request: Request) {
+  console.log('=================== KOPOKOPO WEBHOOK START ===================');
+  console.log('Webhook received at:', new Date().toISOString());
+  console.log('Request headers:', Object.fromEntries(request.headers));
+  
   try {
-    console.log('Received Kopokopo callback - Starting processing');
     // Get the raw body for signature validation
     const rawBody = await request.text();
+    console.log('Raw webhook body:', rawBody);
+    
     const signature = request.headers.get('X-KopoKopo-Signature');
     const apiKey = process.env.KOPOKOPO_API_KEY;
 
-    console.log('Signature received:', signature);
+    console.log('Signature check:', {
+      hasSignature: !!signature,
+      hasApiKey: !!apiKey,
+      signatureValue: signature?.substring(0, 10) + '...'
+    });
 
     if (!signature || !apiKey) {
       console.error('Missing signature or API key');
@@ -46,11 +60,10 @@ export async function POST(request: Request) {
     
     // Parse the webhook payload
     const callbackData = JSON.parse(rawBody);
-    console.log('Webhook Data Received:', JSON.stringify(callbackData, null, 2));
+    console.log('Parsed webhook data:', JSON.stringify(callbackData, null, 2));
 
     const { topic, event } = callbackData;
-    console.log('Topic:', topic);
-    console.log('Event:', JSON.stringify(event, null, 2));
+    console.log('Event details:', { topic, eventType: event?.type });
 
     // Handle different event types
     if (topic === 'buygoods_transaction_received') {
@@ -65,6 +78,9 @@ export async function POST(request: Request) {
     
   } catch (error) {
     console.error('Error processing Kopokopo callback:', error);
+    if (error instanceof Error) {
+      console.error('Error stack:', error.stack);
+    }
     return NextResponse.json(
       { 
         status: 'error',
@@ -73,12 +89,21 @@ export async function POST(request: Request) {
       },
       { status: 500 }
     );
+  } finally {
+    console.log('=================== KOPOKOPO WEBHOOK END ===================');
   }
 }
 
 async function handleBuyGoodsTransaction(event: any) {
+  console.log('Processing buygoods transaction - START');
   const { type, resource } = event;
-  console.log('Processing buygoods transaction:', { type, resource });
+  console.log('Transaction details:', { 
+    type, 
+    reference: resource?.reference,
+    status: resource?.status,
+    amount: resource?.amount,
+    metadata: resource?.metadata 
+  });
 
   // Find the payment by merchantRequestId
   const payment = await prisma.payment.findFirst({
@@ -90,16 +115,24 @@ async function handleBuyGoodsTransaction(event: any) {
     }
   });
 
+  console.log('Payment lookup result:', payment ? 'Found' : 'Not found', 
+    payment ? `(ID: ${payment.id})` : `(Reference: ${resource.reference})`);
+
   if (!payment) {
-    console.error('Payment not found for reference:', resource.reference);
+    console.log('Payment not found, checking metadata');
     // Try to find the request ID from the metadata
     const requestId = resource.metadata?.requestId;
+    console.log('Metadata requestId:', requestId);
+    
     if (requestId) {
       // Create a new payment record if we can find the request
       const request = await prisma.request.findUnique({
         where: { id: requestId },
         include: { User: true }
       });
+
+      console.log('Request lookup result:', request ? 'Found' : 'Not found',
+        request ? `(ID: ${request.id})` : `(RequestID: ${requestId})`);
 
       if (request) {
         const newPayment = await prisma.payment.create({
@@ -121,7 +154,7 @@ async function handleBuyGoodsTransaction(event: any) {
         console.log('Created new payment record:', JSON.stringify(newPayment, null, 2));
         
         if (resource.status === 'Received') {
-          // Create donation and update other records
+          console.log('Payment received, processing successful payment');
           await handleSuccessfulPayment(newPayment, request);
         }
         
@@ -132,13 +165,14 @@ async function handleBuyGoodsTransaction(event: any) {
       }
     }
     
+    console.log('Could not process payment - no matching request found');
     return NextResponse.json({ 
       status: 'error',
       message: 'Payment not found' 
     }, { status: 404 });
   }
 
-  console.log('Found payment record:', JSON.stringify(payment, null, 2));
+  console.log('Found existing payment record:', JSON.stringify(payment, null, 2));
 
   // Update the payment record
   const updatedPayment = await prisma.payment.update({
@@ -157,9 +191,11 @@ async function handleBuyGoodsTransaction(event: any) {
 
   // If payment was successful, update the request status and create donation
   if (resource.status === 'Received') {
+    console.log('Payment received, processing successful payment');
     await handleSuccessfulPayment(updatedPayment);
   }
 
+  console.log('Processing buygoods transaction - END');
   return NextResponse.json({ 
     status: 'success',
     message: 'Transaction processed successfully' 
