@@ -10,14 +10,29 @@ function validateWebhookSignature(body: string, signature: string | null, client
     console.log('No signature provided');
     return false;
   }
-  console.log('Validating signature:', { signature, clientSecret: clientSecret.substring(0, 4) + '...' });
-  const hmac = crypto.createHmac('sha256', clientSecret);
-  const calculatedSignature = hmac.update(body).digest('hex');
-  console.log('Calculated signature:', calculatedSignature);
-  return crypto.timingSafeEqual(
-    Buffer.from(signature),
-    Buffer.from(calculatedSignature)
-  );
+  
+  try {
+    console.log('Validating signature:', { 
+      signature: signature.substring(0, 10) + '...',
+      clientSecret: clientSecret.substring(0, 4) + '...' 
+    });
+
+    // Parse the body to get the data object
+    const bodyObj = JSON.parse(body);
+    // Extract only the data object for signature calculation
+    const dataString = JSON.stringify(bodyObj.data);
+    
+    console.log('Data string for signature:', dataString.substring(0, 50) + '...');
+    
+    const hmac = crypto.createHmac('sha256', clientSecret);
+    const calculatedSignature = hmac.update(dataString).digest('hex');
+    console.log('Calculated signature:', calculatedSignature);
+    
+    return signature === calculatedSignature;
+  } catch (error) {
+    console.error('Error validating signature:', error);
+    return false;
+  }
 }
 
 export async function POST(request: Request) {
