@@ -4,7 +4,6 @@ const nextConfig = {
   reactStrictMode: true,
   output: 'standalone',
   experimental: {
-    appDir: true,
     serverComponentsExternalPackages: ["@prisma/client", "bcrypt"],
   },
   images: {
@@ -48,12 +47,8 @@ const nextConfig = {
         protocol: 'https',
         hostname: 'source.unsplash.com',
       },
-      {
-        protocol: 'https',
-        hostname: 'gravatar.com',
-      },
     ],
-  }
-};
+  },
+}
 
 export default nextConfig;

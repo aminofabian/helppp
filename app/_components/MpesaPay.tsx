@@ -73,6 +73,14 @@ const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
   const handleMethodSelect = (method: PaymentMethod) => {
     onSelect(method);
     onMethodChange(method);
+    toast.success(`${method} selected as payment method`, {
+      duration: 2000,
+      position: 'top-center',
+      style: {
+        background: '#10B981',
+        color: '#fff',
+      },
+    });
   };
 
   return (
@@ -359,8 +367,35 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
   };
   
 
+  const handleSuccess = () => {
+    toast.success('Payment successful! Thank you for your contribution.', {
+      duration: 3000,
+      position: 'top-center',
+      style: {
+        background: '#10B981',
+        color: '#fff',
+      },
+      icon: '🎉',
+    });
+  };
+
+  const handleError = (error: string) => {
+    toast.error(`Payment failed: ${error}`, {
+      duration: 4000,
+      position: 'top-center',
+    });
+  };
+
+  const handleProcessing = () => {
+    toast.loading('Processing your payment...', {
+      duration: 2000,
+      position: 'top-center',
+    });
+  };
+
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+      <Toaster />
       <div className="w-full max-w-2xl lg:max-w-4xl xl:max-w-6xl bg-white dark:bg-gray-900 rounded-2xl shadow-2xl 
                       overflow-hidden animate-in slide-in-from-bottom duration-300 
                       max-h-[90vh] overflow-y-auto
@@ -545,12 +580,12 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
                   amount={selectedAmount}
                   requestId={requestId}
                   onSuccess={() => {
-                    toast.success('Payment successful!');
+                    handleSuccess();
                     // Refresh the page or update UI as needed
                     window.location.reload();
                   }}
                   onError={(error) => {
-                    toast.error(`Payment failed: ${error}`);
+                    handleError(error);
                   }}
                 />
               ) : (paymentMethod !== 'Paystack' && (

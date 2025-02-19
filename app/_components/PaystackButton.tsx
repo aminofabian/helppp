@@ -1,21 +1,28 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Loader2 } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { Button } from '@/components/ui/button';
 
 interface PaystackButtonProps {
   email: string
   amount: number
   requestId: string
-  onSuccess: () => void
-  onError: (error: string) => void
+  metadata?: any
+  onSuccess?: () => void
+  onError?: (error: string) => void
 }
 
-const PaystackButton = ({ email, amount, requestId, onSuccess, onError }: PaystackButtonProps) => {
+const PaystackButton = ({ email, amount, requestId, metadata, onSuccess, onError }: PaystackButtonProps) => {
   const [isLoading, setIsLoading] = useState(false)
 
   const handlePayment = async () => {
+    toast.loading('Initializing payment...', {
+      duration: 2000,
+      position: 'top-center',
+    });
+
     try {
       setIsLoading(true)
 
@@ -32,7 +39,8 @@ const PaystackButton = ({ email, amount, requestId, onSuccess, onError }: Paysta
           callback_url: `${window.location.origin}/api/paystack-callback`,
           metadata: {
             request_id: requestId,
-            cancel_action: `${window.location.origin}/requests/${requestId}`
+            cancel_action: `${window.location.origin}/requests/${requestId}`,
+            ...metadata
           }
         }),
       })
@@ -46,18 +54,30 @@ const PaystackButton = ({ email, amount, requestId, onSuccess, onError }: Paysta
       // Redirect to Paystack checkout URL
       window.location.href = data.authorization_url
 
+      toast.success('Payment completed successfully! 🎉', {
+        duration: 3000,
+        position: 'top-center',
+        style: {
+          background: '#10B981',
+          color: '#fff',
+        },
+      });
+      if (onSuccess) onSuccess();
+
     } catch (error) {
       console.error('Payment initialization failed:', error)
-      toast.error('Failed to initialize payment')
-      onError('Failed to initialize payment')
+      toast.error('Failed to initialize payment', {
+        duration: 3000,
+        position: 'top-center',
+      });
+      if (onError) onError('Failed to initialize payment');
     } finally {
       setIsLoading(false)
     }
   }
 
   return (
-    <button
-      type="button"
+    <Button
       onClick={handlePayment}
       disabled={isLoading}
       className={`
@@ -85,7 +105,7 @@ const PaystackButton = ({ email, amount, requestId, onSuccess, onError }: Paysta
           <Loader2 className="w-6 h-6 animate-spin text-white/90" />
         </span>
       )}
-    </button>
+    </Button>
   )
 }
 
