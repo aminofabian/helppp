@@ -260,70 +260,86 @@ async function handleBuyGoodsTransaction(event: any) {
 
       // Update giver's points
       const pointsEarned = Math.floor(amount / 50);
-      await prisma.points.create({
-        data: { 
-          userId: giver.id, 
-          amount: pointsEarned,
-          paymentId: payment.id 
+      if (pointsEarned > 0) {
+        await prisma.points.create({
+          data: {
+            userId: giver.id,
+            amount: pointsEarned,
+            paymentId: payment.id
+          }
+        });
+        console.log('Created points record:', pointsEarned);
+
+        // Update user's level based on total points
+        const totalPoints = await prisma.points.aggregate({
+          where: { userId: giver.id },
+          _sum: { amount: true }
+        });
+        
+        const newLevel = Math.floor((totalPoints._sum.amount || 0) / 100) + 1;
+        await prisma.user.update({
+          where: { id: giver.id },
+          data: { level: newLevel }
+        });
+        console.log('Updated user level:', newLevel);
+      }
+
+      // Update receiver's wallet
+      await prisma.user.update({
+        where: { id: request.userId },
+        data: {
+          wallet: {
+            upsert: {
+              create: { balance: amount },
+              update: { balance: { increment: amount } }
+            }
+          }
         }
       });
-
-      const totalPoints = await prisma.points.aggregate({
-        where: { userId: giver.id },
-        _sum: { amount: true }
-      });
-      const newLevel = calculateLevel(totalPoints._sum.amount || 0);
-      await prisma.user.update({
-        where: { id: giver.id },
-        data: { level: newLevel }
-      });
+      console.log('Updated receiver wallet');
 
       // Create transaction record
-      await prisma.transaction.create({
+      const transaction = await prisma.transaction.create({
         data: {
           giverId: giver.id,
           receiverId: request.userId,
-          amount: amount
+          amount: amount,
+          timestamp: new Date()
         }
       });
-      console.log('Transaction recorded between:', { giver: giver.id, receiver: request.userId });
+      console.log('Created transaction record:', transaction.id);
 
-      // Update receiver's wallet
-      let receiverWallet = await prisma.wallet.findUnique({
-        where: { userId: request.userId }
+      // Update request status
+      await prisma.request.update({
+        where: { id: requestId },
+        data: {
+          status: 'COMPLETED',
+          amount: { increment: Math.round(amount) }
+        }
       });
+      console.log('Updated request status');
 
-      if (!receiverWallet) {
-        receiverWallet = await prisma.wallet.create({
-          data: { userId: request.userId, balance: amount }
-        });
-        console.log('Created new wallet for receiver:', request.userId);
-      } else {
-        await prisma.wallet.update({
-          where: { userId: request.userId },
-          data: { balance: { increment: amount } }
-        });
-        console.log('Updated receiver wallet:', request.userId);
-      }
-
-      return { payment, donation };
+      return { payment, donation, transaction };
     });
 
     console.log('All database operations completed successfully');
-    return NextResponse.json({
+    
+    return NextResponse.json({ 
       status: 'success',
       message: 'Payment processed successfully',
       data: {
         paymentId: result.payment.id,
-        donationId: result.donation.id
+        donationId: result.donation.id,
+        transactionId: result.transaction.id
       }
     });
 
   } catch (error) {
-    console.error('Error processing transaction:', error);
-    return NextResponse.json({
+    console.error('Error processing payment:', error);
+    return NextResponse.json({ 
       status: 'error',
-      message: error instanceof Error ? error.message : 'Unknown error occurred'
+      message: 'Error processing payment',
+      error: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 });
   }
 }
