@@ -240,34 +240,68 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
   };
 
   // Function to handle Till payment polling
-  const pollPaymentStatus = async (paymentId: string) => {
+  const pollPaymentStatus = async (paymentId?: string) => {
+    if (!paymentId) {
+      console.error("❌ Missing paymentId for polling.");
+      return;
+    }
+  
     let pollCount = 0;
     const maxPolls = 24; // 2 minutes with 5-second intervals
-    
+  
     const pollInterval = setInterval(async () => {
       try {
         pollCount++;
         const status = await checkPaymentStatus(paymentId);
-        
-        if (status === 'SUCCESS') {
+  
+        if (status === "SUCCESS") {
           clearInterval(pollInterval);
           setSuccess(true);
-          toast.success('Payment successful!');
-        } else if (status === 'FAILED' || pollCount >= maxPolls) {
+          toast.success("✅ Payment successful!");
+        } else if (status === "FAILED" || pollCount >= maxPolls) {
           clearInterval(pollInterval);
-          if (status === 'FAILED') {
-            toast.error('Payment failed. Please try again.');
-            setError('Payment failed');
+          if (status === "FAILED") {
+            toast.error("❌ Payment failed. Please try again.");
+            setError("Payment failed");
           } else {
-            toast.error('Payment timeout. Please try again.');
-            setError('Payment timeout');
+            toast.error("⏳ Payment timeout. Please try again.");
+            setError("Payment timeout");
           }
         }
       } catch (error) {
-        console.error('Error checking payment status:', error);
+        console.error("⚠️ Error checking payment status:", error);
       }
     }, 5000);
   };
+  
+  // const pollPaymentStatus = async (paymentId: string) => {
+  //   let pollCount = 0;
+  //   const maxPolls = 24; // 2 minutes with 5-second intervals
+    
+  //   const pollInterval = setInterval(async () => {
+  //     try {
+  //       pollCount++;
+  //       const status = await checkPaymentStatus(paymentId);
+        
+  //       if (status === 'SUCCESS') {
+  //         clearInterval(pollInterval);
+  //         setSuccess(true);
+  //         toast.success('Payment successful!');
+  //       } else if (status === 'FAILED' || pollCount >= maxPolls) {
+  //         clearInterval(pollInterval);
+  //         if (status === 'FAILED') {
+  //           toast.error('Payment failed. Please try again.');
+  //           setError('Payment failed');
+  //         } else {
+  //           toast.error('Payment timeout. Please try again.');
+  //           setError('Payment timeout');
+  //         }
+  //       }
+  //     } catch (error) {
+  //       console.error('Error checking payment status:', error);
+  //     }
+  //   }, 5000);
+  // };
 
   const handleSubmit = async () => {
     if (!validateForm()) return;
@@ -304,19 +338,16 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
 
       else if (paymentMethod === "Till") {
         const result = await handleTillPayment(createPaymentFormData());
-        console.log('Till payment result:', result);
-
-        if (result?.status === 'PENDING' && result?.paymentId) {
-          // Show initial notification
+        console.log("📡 Till payment result:", result);
+      
+        if (result?.success) {
           toast.custom((t) => (
             <div className="max-w-md w-full bg-white shadow-lg rounded-lg pointer-events-auto flex ring-1 ring-black ring-opacity-5">
               <div className="flex-1 w-0 p-4">
                 <div className="flex items-center">
                   <Phone className="h-10 w-10 text-primary flex-shrink-0" />
                   <div className="ml-3">
-                    <p className="text-sm font-medium text-gray-900">
-                      Payment Initiated
-                    </p>
+                    <p className="text-sm font-medium text-gray-900">Payment Initiated</p>
                     <p className="mt-1 text-sm text-gray-500">
                       Your payment request has been sent. Please check your phone for the STK push.
                     </p>
@@ -325,15 +356,53 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
               </div>
             </div>
           ), { duration: 8000 });
-
-          // Start polling for payment status
-          await pollPaymentStatus(result.paymentId);
+      
+          // ✅ Only poll if paymentId exists
+          if (result.paymentId) {
+            await pollPaymentStatus(result.paymentId);
+          } else {
+            console.error("❌ No paymentId returned from handleTillPayment.");
+          }
         } else {
-          toast.error(result?.message || "Failed to initiate payment");
-          setError(result?.message || "Failed to initiate payment");
+          toast.error(result?.message || "❌ Failed to initiate payment.");
+          setError(result?.message || "❌ Failed to initiate payment.");
         }
         setIsLoading(false);
       }
+      
+
+      // else if (paymentMethod === "Till") {
+      //   const result = await handleTillPayment(createPaymentFormData());
+      //   console.log('Till payment result:', result);
+
+      //   if (result?.status === 'PENDING' && result?.paymentId) {
+      //     // Show initial notification
+      //     toast.custom((t) => (
+      //       <div className="max-w-md w-full bg-white shadow-lg rounded-lg pointer-events-auto flex ring-1 ring-black ring-opacity-5">
+      //         <div className="flex-1 w-0 p-4">
+      //           <div className="flex items-center">
+      //             <Phone className="h-10 w-10 text-primary flex-shrink-0" />
+      //             <div className="ml-3">
+      //               <p className="text-sm font-medium text-gray-900">
+      //                 Payment Initiated
+      //               </p>
+      //               <p className="mt-1 text-sm text-gray-500">
+      //                 Your payment request has been sent. Please check your phone for the STK push.
+      //               </p>
+      //             </div>
+      //           </div>
+      //         </div>
+      //       </div>
+      //     ), { duration: 8000 });
+
+          // Start polling for payment status
+      //     await pollPaymentStatus(result.paymentId);
+      //   } else {
+      //     toast.error(result?.message || "Failed to initiate payment");
+      //     setError(result?.message || "Failed to initiate payment");
+      //   }
+      //   setIsLoading(false);
+      // }
 
       else if (paymentMethod === "Paystack") {
         if (!email) {

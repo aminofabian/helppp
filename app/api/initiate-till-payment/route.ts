@@ -32,7 +32,31 @@ async function getAccessToken(retryCount = 0): Promise<string> {
     }
     throw error;
   }
-}
+};
+
+
+
+// import K2 from "k2-connect-node";
+
+// const options = {
+//   clientId: process.env.KOPOKOPO_CLIENT_ID!,
+//   clientSecret: process.env.KOPOKOPO_CLIENT_SECRET!,
+//   apiKey: process.env.KOPOKOPO_API_KEY!,
+//   baseUrl: process.env.KOPOKOPO_BASE_URL! || "https://sandbox.kopokopo.com",
+// };
+
+// const TokenService = K2(options).TokenService;
+
+// export async function getAccessToken(): Promise<string> {
+//   try {
+//     const response = await TokenService.getToken();
+//     console.log("Access Token Response:", response);
+//     return response.access_token;
+//   } catch (error) {
+//     console.error("Error obtaining access token:", error);
+//     throw new Error("Failed to obtain Kopo Kopo access token");
+//   }
+// }
 
 // Function to initiate payment with retry logic
 async function initiatePayment(paymentData: any, accessToken: string, retryCount = 0) {
@@ -58,21 +82,65 @@ async function initiatePayment(paymentData: any, accessToken: string, retryCount
   }
 }
 
+
+
+// export async function POST(request: Request) {
+//   try {
+//     const { phoneNumber, amount } = await request.json();
+//     console.log("Initiating payment for:", { phoneNumber, amount });
+
+//     const accessToken = await getAccessToken();
+//     const callbackUrl = process.env.KOPOKOPO_CALLBACK_URL!;
+//     const tillNumber = process.env.KOPOKOPO_TILL_NUMBER!;
+
+//     const payload = {
+//       payment_channel: "M-PESA STK Push",
+//       till_number: tillNumber,
+//       subscriber: {
+//         first_name: "Customer",
+//         last_name: "User",
+//         phone_number: phoneNumber,
+//       },
+//       amount: {
+//         currency: "KES",
+//         value: amount,
+//       },
+//       metadata: { reference: phoneNumber },
+//       _links: { callback_url: callbackUrl },
+//     };
+
+//     const response = await axios.post(
+//       `${process.env.KOPOKOPO_BASE_URL}/api/v1/incoming_payments`,
+//       payload,
+//       { headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" } }
+//     );
+
+//     console.log("Payment Response:", response.data);
+//     return NextResponse.json({ success: true, data: response.data });
+//   } catch (error: any) {
+//     console.error("Error in payment:", error.response?.data || error);
+//     return NextResponse.json({ success: false, message: error.message }, { status: 500 });
+//   }
+// }
+
+
 export async function POST(request: Request) {
   try {
     const { requestId, amount, phoneNumber } = await request.json();
     console.log('Received till payment request:', { requestId, amount, phoneNumber });
+    console.warn('Received till payment request:', { requestId, amount, phoneNumber });
+
 
     // Get access token with retry logic
-    console.log('Obtaining access token...');
+    console.log('Obtaining access token..........................:.:.');
     const accessToken = await getAccessToken();
-    console.log('Access token obtained');
+    console.log('Access token obtained///////////////////////', accessToken);
 
     // Prepare payment request
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '') || 'https://fitrii.com';
     const callbackUrl = `${baseUrl}/api/kopokopo-callback`;
     
-    console.log('Using callback URL:', callbackUrl);
+    console.log('Using callback URL::::::::::::::::::::::::::::::::::::::::::;', callbackUrl);
     
     const paymentData = {
       payment_channel: 'M-PESA STK Push',
