@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import axios from 'axios';
 import prisma from '@/app/lib/db';
+import { PaymentMethod, PaymentStatus } from '@prisma/client';
 
 export async function POST(request: Request) {
   try {
@@ -39,9 +40,8 @@ export async function POST(request: Request) {
         value: amount,
       },
       metadata: {
-        customer_id: requestId,
-        reference: requestId,
-        notes: 'Payment for request'
+        requestId: requestId,
+        customerId: requestId,
       },
       _links: {
         callback_url: `${baseUrl}/api/kopokopo-callback`
@@ -89,7 +89,8 @@ export async function POST(request: Request) {
             resultCode: 'PENDING',
             resultDesc: 'Till payment initiated',
             userts: new Date(),
-            paymentMethod: 'MPESA',
+            paymentMethod: PaymentMethod.MPESA,
+            status: PaymentStatus.PENDING,
             phoneNumber: phoneNumber,
             userId: requestId, // This needs to be the actual user ID
           },
@@ -134,4 +135,4 @@ export async function POST(request: Request) {
       { status: statusCode }
     );
   }
-} 
+}
