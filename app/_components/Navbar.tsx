@@ -31,7 +31,7 @@ async function Navbar() {
             className='p-2
                        transition-all duration-300 ease-out
                        dark:grayscale-[0.1] dark:brightness-110 dark:hover:grayscale-0
-                       dark:hover:brightness-125 dark:filter dark:drop-shadow-[0_0_3px_rgba(255,255,255,0.1)]'
+                       dark:hover:brightness-125 dark:filter dark:drop-shadow-[0_0_3px_rgba(255,255,255,0.1)]
                        dark:grayscale-[0.2] hover:grayscale-0'
           />
         </Link>
