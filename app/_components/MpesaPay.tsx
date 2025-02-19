@@ -544,6 +544,14 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
                   email={email}
                   amount={selectedAmount}
                   requestId={requestId}
+                  onSuccess={() => {
+                    toast.success('Payment successful!');
+                    // Refresh the page or update UI as needed
+                    window.location.reload();
+                  }}
+                  onError={(error) => {
+                    toast.error(`Payment failed: ${error}`);
+                  }}
                 />
               ) : (paymentMethod !== 'Paystack' && (
                 <SubmitButton
