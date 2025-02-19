@@ -1,78 +1,75 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Loader2 } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/button'
+import PaystackPop from '@paystack/inline-js'
 
 interface PaystackButtonProps {
   email: string
   amount: number
   requestId: string
-  metadata?: any
   onSuccess?: () => void
   onError?: (error: string) => void
 }
 
-const PaystackButton = ({ email, amount, requestId, metadata, onSuccess, onError }: PaystackButtonProps) => {
+const PaystackButton = ({ email, amount, requestId, onSuccess, onError }: PaystackButtonProps) => {
   const [isLoading, setIsLoading] = useState(false)
 
   const handlePayment = async () => {
-    toast.loading('Initializing payment...', {
-      duration: 2000,
-      position: 'top-center',
-    });
-
     try {
       setIsLoading(true)
-
-      // Initialize transaction with Paystack
-      const response = await fetch('/api/initialize-paystack', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email,
-          amount: Math.round(amount * 100), // Convert to lowest currency unit (cents)
-          reference: `${requestId}_${Date.now()}`,
-          callback_url: `${window.location.origin}/api/paystack-callback`,
-          metadata: {
-            request_id: requestId,
-            cancel_action: `${window.location.origin}/requests/${requestId}`,
-            ...metadata
-          }
-        }),
+      toast.loading('Initializing payment...', {
+        duration: 2000,
+        position: 'top-center',
       })
 
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to initialize payment')
-      }
-
-      // Redirect to Paystack checkout URL
-      window.location.href = data.authorization_url
-
-      toast.success('Payment completed successfully! 🎉', {
-        duration: 3000,
-        position: 'top-center',
-        style: {
-          background: '#10B981',
-          color: '#fff',
+      const paystack = new PaystackPop()
+      paystack.newTransaction({
+        key: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY!,
+        email,
+        amount: Math.round(amount * 100), // Convert to lowest currency unit (cents)
+        currency: 'KES',
+        reference: `${requestId}_${Date.now()}`,
+        metadata: {
+          custom_fields: [
+            {
+              display_name: "Request ID",
+              variable_name: "request_id",
+              value: requestId
+            }
+          ]
         },
-      });
-      if (onSuccess) onSuccess();
-
+        onSuccess: (transaction: any) => {
+          setIsLoading(false)
+          toast.success('Payment completed successfully! 🎉', {
+            duration: 3000,
+            position: 'top-center',
+            style: {
+              background: '#10B981',
+              color: '#fff',
+            },
+          })
+          if (onSuccess) onSuccess()
+        },
+        onCancel: () => {
+          setIsLoading(false)
+          toast.error('Payment cancelled', {
+            duration: 3000,
+            position: 'top-center',
+          })
+          if (onError) onError('Payment cancelled by user')
+        }
+      })
     } catch (error) {
+      setIsLoading(false)
       console.error('Payment initialization failed:', error)
       toast.error('Failed to initialize payment', {
         duration: 3000,
         position: 'top-center',
-      });
-      if (onError) onError('Failed to initialize payment');
-    } finally {
-      setIsLoading(false)
+      })
+      if (onError) onError('Failed to initialize payment')
     }
   }
 
