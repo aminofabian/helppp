@@ -202,142 +202,99 @@ async function handleBuyGoodsTransaction(event: any) {
     });
 
     if (!giver) {
-      // Create a temporary user for the giver if not found
-      giver = await prisma.user.create({
-        data: {
-          phone: phone,
-          firstName: 'Anonymous',
-          lastName: 'Giver',
-          email: `${phone.replace('+', '')}@temporary.com`,
-          userName: `anon_${phone.replace(/[^0-9]/g, '')}`,
-          level: 1
-        }
-      });
-      console.log('Created temporary user for giver:', giver.id);
+      console.error('User not found for phone:', phone);
+      return NextResponse.json({ message: "User not found" }, { status: 404 });
     }
 
-    // Start a transaction for all database operations
-    const result = await prisma.$transaction(async (prisma) => {
-      // Create payment record
-      const payment = await prisma.payment.create({
-        data: {
-          userId: giver.id,
-          amount: amount,
-          status: PaymentStatus.COMPLETED,
-          paymentMethod: PaymentMethod.MPESA,
-          mpesaReceiptNumber: resource.reference,
-          currency: resource.currency,
-          requestId: requestId,
-          userts: new Date(),
-          phoneNumber: phone
-        }
-      });
-      console.log('Payment recorded:', payment.id);
+    // Create payment record
+    const payment = await prisma.payment.create({
+      data: {
+        userId: giver.id,
+        amount: amount,
+        status: PaymentStatus.COMPLETED,
+        paymentMethod: PaymentMethod.MPESA,
+        mpesaReceiptNumber: resource.reference,
+        currency: "KES",
+        requestId: requestId,
+        userts: new Date(),
+      },
+    });
+    console.log(`Payment recorded successfully for user: ${giver.id} and requestId: ${requestId}`);
 
-      // Create donation record
-      const donation = await prisma.donation.create({
-        data: {
-          userId: giver.id,
-          requestId: requestId,
-          amount: amount,
-          payment: { connect: { id: payment.id } },
-          status: "COMPLETED",
-          invoice: resource.reference,
-          phoneNumber: phone
-        }
-      });
-      console.log('Donation recorded:', donation.id);
+    // Create donation record
+    const donation = await prisma.donation.create({
+      data: {
+        userId: giver.id,
+        requestId: requestId,
+        amount: amount,
+        payment: { connect: { id: payment.id } },
+        status: "COMPLETED",
+        invoice: resource.reference,
+      },
+    });
+    console.log(`Donation recorded successfully: ${donation.id}`);
 
-      // Update giver's donation stats
-      await prisma.user.update({
-        where: { id: giver.id },
-        data: {
-          totalDonated: { increment: amount },
-          donationCount: { increment: 1 }
-        }
-      });
-      console.log('Updated giver donation stats');
-
-      // Update giver's points
-      const pointsEarned = Math.floor(amount / 50);
-      if (pointsEarned > 0) {
-        await prisma.points.create({
-          data: {
-            userId: giver.id,
-            amount: pointsEarned,
-            paymentId: payment.id
-          }
-        });
-        console.log('Created points record:', pointsEarned);
-
-        // Update user's level based on total points
-        const totalPoints = await prisma.points.aggregate({
-          where: { userId: giver.id },
-          _sum: { amount: true }
-        });
-        
-        const newLevel = Math.floor((totalPoints._sum.amount || 0) / 100) + 1;
-        await prisma.user.update({
-          where: { id: giver.id },
-          data: { level: newLevel }
-        });
-        console.log('Updated user level:', newLevel);
-      }
-
-      // Update receiver's wallet
-      await prisma.user.update({
-        where: { id: request.userId },
-        data: {
-          wallet: {
-            upsert: {
-              create: { balance: amount },
-              update: { balance: { increment: amount } }
-            }
-          }
-        }
-      });
-      console.log('Updated receiver wallet');
-
-      // Create transaction record
-      const transaction = await prisma.transaction.create({
-        data: {
-          giverId: giver.id,
-          receiverId: request.userId,
-          amount: amount,
-          timestamp: new Date()
-        }
-      });
-      console.log('Created transaction record:', transaction.id);
-
-      // Update request status
-      await prisma.request.update({
-        where: { id: requestId },
-        data: {
-          status: 'COMPLETED'
-        }
-      });
-      console.log('Updated request status');
-
-      return { payment, donation, transaction };
+    // Update user points (1 point per 50 KES)
+    const pointsEarned = Math.floor(amount / 50);
+    await prisma.points.create({
+      data: { userId: giver.id, amount: pointsEarned, paymentId: payment.id }
     });
 
-    console.log('All database operations completed successfully');
-    
+    const totalPoints = await prisma.points.aggregate({ 
+      where: { userId: giver.id }, 
+      _sum: { amount: true } 
+    });
+    const newLevel = calculateLevel(totalPoints._sum.amount || 0);
+    await prisma.user.update({ 
+      where: { id: giver.id }, 
+      data: { level: newLevel } 
+    });
+    console.log(`Points and level updated for user ${giver.id}: +${pointsEarned} points, new level: ${newLevel}`);
+
+    // Create transaction record
+    await prisma.transaction.create({
+      data: {
+        giverId: giver.id,
+        receiverId: request.userId,
+        amount: amount,
+      },
+    });
+    console.log(`Transaction recorded: Giver ${giver.id} -> Receiver ${request.userId}`);
+
+    // Update receiver's wallet
+    let receiverWallet = await prisma.wallet.findUnique({ 
+      where: { userId: request.userId } 
+    });
+
+    if (!receiverWallet) {
+      receiverWallet = await prisma.wallet.create({
+        data: { userId: request.userId, balance: amount }
+      });
+      console.log(`New wallet created for receiver with initial funding: ${request.userId}`);
+    } else {
+      await prisma.wallet.update({
+        where: { userId: request.userId },
+        data: { balance: { increment: amount } },
+      });
+      console.log(`Receiver's wallet updated: ${request.userId}, Amount added: ${amount}`);
+    }
+
     return NextResponse.json({ 
       status: 'success',
-      message: 'Payment processed successfully',
+      message: "Payment processed successfully",
       data: {
-        paymentId: result.payment.id,
-        donationId: result.donation.id,
-        transactionId: result.transaction.id
+        paymentId: payment.id,
+        donationId: donation.id,
+        pointsEarned,
+        newLevel
       }
     });
 
   } catch (error) {
-    console.error('Error processing payment:', error);
+    console.error('Error processing transaction:', error);
     return NextResponse.json({ 
       status: 'error',
-      message: 'Error processing payment',
+      message: 'Error processing transaction',
       error: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 });
   }
