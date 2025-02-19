@@ -198,129 +198,152 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
     }, 2000);
   };
 
-
-
-const handleSubmit = async () => {
-  if (!validateForm()) return;
-
-  setIsLoading(true);
-  setError(null);
-
-  try {
-    const createPaymentFormData = () => {
-      const formData = new FormData();
-      formData.append("amount", selectedAmount?.toString() || "");
-      formData.append("requestId", requestId);
-      formData.append("phoneNumber", phoneNumber);
-      return formData;
-    };
-
-    if (paymentMethod === "Mpesa") {
-      const result = await handleMpesa(createPaymentFormData());
-      console.log(result, "result from handleMpesa");
-
-      if (result.success && result.response.CheckoutRequestID) {
-        stkPushQueryWithIntervals(result.response.CheckoutRequestID);
-      } else {
-        toast.error(result.message || "Failed to initiate payment", {
-          duration: 5000,
-          position: "top-center",
-        });
-        setError(result.message || "Failed to initiate payment");
+  // Function to check payment status
+  const checkPaymentStatus = async (paymentId: string): Promise<'SUCCESS' | 'FAILED' | 'PENDING'> => {
+    try {
+      const response = await fetch(`/api/check-till-payment?paymentId=${paymentId}`);
+      if (!response.ok) {
+        throw new Error('Failed to check payment status');
       }
+      const data = await response.json();
+      return data.status;
+    } catch (error) {
+      console.error('Error checking payment status:', error);
+      return 'FAILED';
     }
+  };
 
-    else if (paymentMethod === "Till") {
-      const result = await handleTillPayment(createPaymentFormData());
-      console.log('Till payment result:', result);
+  // Function to handle Till payment polling
+  const pollPaymentStatus = async (paymentId: string) => {
+    let pollCount = 0;
+    const maxPolls = 24; // 2 minutes with 5-second intervals
+    
+    const pollInterval = setInterval(async () => {
+      try {
+        pollCount++;
+        const status = await checkPaymentStatus(paymentId);
+        
+        if (status === 'SUCCESS') {
+          clearInterval(pollInterval);
+          setSuccess(true);
+          toast.success('Payment successful!');
+        } else if (status === 'FAILED' || pollCount >= maxPolls) {
+          clearInterval(pollInterval);
+          if (status === 'FAILED') {
+            toast.error('Payment failed. Please try again.');
+            setError('Payment failed');
+          } else {
+            toast.error('Payment timeout. Please try again.');
+            setError('Payment timeout');
+          }
+        }
+      } catch (error) {
+        console.error('Error checking payment status:', error);
+      }
+    }, 5000);
+  };
 
-      if (result?.status === 'PENDING') {
-        // Show initial notification
-        toast.custom((t) => (
-          <div className="max-w-md w-full bg-white shadow-lg rounded-lg pointer-events-auto flex ring-1 ring-black ring-opacity-5">
-            <div className="flex-1 w-0 p-4">
-              <div className="flex items-center">
-                <Phone className="h-10 w-10 text-primary flex-shrink-0" />
-                <div className="ml-3">
-                  <p className="text-sm font-medium text-gray-900">
-                    Payment Initiated
-                  </p>
-                  <p className="mt-1 text-sm text-gray-500">
-                    Your payment request has been sent. Please check your phone for the STK push.
-                  </p>
+  const handleSubmit = async () => {
+    if (!validateForm()) return;
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const createPaymentFormData = () => {
+        const formData = new FormData();
+        formData.append("amount", selectedAmount?.toString() || "");
+        formData.append("requestId", requestId);
+        formData.append("phoneNumber", phoneNumber);
+        return formData;
+      };
+
+      if (paymentMethod === "Mpesa") {
+        const result = await handleMpesa(createPaymentFormData());
+        console.log(result, "result from handleMpesa");
+
+        if (result.success && result.response.CheckoutRequestID) {
+          stkPushQueryWithIntervals(result.response.CheckoutRequestID);
+        } else {
+          toast.error(result.message || "Failed to initiate payment", {
+            duration: 5000,
+            position: "top-center",
+          });
+          setError(result.message || "Failed to initiate payment");
+        }
+      }
+
+      else if (paymentMethod === "Till") {
+        const result = await handleTillPayment(createPaymentFormData());
+        console.log('Till payment result:', result);
+
+        if (result?.status === 'PENDING' && result?.paymentId) {
+          // Show initial notification
+          toast.custom((t) => (
+            <div className="max-w-md w-full bg-white shadow-lg rounded-lg pointer-events-auto flex ring-1 ring-black ring-opacity-5">
+              <div className="flex-1 w-0 p-4">
+                <div className="flex items-center">
+                  <Phone className="h-10 w-10 text-primary flex-shrink-0" />
+                  <div className="ml-3">
+                    <p className="text-sm font-medium text-gray-900">
+                      Payment Initiated
+                    </p>
+                    <p className="mt-1 text-sm text-gray-500">
+                      Your payment request has been sent. Please check your phone for the STK push.
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        ), { duration: 8000 });
+          ), { duration: 8000 });
 
-        // Start polling for payment status
-        const pollInterval = setInterval(async () => {
-          try {
-            const status = await checkPaymentStatus(result.paymentId);
-            if (status === 'SUCCESS') {
-              clearInterval(pollInterval);
-              setSuccess(true);
-              toast.success('Payment successful!');
-            } else if (status === 'FAILED') {
-              clearInterval(pollInterval);
-              toast.error('Payment failed. Please try again.');
-              setError('Payment failed');
-            }
-          } catch (error) {
-            console.error('Error checking payment status:', error);
-          }
-        }, 5000); // Poll every 5 seconds
-
-        // Stop polling after 2 minutes
-        setTimeout(() => {
-          clearInterval(pollInterval);
-        }, 120000);
-      } else {
-        toast.error(result?.message || "Failed to initiate payment");
-        setError(result?.message || "Failed to initiate payment");
-      }
-    }
-
-
-    else if (paymentMethod === "Paystack") {
-      if (!email) {
-        setError("Email is required for Paystack payments");
-        toast.error("Please enter your email address");
+          // Start polling for payment status
+          await pollPaymentStatus(result.paymentId);
+        } else {
+          toast.error(result?.message || "Failed to initiate payment");
+          setError(result?.message || "Failed to initiate payment");
+        }
         setIsLoading(false);
-        return;
       }
 
-      return (
-        <PaystackButton
-          email={email}
-          amount={selectedAmount || 0}
-          requestId={requestId}
-          onSuccess={() => {
-            setSuccess(true);
-            toast.success("Payment successful!");
-          }}
-          onError={(error) => {
-            setError(error);
-            toast.error(error);
-            setIsLoading(false);
-          }}
-        />
-      );
-    }
-    
+      else if (paymentMethod === "Paystack") {
+        if (!email) {
+          setError("Email is required for Paystack payments");
+          toast.error("Please enter your email address");
+          setIsLoading(false);
+          return;
+        }
 
-    else {
-      setError("This payment method is not yet implemented.");
+        return (
+          <PaystackButton
+            email={email}
+            amount={selectedAmount || 0}
+            requestId={requestId}
+            onSuccess={() => {
+              setSuccess(true);
+              toast.success("Payment successful!");
+            }}
+            onError={(error) => {
+              setError(error);
+              toast.error(error);
+              setIsLoading(false);
+            }}
+          />
+        );
+      }
+      
+
+      else {
+        setError("This payment method is not yet implemented.");
+      }
+    } catch (error) {
+      console.error("Payment error:", error);
+      setError("An error occurred during payment. Please try again.");
+      toast.error("An error occurred during payment. Please try again.");
+    } finally {
+      setIsLoading(false);
     }
-  } catch (error) {
-    console.error("Payment error:", error);
-    setError("An error occurred during payment. Please try again.");
-    toast.error("An error occurred during payment. Please try again.");
-  } finally {
-    setIsLoading(false);
-  }
-};
+  };
   
 
   return (
