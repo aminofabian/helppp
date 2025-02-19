@@ -3,13 +3,12 @@ import axios from 'axios';
 import prisma from '@/app/lib/db';
 import { PaymentMethod, PaymentStatus } from '@prisma/client';
 
-export async function POST(request: Request) {
-  try {
-    const { requestId, amount, phoneNumber } = await request.json();
-    console.log('Received till payment request:', { requestId, amount, phoneNumber });
+// Utility function to wait
+const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-    // Obtain access token
-    console.log('Obtaining access token...');
+// Function to get access token with retry logic
+async function getAccessToken(retryCount = 0): Promise<string> {
+  try {
     const tokenResponse = await axios.post(
       `${process.env.KOPOKOPO_BASE_URL}/oauth/token`,
       {
@@ -22,7 +21,51 @@ export async function POST(request: Request) {
         },
       }
     );
-    const accessToken = tokenResponse.data.access_token;
+    return tokenResponse.data.access_token;
+  } catch (error: any) {
+    if (error.response?.status === 429 && retryCount < 3) {
+      // Wait for exponential backoff time before retrying
+      const waitTime = Math.pow(2, retryCount) * 1000;
+      console.log(`Rate limited, waiting ${waitTime}ms before retry ${retryCount + 1}`);
+      await wait(waitTime);
+      return getAccessToken(retryCount + 1);
+    }
+    throw error;
+  }
+}
+
+// Function to initiate payment with retry logic
+async function initiatePayment(paymentData: any, accessToken: string, retryCount = 0) {
+  try {
+    return await axios.post(
+      `${process.env.KOPOKOPO_BASE_URL}/api/v1/incoming_payments`,
+      paymentData,
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`
+        }
+      }
+    );
+  } catch (error: any) {
+    if (error.response?.status === 429 && retryCount < 3) {
+      const waitTime = Math.pow(2, retryCount) * 1000;
+      console.log(`Rate limited, waiting ${waitTime}ms before retry ${retryCount + 1}`);
+      await wait(waitTime);
+      return initiatePayment(paymentData, accessToken, retryCount + 1);
+    }
+    throw error;
+  }
+}
+
+export async function POST(request: Request) {
+  try {
+    const { requestId, amount, phoneNumber } = await request.json();
+    console.log('Received till payment request:', { requestId, amount, phoneNumber });
+
+    // Get access token with retry logic
+    console.log('Obtaining access token...');
+    const accessToken = await getAccessToken();
     console.log('Access token obtained');
 
     // Prepare payment request
@@ -55,19 +98,10 @@ export async function POST(request: Request) {
       callbackUrl: `${baseUrl}/api/kopokopo-callback`
     });
 
-    // Initiate payment
+    // Initiate payment with retry logic
     console.log('Initiating payment with Kopokopo...', paymentData);
     try {
-      const paymentResponse = await axios.post(
-        `${process.env.KOPOKOPO_BASE_URL}/api/v1/incoming_payments`,
-        paymentData,
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${accessToken}`
-          }
-        }
-      );
+      const paymentResponse = await initiatePayment(paymentData, accessToken);
       console.log('Payment initiated with Kopokopo:', paymentResponse.data);
 
       // Update database records
@@ -109,7 +143,7 @@ export async function POST(request: Request) {
         return NextResponse.json({ 
           success: false, 
           error_code: 429, 
-          error_message: paymentError.response.data.error_message || 'Too many requests. Please try again later.'
+          error_message: 'Too many requests. Please wait a moment and try again.'
         }, { status: 429 });
       }
       return NextResponse.json({ 
