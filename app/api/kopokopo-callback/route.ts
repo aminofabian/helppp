@@ -182,7 +182,10 @@ async function handleBuyGoodsTransaction(event: any) {
     // Find the request and associated user (receiver)
     const request = await prisma.request.findUnique({ 
       where: { id: requestId },
-      include: { User: true }
+      include: { 
+        User: true,
+        Community: true
+      }
     });
 
     if (!request) {
@@ -196,7 +199,7 @@ async function handleBuyGoodsTransaction(event: any) {
       amount: amount
     });
 
-    // Find or create giver based on phone number
+    // Find giver based on phone number
     let giver = await prisma.user.findFirst({ 
       where: { phone: phone }
     });
@@ -247,7 +250,11 @@ async function handleBuyGoodsTransaction(event: any) {
     const newLevel = calculateLevel(totalPoints._sum.amount || 0);
     await prisma.user.update({ 
       where: { id: giver.id }, 
-      data: { level: newLevel } 
+      data: { 
+        level: newLevel,
+        totalDonated: { increment: amount },
+        donationCount: { increment: 1 }
+      }
     });
     console.log(`Points and level updated for user ${giver.id}: +${pointsEarned} points, new level: ${newLevel}`);
 
@@ -277,6 +284,102 @@ async function handleBuyGoodsTransaction(event: any) {
         data: { balance: { increment: amount } },
       });
       console.log(`Receiver's wallet updated: ${request.userId}, Amount added: ${amount}`);
+    }
+
+    // Create a LOVE vote for the request
+    await prisma.vote.create({
+      data: {
+        User: { connect: { id: giver.id } },
+        Request: { connect: { id: requestId } },
+        voteType: 'LOVE'
+      }
+    });
+    console.log(`Vote created for request ${requestId}`);
+
+    // Create notification for request creator
+    await prisma.notification.create({
+      data: {
+        recipient: { connect: { id: request.userId } },
+        title: 'Donation Received',
+        content: `You have received a donation of KES ${amount}.`,
+        issuer: { connect: { id: giver.id } },
+        request: { connect: { id: requestId } },
+        type: 'DONATION',
+        read: false
+      }
+    });
+
+    // Update request status if fully funded
+    if (request.amount >= request.pointsUsed) {
+      await prisma.request.update({
+        where: { id: requestId },
+        data: { status: 'FUNDED' }
+      });
+      console.log(`Request ${requestId} marked as FUNDED`);
+    }
+
+    // Update community statistics if request belongs to a community
+    if (request.communityName && request.Community) {
+      await prisma.community.update({
+        where: { name: request.communityName },
+        data: {
+          totalDonations: { increment: amount },
+          successfulRequests: {
+            increment: request.amount >= request.pointsUsed ? 1 : 0
+          }
+        }
+      });
+
+      // Update or create community member record
+      await prisma.communityMember.upsert({
+        where: {
+          userId_communityId: {
+            userId: giver.id,
+            communityId: request.Community.id
+          }
+        },
+        update: {
+          totalDonated: { increment: amount }
+        },
+        create: {
+          userId: giver.id,
+          communityId: request.Community.id,
+          totalDonated: amount
+        }
+      });
+
+      // Notify community admin
+      const communityAdmin = await prisma.user.findFirst({
+        where: { createdCommunities: { some: { name: request.communityName } } }
+      });
+
+      if (communityAdmin) {
+        await prisma.notification.create({
+          data: {
+            recipient: { connect: { id: communityAdmin.id } },
+            title: `New donation for ${request.title}`,
+            content: `New donation of KES ${amount} received for ${request.title}`,
+            issuer: { connect: { id: giver.id } },
+            request: { connect: { id: requestId } },
+            type: 'DONATION',
+            read: false
+          }
+        });
+      }
+    }
+
+    // Trigger revalidation
+    try {
+      await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/revalidate-donation`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId: giver.id }),
+      });
+    } catch (error) {
+      console.error('Error triggering revalidation:', error);
+      // Don't fail the whole transaction for revalidation error
     }
 
     return NextResponse.json({ 
