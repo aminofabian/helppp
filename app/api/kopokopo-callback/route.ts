@@ -313,8 +313,7 @@ async function handleBuyGoodsTransaction(event: any) {
       await prisma.request.update({
         where: { id: requestId },
         data: {
-          status: 'COMPLETED',
-          amount: { increment: Math.round(amount) }
+          status: 'COMPLETED'
         }
       });
       console.log('Updated request status');
