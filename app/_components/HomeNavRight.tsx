@@ -168,15 +168,15 @@ export default function HomeNavRight({
           const data = await response.json();
           console.log('Fetched updated stats:', data);
           
-          // Only update if we have valid non-zero values
+          // Update stats with new values, regardless of whether they are zero
           setStats(prevStats => ({
             ...prevStats,
-            level: data.level > 0 ? data.level : prevStats.level,
-            totalDonated: data.totalDonated > 0 ? data.totalDonated : prevStats.totalDonated,
-            donationCount: data.donationCount > 0 ? data.donationCount : prevStats.donationCount,
-            points: data.points?.length > 0 ? data.points : prevStats.points,
-            calculatedDonationCount: data.calculatedDonationCount > 0 ? data.calculatedDonationCount : prevStats.calculatedDonationCount,
-            calculatedTotalDonated: data.calculatedTotalDonated > 0 ? data.calculatedTotalDonated : prevStats.calculatedTotalDonated
+            level: data.level !== undefined ? data.level : prevStats.level,
+            totalDonated: data.totalDonated !== undefined ? data.totalDonated : prevStats.totalDonated,
+            donationCount: data.donationCount !== undefined ? data.donationCount : prevStats.donationCount,
+            points: data.points || prevStats.points,
+            calculatedDonationCount: data.calculatedDonationCount !== undefined ? data.calculatedDonationCount : prevStats.calculatedDonationCount,
+            calculatedTotalDonated: data.calculatedTotalDonated !== undefined ? data.calculatedTotalDonated : prevStats.calculatedTotalDonated
           }));
         }
       } catch (error) {
@@ -184,19 +184,15 @@ export default function HomeNavRight({
       }
     };
 
-    // Poll for updates every 30 seconds instead of 10
-    const interval = setInterval(fetchUpdatedStats, 30000);
+    // Fetch immediately when component mounts
+    fetchUpdatedStats();
+
+    // Then poll for updates every 10 seconds
+    const interval = setInterval(fetchUpdatedStats, 10000);
 
     // Clean up interval on unmount
     return () => clearInterval(interval);
   }, [initialUser.id]);
-
-  // Ensure we always have the latest initial stats
-  useEffect(() => {
-    if ((initialStats.calculatedTotalDonated ?? 0) > 0 || (initialStats.calculatedDonationCount ?? 0) > 0) {
-      setStats(initialStats);
-    }
-  }, [initialStats]);
 
   if (!initialUser) {
     return <div>
@@ -487,4 +483,3 @@ export default function HomeNavRight({
     </div>
   );
 };
-
