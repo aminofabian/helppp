@@ -29,10 +29,6 @@ async function Navbar() {
             width={150}
             height={150}
             className='p-2
-                       shadow-[0_0_15px_rgba(0,0,0,0.1)]
-                       dark:shadow-[0_0_15px_rgba(0,0,0,0.5)]
-                       hover:shadow-[0_0_20px_rgba(59,130,246,0.5)]
-                       dark:hover:shadow-[0_0_20px_rgba(59,130,246,0.5)]
                        transition-all duration-300 ease-out
                        dark:grayscale-[0.2] hover:grayscale-0'
           />
