@@ -118,7 +118,7 @@ export async function POST(request: Request) {
 
     // Process based on event type
     if (event.type === 'Incoming Payment Request') {
-      return handleBuyGoodsTransaction(event);
+      return handleBuyGoodsTransaction({ ...event, metadata });
     }
 
     return NextResponse.json({ message: "Unhandled event type" });
@@ -142,9 +142,8 @@ export async function POST(request: Request) {
 }
 
 async function handleBuyGoodsTransaction(event: any) {
-  console.log('Processing transaction - START');
-  const { type, resource } = event;
-  const metadata = event.metadata || {};
+  console.log('Processing transaction - START', { event });
+  const { resource, metadata } = event;
   
   if (!resource || !resource.status) {
     console.error('Invalid resource data:', resource);
@@ -170,12 +169,12 @@ async function handleBuyGoodsTransaction(event: any) {
     });
   }
 
-  const requestId = metadata.requestId;
+  const requestId = metadata?.requestId;
   const phone = resource.sender_phone_number;
   const amount = parseFloat(resource.amount);
   
   if (!requestId || !phone) {
-    console.error('Missing required data:', { requestId, phone });
+    console.error('Missing required data:', { requestId, phone, metadata });
     return NextResponse.json({ message: "Required data missing" }, { status: 400 });
   }
 
