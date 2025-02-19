@@ -69,7 +69,11 @@ export async function POST(request: Request) {
     console.log('Access token obtained');
 
     // Prepare payment request
-    const baseUrl = process.env.KOPOKOPO_CALLBACK_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://fitrii.com';
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '') || 'https://fitrii.com';
+    const callbackUrl = `${baseUrl}/api/kopokopo-callback`;
+    
+    console.log('Using callback URL:', callbackUrl);
+    
     const paymentData = {
       payment_channel: 'M-PESA STK Push',
       till_number: process.env.KOPOKOPO_TILL_NUMBER,
@@ -87,15 +91,15 @@ export async function POST(request: Request) {
         customerId: requestId,
       },
       _links: {
-        callback_url: `${baseUrl}/api/kopokopo-callback`
+        callback_url: callbackUrl
       }
     };
 
     // Log the complete configuration
     console.log('Kopokopo Configuration:', {
-      baseUrl,
+      baseUrl: process.env.KOPOKOPO_BASE_URL?.replace(/\/$/, ''),
       tillNumber: process.env.KOPOKOPO_TILL_NUMBER,
-      callbackUrl: `${baseUrl}/api/kopokopo-callback`
+      callbackUrl
     });
 
     // Initiate payment with retry logic

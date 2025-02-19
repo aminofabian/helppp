@@ -22,47 +22,53 @@ function validateWebhookSignature(body: string, signature: string | null, apiKey
 
 export async function POST(request: Request) {
   console.log('=================== KOPOKOPO WEBHOOK START ===================');
-  console.log('Webhook received at:', new Date().toISOString());
-  console.log('Request headers:', Object.fromEntries(request.headers));
+  const timestamp = new Date().toISOString();
+  console.log(`Webhook received at: ${timestamp}`);
   
   try {
-    // Get the raw body for signature validation
+    // Get the raw body and parse it
     const rawBody = await request.text();
     console.log('Raw webhook body:', rawBody);
     
-    const signature = request.headers.get('X-KopoKopo-Signature');
-    const apiKey = process.env.KOPOKOPO_API_KEY;
-
-    console.log('Signature check:', {
-      hasSignature: !!signature,
-      hasApiKey: !!apiKey,
-      signatureValue: signature?.substring(0, 10) + '...'
+    const headersList = request.headers;
+    const signature = headersList.get('x-kopokopo-signature') || headersList.get('X-KopoKopo-Signature');
+    
+    // Log all headers for debugging
+    console.log('Request headers:', {
+      signature: signature ? signature.substring(0, 10) + '...' : 'missing',
+      contentType: headersList.get('content-type'),
+      userAgent: headersList.get('user-agent'),
     });
 
-    if (!signature || !apiKey) {
-      console.error('Missing signature or API key');
-      return NextResponse.json({ 
-        status: 'error',
-        message: 'Missing authentication' 
-      }, { status: 401 });
+    if (!signature) {
+      console.error('Missing Kopokopo signature header');
+      return NextResponse.json({ error: 'Missing signature' }, { status: 401 });
     }
 
-    // Validate the webhook signature
-    if (!validateWebhookSignature(rawBody, signature, apiKey)) {
+    const apiKey = process.env.KOPOKOPO_API_KEY;
+    if (!apiKey) {
+      console.error('Missing KOPOKOPO_API_KEY environment variable');
+      return NextResponse.json({ error: 'Configuration error' }, { status: 500 });
+    }
+
+    // Validate signature
+    const isValid = validateWebhookSignature(rawBody, signature, apiKey);
+    console.log('Signature validation result:', isValid);
+
+    if (!isValid) {
       console.error('Invalid webhook signature');
-      return NextResponse.json({ 
-        status: 'error',
-        message: 'Invalid signature' 
-      }, { status: 401 });
+      return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
     }
 
-    console.log('Signature verification successful');
-    
-    // Parse the webhook payload
-    const callbackData = JSON.parse(rawBody);
-    console.log('Parsed webhook data:', JSON.stringify(callbackData, null, 2));
+    // Parse the webhook body
+    const webhookData = JSON.parse(rawBody);
+    console.log('Parsed webhook data:', webhookData);
 
-    const { topic, event } = callbackData;
+    // Extract payment details
+    const { metadata, status } = webhookData;
+    console.log('Payment details:', { metadata, status });
+
+    const { topic, event } = webhookData;
     console.log('Event details:', { topic, eventType: event?.type });
 
     // Handle different event types
