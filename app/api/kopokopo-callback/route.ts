@@ -218,6 +218,16 @@ async function handleBuyGoodsTransaction(event: any) {
       });
       console.log('Donation recorded:', donation.id);
 
+      // Update giver's donation stats
+      await prisma.user.update({
+        where: { id: giver.id },
+        data: {
+          totalDonated: { increment: amount },
+          donationCount: { increment: 1 }
+        }
+      });
+      console.log('Updated giver donation stats');
+
       // Update giver's points
       const pointsEarned = Math.floor(amount / 50);
       await prisma.points.create({
