@@ -1,42 +1,70 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/app/lib/db';
+import crypto from 'crypto';
+import { PaymentMethod, PaymentStatus } from '@prisma/client';
+import { calculateLevel } from '@/app/lib/levelCalculator';
+
+// Validate Kopokopo webhook signature
+function validateWebhookSignature(body: string, signature: string | null, apiKey: string): boolean {
+  if (!signature) return false;
+  const hmac = crypto.createHmac('sha256', apiKey);
+  const calculatedSignature = hmac.update(body).digest('hex');
+  return crypto.timingSafeEqual(
+    Buffer.from(signature),
+    Buffer.from(calculatedSignature)
+  );
+}
 
 export async function POST(request: Request) {
   try {
-    const callbackData = await request.json();
-    console.log('Received Kopokopo callback:', JSON.stringify(callbackData, null, 2));
+    console.log('Received Kopokopo callback - Starting processing');
+    // Get the raw body for signature validation
+    const rawBody = await request.text();
+    const signature = request.headers.get('X-KopoKopo-Signature');
+    const apiKey = process.env.KOPOKOPO_API_KEY;
 
-    // Extract the event type and payment data
-    const { event: { type }, data } = callbackData;
-    console.log('Event type:', type);
-    console.log('Payment data:', JSON.stringify(data, null, 2));
+    console.log('Signature received:', signature);
+
+    if (!signature || !apiKey) {
+      console.error('Missing signature or API key');
+      return NextResponse.json({ 
+        status: 'error',
+        message: 'Missing authentication' 
+      }, { status: 401 });
+    }
+
+    // Validate the webhook signature
+    if (!validateWebhookSignature(rawBody, signature, apiKey)) {
+      console.error('Invalid webhook signature');
+      return NextResponse.json({ 
+        status: 'error',
+        message: 'Invalid signature' 
+      }, { status: 401 });
+    }
+
+    console.log('Signature verification successful');
+    
+    // Parse the webhook payload
+    const callbackData = JSON.parse(rawBody);
+    console.log('Webhook Data Received:', JSON.stringify(callbackData, null, 2));
+
+    const { topic, event } = callbackData;
+    console.log('Topic:', topic);
+    console.log('Event:', JSON.stringify(event, null, 2));
 
     // Handle different event types
-    switch (type) {
-      case 'payment_request.processed':
-        return handleProcessedPayment(data);
-      case 'payment_request.failed':
-        return handleFailedPayment(data);
-      case 'payment_request.created':
-        return handleCreatedPayment(data);
-      default:
-        console.log('Unhandled event type:', type);
-        return NextResponse.json({ 
-          status: 'success',
-          message: 'Event type not handled' 
-        });
+    if (topic === 'buygoods_transaction_received') {
+      return handleBuyGoodsTransaction(event);
     }
+
+    console.log('Unhandled topic:', topic);
+    return NextResponse.json({ 
+      status: 'success',
+      message: 'Event type not handled' 
+    });
+    
   } catch (error) {
     console.error('Error processing Kopokopo callback:', error);
-    
-    // Log the request body for debugging
-    try {
-      const rawBody = await request.text();
-      console.error('Raw callback body:', rawBody);
-    } catch (e) {
-      console.error('Could not read raw body:', e);
-    }
-    
     return NextResponse.json(
       { 
         status: 'error',
@@ -48,20 +76,19 @@ export async function POST(request: Request) {
   }
 }
 
-async function handleProcessedPayment(data: any) {
-  const { metadata, status, reference } = data;
-  const requestId = metadata.customerId;
-  console.log('Processing payment:', { requestId, status, reference });
+async function handleBuyGoodsTransaction(event: any) {
+  const { type, resource } = event;
+  console.log('Processing buygoods transaction:', { type, resource });
 
   // Find the payment by reference
   const payment = await prisma.payment.findFirst({
     where: {
-      merchantRequestId: reference
+      merchantRequestId: resource.reference
     }
   });
 
   if (!payment) {
-    console.error('Payment not found for reference:', reference);
+    console.error('Payment not found for reference:', resource.reference);
     return NextResponse.json({ 
       status: 'error',
       message: 'Payment not found' 
@@ -76,64 +103,94 @@ async function handleProcessedPayment(data: any) {
       id: payment.id
     },
     data: {
-      resultCode: status === 'SUCCESS' ? '0' : '1',
-      resultDesc: status,
-      mpesaReceiptNumber: data.payment_reference || '',
-      transactionDate: new Date()
+      resultCode: resource.status === 'Received' ? '0' : '1',
+      resultDesc: resource.status,
+      mpesaReceiptNumber: resource.reference,
+      transactionDate: new Date(resource.origination_time),
+      status: resource.status === 'Received' ? PaymentStatus.COMPLETED : PaymentStatus.FAILED
     }
   });
   console.log('Updated payment record:', JSON.stringify(updatedPayment, null, 2));
 
-  // If payment was successful, update the request status
-  if (status === 'SUCCESS') {
+  // If payment was successful, update the request status and create donation
+  if (resource.status === 'Received') {
+    // Create a donation record
+    const donation = await prisma.donation.create({
+      data: {
+        userId: payment.userId!,
+        requestId: payment.requestId!,
+        amount: payment.amount,
+        payment: { connect: { id: payment.id } },
+        status: "COMPLETED",
+        invoice: resource.reference,
+      },
+    });
+    console.log(`Donation recorded successfully: ${donation.id}`);
+
+    // Update request status
     const updatedRequest = await prisma.request.update({
-      where: { id: requestId },
+      where: { id: payment.requestId! },
       data: {
         status: 'PAID'
       }
     });
     console.log('Updated request status:', JSON.stringify(updatedRequest, null, 2));
-  }
 
-  return NextResponse.json({ 
-    status: 'success',
-    message: 'Payment processed successfully' 
-  });
-}
-
-async function handleFailedPayment(data: any) {
-  const { metadata, status, reference } = data;
-  console.log('Processing failed payment:', { metadata, status, reference });
-
-  const payment = await prisma.payment.findFirst({
-    where: {
-      merchantRequestId: reference
-    }
-  });
-
-  if (payment) {
-    await prisma.payment.update({
-      where: {
-        id: payment.id
-      },
-      data: {
-        resultCode: '1',
-        resultDesc: status,
-        status: 'FAILED'
-      }
+    // Update user points
+    const pointsEarned = Math.floor(payment.amount / 50);
+    await prisma.points.create({
+      data: { userId: payment.userId!, amount: pointsEarned, paymentId: payment.id }
     });
+
+    const totalPoints = await prisma.points.aggregate({ 
+      where: { userId: payment.userId! }, 
+      _sum: { amount: true } 
+    });
+    const newLevel = calculateLevel(totalPoints._sum.amount || 0);
+    await prisma.user.update({ 
+      where: { id: payment.userId! }, 
+      data: { level: newLevel } 
+    });
+
+    // Get receiver from the request
+    const request = await prisma.request.findUnique({
+      where: { id: payment.requestId! },
+      include: { User: true }
+    });
+
+    if (request?.User) {
+      // Create a transaction record
+      await prisma.transaction.create({
+        data: {
+          giverId: payment.userId!,
+          receiverId: request.User.id,
+          amount: payment.amount,
+        },
+      });
+      console.log(`Transaction recorded: Giver ${payment.userId} -> Receiver ${request.User.id}`);
+
+      // Update receiver's wallet
+      let receiverWallet = await prisma.wallet.findUnique({ 
+        where: { userId: request.User.id } 
+      });
+
+      if (!receiverWallet) {
+        receiverWallet = await prisma.wallet.create({
+          data: { userId: request.User.id, balance: payment.amount }
+        });
+        console.log(`New wallet created for receiver with initial funding: ${request.User.id}`);
+      } else {
+        await prisma.wallet.update({
+          where: { userId: request.User.id },
+          data: { balance: { increment: payment.amount } },
+        });
+        console.log(`Receiver's wallet updated: ${request.User.id}, Amount added: ${payment.amount}`);
+      }
+    }
   }
 
   return NextResponse.json({ 
     status: 'success',
-    message: 'Failed payment processed' 
+    message: 'Transaction processed successfully' 
   });
 }
-
-async function handleCreatedPayment(data: any) {
-  console.log('Payment request created:', data);
-  return NextResponse.json({ 
-    status: 'success',
-    message: 'Payment request created' 
-  });
-} 
