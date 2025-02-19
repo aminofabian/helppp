@@ -1,13 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import dynamic from 'next/dynamic'
-
-// Dynamically import PayStack to avoid SSR issues
-const PaystackPop = dynamic(
-  () => import("@paystack/inline-js"),
-  { ssr: false }
-)
+import { Loader2 } from 'lucide-react'
 
 interface PaystackButtonProps {
   email: string
@@ -24,16 +18,31 @@ export default function PaystackButton({
   onSuccess,
   onError
 }: PaystackButtonProps) {
-  const [isClient, setIsClient] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const [PaystackPop, setPaystackPop] = useState<any>(null)
 
   useEffect(() => {
-    setIsClient(true)
-  }, [])
+    // Import PayStack only on client side
+    const loadPaystack = async () => {
+      try {
+        const PaystackModule = await import('@paystack/inline-js')
+        setPaystackPop(PaystackModule.default)
+      } catch (error) {
+        console.error('Failed to load Paystack:', error)
+        onError('Failed to load payment module')
+      }
+    }
+    loadPaystack()
+  }, [onError])
 
   const handlePayment = async () => {
-    try {
-      if (!isClient) return
+    if (!PaystackPop) {
+      onError('Payment module not initialized')
+      return
+    }
 
+    try {
+      setIsLoading(true)
       const paystack = new PaystackPop()
       await paystack.newTransaction({
         key: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY,
@@ -47,24 +56,48 @@ export default function PaystackButton({
           } else {
             onError('Payment failed')
           }
+          setIsLoading(false)
         },
         onClose: () => {
           onError('Payment window closed')
+          setIsLoading(false)
         }
       })
     } catch (error) {
+      setIsLoading(false)
       onError(error instanceof Error ? error.message : 'Payment initialization failed')
     }
   }
 
-  if (!isClient) return null
-
   return (
     <button
       onClick={handlePayment}
-      className="w-full px-6 py-3.5 font-medium text-white bg-gradient-to-r from-primary to-primary/90 rounded-xl"
+      disabled={isLoading || !PaystackPop}
+      className={`
+        relative w-full px-6 py-3.5 font-medium text-white
+        bg-gradient-to-r from-primary to-primary/90
+        dark:from-blue-600 dark:to-blue-700
+        rounded-xl overflow-hidden
+        transition-all duration-300
+        shadow-lg hover:shadow-xl
+        transform hover:translate-y-[-2px]
+        disabled:opacity-70 disabled:cursor-not-allowed
+        disabled:hover:translate-y-0
+        group
+      `}
     >
-      Pay with Paystack
+      <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 
+                    transition-opacity duration-300" />
+      <span className={`flex items-center justify-center gap-2
+                     ${isLoading ? 'opacity-0' : 'opacity-100'} 
+                     transition-opacity duration-300`}>
+        Pay with Paystack
+      </span>
+      {isLoading && (
+        <span className="absolute inset-0 flex items-center justify-center">
+          <Loader2 className="w-6 h-6 animate-spin text-white/90" />
+        </span>
+      )}
     </button>
   )
 }

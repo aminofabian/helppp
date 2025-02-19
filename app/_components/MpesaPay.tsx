@@ -314,10 +314,18 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
           return;
         }
 
+        if (!selectedAmount) {
+          setError("Please select an amount");
+          toast.error("Please select an amount");
+          setIsLoading(false);
+          return;
+        }
+
+        setIsLoading(false); // Let PaystackButton handle its own loading state
         return (
           <PaystackButton
             email={email}
-            amount={selectedAmount || 0}
+            amount={selectedAmount}
             requestId={requestId}
             onSuccess={() => {
               setSuccess(true);
@@ -326,7 +334,6 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
             onError={(error) => {
               setError(error);
               toast.error(error);
-              setIsLoading(false);
             }}
           />
         );
