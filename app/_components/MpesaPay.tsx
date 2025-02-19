@@ -7,8 +7,9 @@ import { stkPushQuery } from '../(actions)/stkPushQuery';
 import PaymentSuccess from './Success';
 import PayPalButtonWrapper from './PayPalButtonWrapper';
 import { PayPalScriptProvider } from '@paypal/react-paypal-js';
-import PaystackPop from "@paystack/inline-js";
+import PaystackButton from './PaystackButton';
 import dynamic from "next/dynamic";
+import PaystackPop from "@paystack/inline-js";
 
 
 
@@ -231,119 +232,81 @@ const handleSubmit = async () => {
 
     else if (paymentMethod === "Till") {
       const result = await handleTillPayment(createPaymentFormData());
-      console.log(result, "result from handleTillPayment");
+      console.log('Till payment result:', result);
 
-      if (result && result.status === 'PENDING') {
-        // First toast - STK Push notification
+      if (result?.status === 'PENDING') {
+        // Show initial notification
         toast.custom((t) => (
-          <div className={`${
-            t.visible ? 'animate-enter' : 'animate-leave'
-          } max-w-md w-full bg-white shadow-lg rounded-lg pointer-events-auto flex ring-1 ring-black ring-opacity-5`}>
+          <div className="max-w-md w-full bg-white shadow-lg rounded-lg pointer-events-auto flex ring-1 ring-black ring-opacity-5">
             <div className="flex-1 w-0 p-4">
               <div className="flex items-center">
-                <div className="flex-shrink-0 pt-0.5">
-                  <Phone className="h-10 w-10 text-primary" />
-                </div>
-                <div className="ml-3 flex-1">
+                <Phone className="h-10 w-10 text-primary flex-shrink-0" />
+                <div className="ml-3">
                   <p className="text-sm font-medium text-gray-900">
-                    Check Your Phone
+                    Payment Initiated
                   </p>
                   <p className="mt-1 text-sm text-gray-500">
-                    An M-Pesa STK push has been sent to your phone. Please enter your PIN to complete the payment.
+                    Your payment request has been sent. Please check your phone for the STK push.
                   </p>
                 </div>
               </div>
             </div>
           </div>
-        ), {
-          duration: 10000,
-          position: "top-center",
-        });
+        ), { duration: 8000 });
 
-        // Second toast after delay
+        // Start polling for payment status
+        const pollInterval = setInterval(async () => {
+          try {
+            const status = await checkPaymentStatus(result.paymentId);
+            if (status === 'SUCCESS') {
+              clearInterval(pollInterval);
+              setSuccess(true);
+              toast.success('Payment successful!');
+            } else if (status === 'FAILED') {
+              clearInterval(pollInterval);
+              toast.error('Payment failed. Please try again.');
+              setError('Payment failed');
+            }
+          } catch (error) {
+            console.error('Error checking payment status:', error);
+          }
+        }, 5000); // Poll every 5 seconds
+
+        // Stop polling after 2 minutes
         setTimeout(() => {
-          toast.loading("Waiting for your payment confirmation...", {
-            duration: 5000,
-            position: "top-center",
-            icon: '⌛',
-            style: {
-              background: '#4B5563',
-              color: '#fff',
-              padding: '16px',
-              borderRadius: '8px',
-            },
-          });
-        }, 10000);
+          clearInterval(pollInterval);
+        }, 120000);
       } else {
-        toast.error("Failed to initiate payment. Please try again.", {
-          duration: 5000,
-          position: "top-center",
-          style: {
-            background: '#EF4444',
-            color: '#fff',
-            padding: '16px',
-            borderRadius: '8px',
-          },
-        });
+        toast.error(result?.message || "Failed to initiate payment");
+        setError(result?.message || "Failed to initiate payment");
       }
     }
 
 
     else if (paymentMethod === "Paystack") {
-      const initiatePaystackPayment = async () => {
-        if (!selectedAmount || !requestId) {
-          setError("Please enter a valid amount");
-          toast.error("Please enter a valid amount");
-          return;
-        }
+      if (!email) {
+        setError("Email is required for Paystack payments");
+        toast.error("Please enter your email address");
+        setIsLoading(false);
+        return;
+      }
 
-        setIsLoading(true);
-        
-        try {
-          const response = await fetch("/api/initiate", {
-            method: "POST",
-            headers: { 
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ 
-              amount: selectedAmount,
-              requestId: requestId
-            }),
-            credentials: 'include' // Include credentials for authentication
-          });
-    
-          if (!response.ok) {
-            const errorData = await response.json();
-            
-            if (response.status === 401) {
-              toast.error("Please log in to continue");
-              window.location.href = "/api/auth/login"; 
-              return;
-            }
-            
-            throw new Error(errorData.error || "Failed to initialize payment");
-          }
-    
-          const result = await response.json();
-          const authorization_url = result?.data?.data?.authorization_url;
-    
-          if (!authorization_url) {
-            throw new Error("Failed to retrieve authorization URL");
-          }
-    
-          window.location.href = authorization_url;
-    
-        } catch (error) {
-          console.error("Paystack Payment Error:", error);
-          const errorMessage = error instanceof Error ? error.message : "An error occurred with Paystack";
-          setError(errorMessage);
-          toast.error(errorMessage);
-        } finally {
-          setIsLoading(false);
-        }
-      };
-    
-      await initiatePaystackPayment();
+      return (
+        <PaystackButton
+          email={email}
+          amount={selectedAmount || 0}
+          requestId={requestId}
+          onSuccess={() => {
+            setSuccess(true);
+            toast.success("Payment successful!");
+          }}
+          onError={(error) => {
+            setError(error);
+            toast.error(error);
+            setIsLoading(false);
+          }}
+        />
+      );
     }
     
 
@@ -503,6 +466,37 @@ const handleSubmit = async () => {
                            placeholder-gray-400 dark:placeholder-gray-500
                            text-gray-900 dark:text-gray-100"
                     placeholder="Enter your M-Pesa number"
+                  />
+                </div>
+              </div>
+
+              {/* Email Input */}
+              <div>
+                <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200 mb-4 
+                           flex items-center gap-2">
+                  <span className="w-6 h-6 rounded-full bg-primary/10 dark:bg-gray-800 
+                               flex items-center justify-center text-primary dark:text-blue-400 text-xs">
+                    3
+                  </span>
+                  Enter Email
+                </h3>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Mail className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="block w-full pl-10 pr-3 py-3 text-base
+                           bg-white dark:bg-gray-800 
+                           border border-gray-200 dark:border-gray-700
+                           rounded-xl
+                           focus:outline-none focus:ring-2 focus:ring-primary/20 dark:focus:ring-blue-500/20
+                           focus:border-primary dark:focus:border-blue-500
+                           placeholder-gray-400 dark:placeholder-gray-500
+                           text-gray-900 dark:text-gray-100"
+                    placeholder="Enter your email address"
                   />
                 </div>
               </div>
