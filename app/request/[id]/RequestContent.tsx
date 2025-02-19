@@ -26,8 +26,8 @@ function FundingProgress({ initialData }: { initialData: RequestData }) {
           <div className="text-sm text-gray-500">{Math.round((initialData.funded / initialData.amount) * 100)}%</div>
         </div>
         <div className="flex justify-between text-sm text-gray-500 mt-2">
-          <div>Funded: ${initialData.funded}</div>
-          <div>Goal: ${initialData.amount}</div>
+          <div>Funded: KES{initialData.funded}</div>
+          <div>Goal: KES{initialData.amount}</div>
         </div>
         <div className="text-sm text-gray-500 mt-1">
           Contributors: {initialData.contributors}
@@ -64,6 +64,14 @@ export const ClientRequestContent = ({ request }: { request: RequestData }) => {
       <div className="h-fit rounded-lg lg:col-span-2 mb-10">
         <div className='pl-5 mt-5'>
           <FundingProgress initialData={request} />
+          <div className="flex flex-col space-y-1 mb-4">
+            <div className="flex items-center space-x-2">
+              <span className="text-sm font-medium">KES2000 Covered: 2.6%</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <span className="text-sm">KENYA_HELPERS_ASSOCIATION</span>
+            </div>
+          </div>
           <p className='text-xs'> Created By: <a href={`/u/${request.User?.userName}`}>u/{request.User?.userName}</a> </p>
         </div>
         <div className='my-10'>

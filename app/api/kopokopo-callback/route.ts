@@ -72,11 +72,12 @@ export async function POST(request: Request) {
     console.log('Event details:', { topic, eventType: event?.type });
 
     // Handle different event types
-    if (topic === 'buygoods_transaction_received') {
+    if (topic === 'buygoods_transaction_received' || topic === 'stk_notification_request') {
+      console.log('Processing transaction for topic:', topic);
       return handleBuyGoodsTransaction(event);
     }
 
-    console.log('Unhandled topic:', topic);
+    console.log('Unhandled topic:', topic, 'Full webhook data:', JSON.stringify(webhookData, null, 2));
     return NextResponse.json({ 
       status: 'success',
       message: 'Event type not handled' 
