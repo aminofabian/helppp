@@ -80,39 +80,48 @@ export async function POST(request: Request) {
     const isValid = validateWebhookSignature(rawBody, signature, clientSecret);
     console.log('Signature validation result:', isValid);
 
-    // Parse the webhook body
-    const webhookData = JSON.parse(rawBody);
-    console.log('Parsed webhook data:', webhookData);
+    // Extract webhook data
+    const webhookData = JSON.parse(rawBody).data;
+    if (!webhookData) {
+      console.error('Invalid webhook data');
+      return NextResponse.json({ message: "Invalid webhook data" }, { status: 400 });
+    }
 
-    // Extract payment details from the correct location in the structure
-    const paymentData = webhookData.data.attributes;
-    const event = paymentData.event;
-    const resource = event.resource;
-    const metadata = paymentData.metadata;
+    const { attributes } = webhookData;
+    if (!attributes) {
+      console.error('Missing attributes in webhook data');
+      return NextResponse.json({ message: "Missing attributes" }, { status: 400 });
+    }
+
+    const { status, event, metadata } = attributes;
+    if (!event || !event.resource) {
+      console.error('Missing event or resource data');
+      return NextResponse.json({ message: "Missing event data" }, { status: 400 });
+    }
 
     console.log('Payment details:', {
-      status: paymentData.status,
+      status,
       eventType: event.type,
       resource: {
-        amount: resource.amount,
-        status: resource.status,
-        reference: resource.reference,
-        phoneNumber: resource.sender_phone_number
+        amount: event.resource.amount,
+        status: event.resource.status,
+        reference: event.resource.reference,
+        phoneNumber: event.resource.sender_phone_number
       },
       metadata
     });
 
-    // Check if this is a successful payment
-    if (paymentData.status === 'Success' && resource.status === 'Received') {
-      console.log('Processing successful payment');
+    if (status !== 'Success') {
+      console.log('Payment not successful, status:', status);
+      return NextResponse.json({ message: "Payment not successful" });
+    }
+
+    // Process based on event type
+    if (event.type === 'Incoming Payment Request') {
       return handleBuyGoodsTransaction(event);
     }
 
-    console.log('Unhandled payment status:', paymentData.status);
-    return NextResponse.json({ 
-      status: 'success',
-      message: 'Webhook received but payment not successful' 
-    });
+    return NextResponse.json({ message: "Unhandled event type" });
     
   } catch (error) {
     console.error('Error processing Kopokopo callback:', error);
@@ -134,7 +143,8 @@ export async function POST(request: Request) {
 
 async function handleBuyGoodsTransaction(event: any) {
   console.log('Processing transaction - START');
-  const { type, resource, metadata } = event;
+  const { type, resource } = event;
+  const metadata = event.metadata || {};
   
   if (!resource || !resource.status) {
     console.error('Invalid resource data:', resource);
@@ -160,7 +170,7 @@ async function handleBuyGoodsTransaction(event: any) {
     });
   }
 
-  const requestId = metadata?.requestId;
+  const requestId = metadata.requestId;
   const phone = resource.sender_phone_number;
   const amount = parseFloat(resource.amount);
   
