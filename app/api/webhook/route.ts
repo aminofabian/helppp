@@ -11,8 +11,19 @@ export async function POST(req: Request) {
     const signature = req.headers.get("x-paystack-signature");
     console.log("Signature received:", signature);
 
+    if (!signature) {
+      console.error("No Paystack signature found in request");
+      return NextResponse.json({ error: "No signature provided" }, { status: 401 });
+    }
+
+    if (!process.env.PAYSTACK_SECRET_KEY) {
+      console.error("PAYSTACK_SECRET_KEY not configured");
+      return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
+    }
+
     // Verify Paystack webhook authenticity
-    const hash = crypto.createHmac("sha512", process.env.PAYSTACK_SECRET_KEY!)
+    const hash = crypto
+      .createHmac("sha512", process.env.PAYSTACK_SECRET_KEY)
       .update(rawBody)
       .digest("hex");
 
@@ -20,7 +31,7 @@ export async function POST(req: Request) {
     console.log("Received signature:", signature);
 
     if (hash !== signature) {
-      console.log("Signature verification failed");
+      console.error("Signature verification failed");
       return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
     }
 
@@ -31,10 +42,13 @@ export async function POST(req: Request) {
     if (event.event === "charge.success") {
       console.log("Processing charge.success event");
       const email = event.data.customer.email?.toLowerCase().trim();
-      const amount = event.data.amount / 100; // Convert from kobo to KES
+      const amount = event.data.amount / 100; // Convert from kobo to NGN
       const reference = event.data.reference;
       const currency = event.data.currency;
-      const requestId = event.data.metadata?.requestId;
+      const requestId = event.data.metadata?.custom_fields?.find(
+        (field: { variable_name: string; value: string }) => 
+        field.variable_name === 'request_id'
+      )?.value;
 
       console.log("Extracted data:", {
         email,
@@ -45,6 +59,7 @@ export async function POST(req: Request) {
       });
 
       if (!email || !requestId) {
+        console.error("Missing required data:", { email, requestId });
         return NextResponse.json({ message: "Email or requestId missing" }, { status: 400 });
       }
 

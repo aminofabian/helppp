@@ -16,44 +16,48 @@ const PaystackButton = ({ email, amount, requestId, onSuccess, onError }: Paysta
   const [isLoading, setIsLoading] = useState(false)
 
   const handlePayment = async () => {
-    setIsLoading(true)
     try {
-      const PaystackPop = (await import('@paystack/inline-js')).default
-      const paystack = new PaystackPop()
-      
-      paystack.newTransaction({
-        key: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY as string,
-        email,
-        amount: amount * 100, // Convert to smallest currency unit (kobo)
-        currency: 'KES',
-        reference: `${requestId}_${Date.now()}`,
-        onCancel: () => {
-          setIsLoading(false)
-          toast.error('Payment cancelled')
+      setIsLoading(true)
+
+      // Initialize transaction with Paystack
+      const response = await fetch('/api/initialize-paystack', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
-        onSuccess: (transaction: { reference: string }) => {
-          setIsLoading(false)
-          toast.success('Payment completed successfully!', {
-            duration: 5000,
-            position: 'top-center',
-          })
-          onSuccess()
-        },
-        onError: () => {
-          setIsLoading(false)
-          toast.error('Payment failed. Please try again.')
-          onError('Payment verification failed')
-        }
+        body: JSON.stringify({
+          email,
+          amount: Math.round(amount * 100), // Convert to lowest currency unit (cents)
+          reference: `${requestId}_${Date.now()}`,
+          callback_url: `${window.location.origin}/api/paystack-callback`,
+          metadata: {
+            request_id: requestId,
+            cancel_action: `${window.location.origin}/requests/${requestId}`
+          }
+        }),
       })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to initialize payment')
+      }
+
+      // Redirect to Paystack checkout URL
+      window.location.href = data.authorization_url
+
     } catch (error) {
-      setIsLoading(false)
+      console.error('Payment initialization failed:', error)
       toast.error('Failed to initialize payment')
       onError('Failed to initialize payment')
+    } finally {
+      setIsLoading(false)
     }
   }
 
   return (
     <button
+      type="button"
       onClick={handlePayment}
       disabled={isLoading}
       className={`

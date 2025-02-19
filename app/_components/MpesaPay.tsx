@@ -19,6 +19,7 @@ type PaymentMethod = 'Mpesa' | 'Paystack' | 'PayPal' | 'Till';
 interface PaymentMethodSelectorProps {
   selectedMethod: PaymentMethod;
   onSelect: (method: PaymentMethod) => void;
+  onMethodChange: (method: PaymentMethod) => void;
 }
 
 interface SubmitButtonProps {
@@ -62,14 +63,24 @@ const SubmitButton: React.FC<SubmitButtonProps> = ({ ButtonName, isLoading, onCl
   );
 };
 
-const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({ selectedMethod, onSelect }) => {
+const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({ 
+  selectedMethod, 
+  onSelect,
+  onMethodChange 
+}) => {
   const methods: PaymentMethod[] = ['Mpesa', 'Till', 'Paystack', 'PayPal'];
+  
+  const handleMethodSelect = (method: PaymentMethod) => {
+    onSelect(method);
+    onMethodChange(method);
+  };
+
   return (
     <div className="flex justify-center space-x-3">
       {methods.map((method) => (
         <button
           key={method}
-          onClick={() => onSelect(method)}
+          onClick={() => handleMethodSelect(method)}
           className={`
             px-4 py-2 rounded-xl text-sm font-medium
             transition-all duration-300 transform
@@ -157,13 +168,21 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
       setError('Please select a valid amount');
       return false;
     }
-    if ((paymentMethod === 'Mpesa' || paymentMethod === 'Till') && (!phoneNumber || !/^(?:254|\+254|0)?([0-9]{9})$/.test(phoneNumber))) {
+
+    // Phone number only required for Mpesa and Till payments
+    if ((paymentMethod === 'Mpesa' || paymentMethod === 'Till') && 
+        (!phoneNumber || !/^(?:254|\+254|0)?([0-9]{9})$/.test(phoneNumber))) {
       setError('Please enter a valid Kenyan phone number');
       return false;
     }
-   
 
-    
+    // Email only required for Paystack and PayPal
+    if ((paymentMethod === 'Paystack' || paymentMethod === 'PayPal') && 
+        (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))) {
+      setError('Please enter a valid email address');
+      return false;
+    }
+
     return true;
   };
 
@@ -247,7 +266,6 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
 
     setIsLoading(true);
     setError(null);
-    setShowPaystackButton(false);
 
     try {
       const createPaymentFormData = () => {
@@ -307,35 +325,32 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
       }
 
       else if (paymentMethod === "Paystack") {
-        console.log('Initializing Paystack payment with:', {
-          email,
-          selectedAmount,
-          requestId
-        });
-
         if (!email) {
           setError("Email is required for Paystack payments");
           toast.error("Please enter your email address");
+          setIsLoading(false);
           return;
         }
 
         if (!selectedAmount) {
           setError("Please select an amount");
           toast.error("Please select an amount");
+          setIsLoading(false);
           return;
         }
 
         setShowPaystackButton(true);
+        setIsLoading(false);
       }
 
       else {
         setError("This payment method is not yet implemented.");
+        setIsLoading(false);
       }
     } catch (error) {
       console.error("Payment error:", error);
       setError("An error occurred during payment. Please try again.");
       toast.error("An error occurred during payment. Please try again.");
-    } finally {
       setIsLoading(false);
     }
   };
@@ -354,7 +369,19 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
           <h2 className="text-xl font-bold text-center text-white mb-4 relative z-10">
             Complete Your Payment
           </h2>
-          <PaymentMethodSelector selectedMethod={paymentMethod} onSelect={setPaymentMethod} />
+          <PaymentMethodSelector 
+            selectedMethod={paymentMethod} 
+            onSelect={setPaymentMethod} 
+            onMethodChange={(method) => {
+              setShowPaystackButton(false);
+              setError(null);
+              if (method === 'Paystack' || method === 'PayPal') {
+                setPhoneNumber('');
+              } else {
+                setEmail('');
+              }
+            }} 
+          />
         </div>
 
         <div className="p-5 sm:p-6 lg:p-8">
@@ -476,7 +503,7 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
             )}
 
             {/* Email Input */}
-            {paymentMethod === 'PayPal' && (
+            {(paymentMethod === 'PayPal' || paymentMethod === 'Paystack') && (
               <div>
                 <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200 mb-4 
                              flex items-center gap-2">
