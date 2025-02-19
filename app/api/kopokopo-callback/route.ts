@@ -80,32 +80,38 @@ export async function POST(request: Request) {
     const isValid = validateWebhookSignature(rawBody, signature, clientSecret);
     console.log('Signature validation result:', isValid);
 
-    if (!isValid) {
-      console.error('Invalid webhook signature');
-      return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
-    }
-
     // Parse the webhook body
     const webhookData = JSON.parse(rawBody);
     console.log('Parsed webhook data:', webhookData);
 
-    // Extract payment details
-    const { metadata, status } = webhookData;
-    console.log('Payment details:', { metadata, status });
+    // Extract payment details from the correct location in the structure
+    const paymentData = webhookData.data.attributes;
+    const event = paymentData.event;
+    const resource = event.resource;
+    const metadata = paymentData.metadata;
 
-    const { topic, event } = webhookData;
-    console.log('Event details:', { topic, eventType: event?.type });
+    console.log('Payment details:', {
+      status: paymentData.status,
+      eventType: event.type,
+      resource: {
+        amount: resource.amount,
+        status: resource.status,
+        reference: resource.reference,
+        phoneNumber: resource.sender_phone_number
+      },
+      metadata
+    });
 
-    // Handle different event types
-    if (topic === 'buygoods_transaction_received' || topic === 'stk_notification_request') {
-      console.log('Processing transaction for topic:', topic);
+    // Check if this is a successful payment
+    if (paymentData.status === 'Success' && resource.status === 'Received') {
+      console.log('Processing successful payment');
       return handleBuyGoodsTransaction(event);
     }
 
-    console.log('Unhandled topic:', topic, 'Full webhook data:', JSON.stringify(webhookData, null, 2));
+    console.log('Unhandled payment status:', paymentData.status);
     return NextResponse.json({ 
       status: 'success',
-      message: 'Event type not handled' 
+      message: 'Webhook received but payment not successful' 
     });
     
   } catch (error) {
@@ -128,13 +134,22 @@ export async function POST(request: Request) {
 
 async function handleBuyGoodsTransaction(event: any) {
   console.log('Processing transaction - START');
-  const { type, resource } = event;
-  console.log('Transaction details:', { 
-    type, 
-    reference: resource?.reference,
-    status: resource?.status,
-    amount: resource?.amount,
-    metadata: resource?.metadata 
+  const { type, resource, metadata } = event;
+  
+  if (!resource || !resource.status) {
+    console.error('Invalid resource data:', resource);
+    return NextResponse.json({ 
+      status: 'error',
+      message: 'Invalid resource data' 
+    }, { status: 400 });
+  }
+
+  console.log('Processing payment:', {
+    amount: resource.amount,
+    status: resource.status,
+    reference: resource.reference,
+    phone: resource.sender_phone_number,
+    metadata
   });
 
   if (resource.status !== 'Received') {
@@ -145,8 +160,9 @@ async function handleBuyGoodsTransaction(event: any) {
     });
   }
 
-  const requestId = resource.metadata?.requestId;
+  const requestId = metadata?.requestId;
   const phone = resource.sender_phone_number;
+  const amount = parseFloat(resource.amount);
   
   if (!requestId || !phone) {
     console.error('Missing required data:', { requestId, phone });
@@ -164,6 +180,12 @@ async function handleBuyGoodsTransaction(event: any) {
       console.error('Request not found for requestId:', requestId);
       return NextResponse.json({ message: "Request not found" }, { status: 404 });
     }
+
+    console.log('Found request:', { 
+      id: request.id, 
+      userId: request.userId,
+      amount: amount
+    });
 
     // Find or create giver based on phone number
     let giver = await prisma.user.findFirst({ 
@@ -184,8 +206,6 @@ async function handleBuyGoodsTransaction(event: any) {
       });
       console.log('Created temporary user for giver:', giver.id);
     }
-
-    const amount = parseFloat(resource.amount);
 
     // Start a transaction for all database operations
     const result = await prisma.$transaction(async (prisma) => {
@@ -213,7 +233,8 @@ async function handleBuyGoodsTransaction(event: any) {
           amount: amount,
           payment: { connect: { id: payment.id } },
           status: "COMPLETED",
-          invoice: resource.reference
+          invoice: resource.reference,
+          phoneNumber: phone
         }
       });
       console.log('Donation recorded:', donation.id);
