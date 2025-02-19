@@ -146,10 +146,10 @@ async function handleBuyGoodsTransaction(event: any) {
   }
 
   const requestId = resource.metadata?.requestId;
-  const phoneNumber = resource.sender_phone_number;
+  const phone = resource.sender_phone_number;
   
-  if (!requestId || !phoneNumber) {
-    console.error('Missing required data:', { requestId, phoneNumber });
+  if (!requestId || !phone) {
+    console.error('Missing required data:', { requestId, phone });
     return NextResponse.json({ message: "Required data missing" }, { status: 400 });
   }
 
@@ -167,16 +167,18 @@ async function handleBuyGoodsTransaction(event: any) {
 
     // Find or create giver based on phone number
     let giver = await prisma.user.findFirst({ 
-      where: { phoneNumber: phoneNumber }
+      where: { phone: phone }
     });
 
     if (!giver) {
       // Create a temporary user for the giver if not found
       giver = await prisma.user.create({
         data: {
-          phoneNumber: phoneNumber,
-          name: 'Anonymous Giver',
-          email: `${phoneNumber.replace('+', '')}@temporary.com`,
+          phone: phone,
+          firstName: 'Anonymous',
+          lastName: 'Giver',
+          email: `${phone.replace('+', '')}@temporary.com`,
+          userName: `anon_${phone.replace(/[^0-9]/g, '')}`,
           level: 1
         }
       });
@@ -198,7 +200,7 @@ async function handleBuyGoodsTransaction(event: any) {
           currency: resource.currency,
           requestId: requestId,
           userts: new Date(),
-          phoneNumber: phoneNumber
+          phoneNumber: phone
         }
       });
       console.log('Payment recorded:', payment.id);
