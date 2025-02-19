@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Suspense } from 'react';
 import Image from "next/image";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -10,14 +10,16 @@ import { CreditCard, Users, Trophy, HandHeart, Star, Activity } from 'lucide-rea
 import { Progress } from "@/components/ui/progress";
 import DonationCount from './DonationCount';
 import { calculateLevel } from '@/app/lib/levelCalculator';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
+import dynamic from 'next/dynamic';
+
+// Dynamically import Dialog components with no SSR
+const Dialog = dynamic(() => import("@/components/ui/dialog").then(mod => mod.Dialog), { ssr: false });
+const DialogTrigger = dynamic(() => import("@/components/ui/dialog").then(mod => mod.DialogTrigger), { ssr: false });
+const DialogContent = dynamic(() => import("@/components/ui/dialog").then(mod => mod.DialogContent), { ssr: false });
+const DialogHeader = dynamic(() => import("@/components/ui/dialog").then(mod => mod.DialogHeader), { ssr: false });
+const DialogTitle = dynamic(() => import("@/components/ui/dialog").then(mod => mod.DialogTitle), { ssr: false });
+const DialogDescription = dynamic(() => import("@/components/ui/dialog").then(mod => mod.DialogDescription), { ssr: false });
+
 import B2CPaymentForm from './B2CPaymentForm';
 import MenuBar from './MenuBar';
 import WalletDepositForm from './WalletDepositForm';
@@ -267,86 +269,88 @@ export default function HomeNavRight({
                           dark:from-gray-800/40 dark:via-gray-800/60 dark:to-gray-800/40 
                           p-4 rounded-lg space-y-2 shadow-inner
                           transition-all duration-300">
-            <Dialog>
-              <DialogTrigger asChild>
-                <div className="flex items-center justify-between cursor-pointer 
+            <Suspense fallback={<div>Loading...</div>}>
+              <Dialog>
+                <DialogTrigger asChild>
+                  <div className="flex items-center justify-between cursor-pointer 
                               hover:opacity-80 transition-opacity duration-200
                               dark:text-gray-200">
-                  <div className="flex items-center gap-2">
-                    <Trophy className="w-5 h-5 text-amber-500 dark:text-amber-400" />
-                    <span className="font-semibold">Level {currentLevel}</span>
+                    <div className="flex items-center gap-2">
+                      <Trophy className="w-5 h-5 text-amber-500 dark:text-amber-400" />
+                      <span className="font-semibold">Level {currentLevel}</span>
+                    </div>
+                    <div className="text-sm text-muted-foreground dark:text-gray-400">
+                      {calculatedPoints} / {nextThreshold?.points || calculatedPoints} XP
+                    </div>
                   </div>
-                  <div className="text-sm text-muted-foreground dark:text-gray-400">
-                    {calculatedPoints} / {nextThreshold?.points || calculatedPoints} XP
-                  </div>
-                </div>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle className="flex items-center gap-2">
-                    <Trophy className="w-5 h-5 text-amber-500" />
-                    Level Progress
-                  </DialogTitle>
-                  <DialogDescription>
-                    <div className="space-y-4 mt-2">
-                      <div>
-                        <div className="flex justify-between mb-2">
-                          <span>Current Level: {currentLevel}</span>
-                          <span>Points: {calculatedPoints}</span>
-                        </div>
-                        <Progress value={progress} className="h-2" />
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {pointsNeeded} points needed for Level {currentLevel + 1}
-                        </p>
-                        {currentPerks && (
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Current limit: {currentPerks.limit}
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                      <Trophy className="w-5 h-5 text-amber-500" />
+                      Level Progress
+                    </DialogTitle>
+                    <DialogDescription>
+                      <div className="space-y-4 mt-2">
+                        <div>
+                          <div className="flex justify-between mb-2">
+                            <span>Current Level: {currentLevel}</span>
+                            <span>Points: {calculatedPoints}</span>
+                          </div>
+                          <Progress value={progress} className="h-2" />
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {pointsNeeded} points needed for Level {currentLevel + 1}
                           </p>
-                        )}
-                      </div>
-                      
-                      <div className="border-t pt-4">
-                        <h4 className="font-medium mb-2">Current Level Perks</h4>
-                        <ul className="space-y-2">
-                          {currentPerks?.perks.map((perk, index) => (
-                            <li key={index} className="flex items-center gap-2 text-sm">
-                              {perk.icon}
-                              {perk.text}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-
-                      {nextPerks && (
+                          {currentPerks && (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Current limit: {currentPerks.limit}
+                            </p>
+                          )}
+                        </div>
+                        
                         <div className="border-t pt-4">
-                          <h4 className="font-medium mb-2">Next Level Perks</h4>
+                          <h4 className="font-medium mb-2">Current Level Perks</h4>
                           <ul className="space-y-2">
-                            {nextPerks.perks.map((perk, index) => (
+                            {currentPerks?.perks.map((perk, index) => (
                               <li key={index} className="flex items-center gap-2 text-sm">
                                 {perk.icon}
                                 {perk.text}
                               </li>
                             ))}
                           </ul>
-                          <p className="text-xs text-muted-foreground mt-2">
-                            Next level limit: {nextPerks.limit}
-                          </p>
                         </div>
-                      )}
 
-                      <div className="bg-muted p-3 rounded-lg mt-4">
-                        <h4 className="font-medium mb-2">How to Earn Points</h4>
-                        <ul className="space-y-1 text-sm">
-                          <li>• Donate to help requests (1 point per KES 50)</li>
-                          <li>• Create help communities (100 points)</li>
-                          <li>• Receive successful donations (50 points)</li>
-                        </ul>
+                        {nextPerks && (
+                          <div className="border-t pt-4">
+                            <h4 className="font-medium mb-2">Next Level Perks</h4>
+                            <ul className="space-y-2">
+                              {nextPerks.perks.map((perk, index) => (
+                                <li key={index} className="flex items-center gap-2 text-sm">
+                                  {perk.icon}
+                                  {perk.text}
+                                </li>
+                              ))}
+                            </ul>
+                            <p className="text-xs text-muted-foreground mt-2">
+                              Next level limit: {nextPerks.limit}
+                            </p>
+                          </div>
+                        )}
+
+                        <div className="bg-muted p-3 rounded-lg mt-4">
+                          <h4 className="font-medium mb-2">How to Earn Points</h4>
+                          <ul className="space-y-1 text-sm">
+                            <li>• Donate to help requests (1 point per KES 50)</li>
+                            <li>• Create help communities (100 points)</li>
+                            <li>• Receive successful donations (50 points)</li>
+                          </ul>
+                        </div>
                       </div>
-                    </div>
-                  </DialogDescription>
-                </DialogHeader>
-              </DialogContent>
-            </Dialog>
+                    </DialogDescription>
+                  </DialogHeader>
+                </DialogContent>
+              </Dialog>
+            </Suspense>
             <Progress value={progress} className="h-2 dark:bg-gray-800/50" />
           </div>
           
@@ -376,28 +380,30 @@ export default function HomeNavRight({
                           transition-all duration-300">
               <div className="text-xs uppercase mb-1 opacity-90">Account balance</div>
               <div className="text-2xl font-bold dark:text-gray-100">{wallet ? `${wallet.balance} KES` : '0 KES'}</div>
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button className="w-full mt-3 bg-green-500/90 hover:bg-green-600 
+              <Suspense fallback={<div>Loading...</div>}>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button className="w-full mt-3 bg-green-500/90 hover:bg-green-600 
                                    dark:bg-green-600/80 dark:hover:bg-green-700
                                    text-white shadow-md hover:shadow-lg
                                    transition-all duration-300">
-                    Add funds
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Add Funds to Wallet</DialogTitle>
-                    <DialogDescription>
-                      <WalletDepositForm 
-                        onSuccess={(newBalance) => {
-                          setWallet(prev => ({ ...prev, balance: newBalance }));
-                        }} 
-                      />
-                    </DialogDescription>
-                  </DialogHeader>
-                </DialogContent>
-              </Dialog>
+                      Add funds
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Add Funds to Wallet</DialogTitle>
+                      <DialogDescription>
+                        <WalletDepositForm 
+                          onSuccess={(newBalance) => {
+                            setWallet(prev => ({ ...prev, balance: newBalance }));
+                          }} 
+                        />
+                      </DialogDescription>
+                    </DialogHeader>
+                  </DialogContent>
+                </Dialog>
+              </Suspense>
             </div>
             
             <div className="bg-green-50/80 backdrop-blur-sm
@@ -409,25 +415,27 @@ export default function HomeNavRight({
                 {wallet ? `${wallet.balance} KES` : '0 KES'}
               </div>
               <div className="mt-3 grid grid-cols-2 gap-2">
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button variant="outline" 
-                            className="w-full lowercase text-xs text-primary
+                <Suspense fallback={<div>Loading...</div>}>
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" 
+                              className="w-full lowercase text-xs text-primary
                                      dark:text-gray-300 dark:border-gray-700
                                      dark:hover:bg-gray-700/50
                                      transition-all duration-300">
-                      Withdraw
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Withdraw Funds</DialogTitle>
-                      <DialogDescription>
-                        <B2CPaymentForm amountValue={wallet ? wallet.balance : 0} />
-                      </DialogDescription>
-                    </DialogHeader>
-                  </DialogContent>
-                </Dialog>
+                        Withdraw
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Withdraw Funds</DialogTitle>
+                        <DialogDescription>
+                          <B2CPaymentForm amountValue={wallet ? wallet.balance : 0} />
+                        </DialogDescription>
+                      </DialogHeader>
+                    </DialogContent>
+                  </Dialog>
+                </Suspense>
                 <Button variant="outline" 
                         className="w-full lowercase text-xs text-primary
                                  dark:text-gray-300 dark:border-gray-700
