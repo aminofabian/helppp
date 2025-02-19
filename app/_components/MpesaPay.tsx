@@ -469,8 +469,8 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
 
           {/* Payment Details Section */}
           <div className="space-y-6">
-            {/* Phone Number Input */}
-            {paymentMethod !== 'PayPal' && (
+            {/* Phone Number Input - Only show for Mpesa and Till */}
+            {(paymentMethod === 'Mpesa' || paymentMethod === 'Till') && (
               <div>
                 <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200 mb-4 
                              flex items-center gap-2">
@@ -502,8 +502,8 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
               </div>
             )}
 
-            {/* Email Input */}
-            {(paymentMethod === 'PayPal' || paymentMethod === 'Paystack') && (
+            {/* Email Input - Only show for Paystack and PayPal */}
+            {(paymentMethod === 'Paystack' || paymentMethod === 'PayPal') && (
               <div>
                 <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200 mb-4 
                              flex items-center gap-2">
@@ -511,7 +511,7 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
                                flex items-center justify-center text-primary dark:text-blue-400 text-xs">
                     2
                   </span>
-                  Enter Email
+                  Enter Email Address
                 </h3>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -534,38 +534,21 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
                 </div>
               </div>
             )}
-
-            {/* Submit Button or PayStack Button */}
-            {showPaystackButton ? (
-              <div className="mt-4">
+            {/* Payment Button */}
+            <div className="mt-8">
+              {paymentMethod === 'Paystack' && selectedAmount && email ? (
                 <PaystackButton
                   email={email}
-                  amount={selectedAmount || 0}
+                  amount={selectedAmount}
                   requestId={requestId}
-                  onSuccess={() => {
-                    console.log('Payment successful');
-                    setSuccess(true);
-                    toast.success("Payment successful!");
-                  }}
-                  onError={(error) => {
-                    console.error('Payment error:', error);
-                    setError(error);
-                    toast.error(error);
-                    setShowPaystackButton(false);
-                  }}
                 />
-              </div>
-            ) : (
-              <SubmitButton
-                ButtonName={`Pay ${selectedAmount || customAmount || 0} ${paymentMethod === 'PayPal' ? 'USD' : 'KES'}`}
-                isLoading={isLoading}
-                onClick={handleSubmit}
-              />
-            )}
-
-            {/* Points Display */}
-            <div className="text-center text-sm text-gray-500 dark:text-gray-400">
-              You will receive {(Number(selectedAmount || customAmount || 0) / 50).toFixed(1)} points
+              ) : (paymentMethod !== 'Paystack' && (
+                <SubmitButton
+                  ButtonName={`Pay ${selectedAmount || customAmount} ${paymentMethod === 'PayPal' ? 'USD' : 'KES'}`}
+                  isLoading={isLoading}
+                  onClick={handleSubmit}
+                />
+              ))}
             </div>
           </div>
         </div>
