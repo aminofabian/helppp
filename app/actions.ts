@@ -521,15 +521,15 @@ async function initiatePayment(requestId: string, amount: number, phoneNumber: s
   } catch (error: any) {
     if (axios.isAxiosError(error)) {
       if (error.code === 'ETIMEDOUT') {
-        console.error('❌ Payment request timed out.');
+        console.error('Payment request timed out.');
         throw new Error('Payment request timed out. Please try again.');
       }
       if (error.code === 'ECONNREFUSED') {
-        console.error('❌ Connection refused.');
+        console.error('Connection refused.');
         throw new Error('Payment service is unavailable. Please try later.');
       }
     }
-    console.error('❌ Payment initiation failed:', error);
+    console.error('Payment initiation failed:', error);
     throw new Error(error.message || 'Failed to process payment request.');
   }
 }
