@@ -281,6 +281,9 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
         console.log(result, "result from handleMpesa");
 
         if (result.success && result.response.CheckoutRequestID) {
+          toast.success('Mpesa payment prompt sent to your phone. Please check your phone to complete the payment.', {
+            duration: 6000,
+          });
           stkPushQueryWithIntervals(result.response.CheckoutRequestID);
         } else {
           toast.error(result.message || "Failed to initiate payment", {

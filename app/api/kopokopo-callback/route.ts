@@ -5,13 +5,13 @@ import { PaymentMethod, PaymentStatus } from '@prisma/client';
 import { calculateLevel } from '@/app/lib/levelCalculator';
 
 // Validate Kopokopo webhook signature
-function validateWebhookSignature(body: string, signature: string | null, apiKey: string): boolean {
+function validateWebhookSignature(body: string, signature: string | null, clientSecret: string): boolean {
   if (!signature) {
     console.log('No signature provided');
     return false;
   }
-  console.log('Validating signature:', { signature, apiKey: apiKey.substring(0, 4) + '...' });
-  const hmac = crypto.createHmac('sha256', apiKey);
+  console.log('Validating signature:', { signature, clientSecret: clientSecret.substring(0, 4) + '...' });
+  const hmac = crypto.createHmac('sha256', clientSecret);
   const calculatedSignature = hmac.update(body).digest('hex');
   console.log('Calculated signature:', calculatedSignature);
   return crypto.timingSafeEqual(
@@ -31,7 +31,7 @@ export async function POST(request: Request) {
     console.log('Raw webhook body:', rawBody);
     
     const headersList = request.headers;
-    const signature = headersList.get('x-kopokopo-signature') || headersList.get('X-KopoKopo-Signature');
+    const signature = headersList.get('X-KopoKopo-Signature');
     
     // Log all headers for debugging
     console.log('Request headers:', {
@@ -45,14 +45,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing signature' }, { status: 401 });
     }
 
-    const apiKey = process.env.KOPOKOPO_API_KEY;
-    if (!apiKey) {
-      console.error('Missing KOPOKOPO_API_KEY environment variable');
+    const clientSecret = process.env.KOPOKOPO_CLIENT_SECRET;
+    if (!clientSecret) {
+      console.error('Missing KOPOKOPO_CLIENT_SECRET environment variable');
       return NextResponse.json({ error: 'Configuration error' }, { status: 500 });
     }
 
     // Validate signature
-    const isValid = validateWebhookSignature(rawBody, signature, apiKey);
+    const isValid = validateWebhookSignature(rawBody, signature, clientSecret);
     console.log('Signature validation result:', isValid);
 
     if (!isValid) {
@@ -209,79 +209,99 @@ async function handleBuyGoodsTransaction(event: any) {
 }
 
 async function handleSuccessfulPayment(payment: any, request?: any) {
-  // Create a donation record
-  const donation = await prisma.donation.create({
-    data: {
-      userId: payment.userId!,
-      requestId: payment.requestId!,
-      amount: payment.amount,
-      payment: { connect: { id: payment.id } },
-      status: "COMPLETED",
-      invoice: payment.mpesaReceiptNumber || payment.merchantRequestId,
-    },
-  });
-  console.log(`Donation recorded successfully: ${donation.id}`);
-
-  // Update request status
-  const updatedRequest = await prisma.request.update({
-    where: { id: payment.requestId! },
-    data: {
-      status: 'PAID'
-    }
-  });
-  console.log('Updated request status:', JSON.stringify(updatedRequest, null, 2));
-
-  // Update user points
-  const pointsEarned = Math.floor(payment.amount / 50);
-  await prisma.points.create({
-    data: { userId: payment.userId!, amount: pointsEarned, paymentId: payment.id }
-  });
-
-  const totalPoints = await prisma.points.aggregate({ 
-    where: { userId: payment.userId! }, 
-    _sum: { amount: true } 
-  });
-  const newLevel = calculateLevel(totalPoints._sum.amount || 0);
-  await prisma.user.update({ 
-    where: { id: payment.userId! }, 
-    data: { level: newLevel } 
-  });
-
-  // Get receiver from the request if not provided
-  if (!request) {
-    request = await prisma.request.findUnique({
-      where: { id: payment.requestId! },
-      include: { User: true }
-    });
-  }
-
-  if (request?.User) {
-    // Create a transaction record
-    await prisma.transaction.create({
+  try {
+    // Create a donation record
+    const donation = await prisma.donation.create({
       data: {
-        giverId: payment.userId!,
-        receiverId: request.User.id,
+        userId: payment.userId!,
+        requestId: payment.requestId!,
         amount: payment.amount,
+        payment: { connect: { id: payment.id } },
+        status: "COMPLETED",
+        invoice: payment.mpesaReceiptNumber || payment.merchantRequestId,
       },
     });
-    console.log(`Transaction recorded: Giver ${payment.userId} -> Receiver ${request.User.id}`);
+    console.log(`Donation recorded successfully: ${donation.id}`);
 
-    // Update receiver's wallet
-    let receiverWallet = await prisma.wallet.findUnique({ 
-      where: { userId: request.User.id } 
+    // Emit payment success event
+    const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/payment-events`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        type: 'payment_success',
+        paymentId: payment.id,
+      }),
     });
 
-    if (!receiverWallet) {
-      receiverWallet = await prisma.wallet.create({
-        data: { userId: request.User.id, balance: payment.amount }
-      });
-      console.log(`New wallet created for receiver with initial funding: ${request.User.id}`);
-    } else {
-      await prisma.wallet.update({
-        where: { userId: request.User.id },
-        data: { balance: { increment: payment.amount } },
-      });
-      console.log(`Receiver's wallet updated: ${request.User.id}, Amount added: ${payment.amount}`);
+    if (!res.ok) {
+      console.error('Failed to emit payment success event');
     }
+
+    // Update request status
+    const updatedRequest = await prisma.request.update({
+      where: { id: payment.requestId! },
+      data: {
+        status: 'PAID'
+      }
+    });
+    console.log('Updated request status:', JSON.stringify(updatedRequest, null, 2));
+
+    // Update user points
+    const pointsEarned = Math.floor(payment.amount / 50);
+    await prisma.points.create({
+      data: { userId: payment.userId!, amount: pointsEarned, paymentId: payment.id }
+    });
+
+    const totalPoints = await prisma.points.aggregate({ 
+      where: { userId: payment.userId! }, 
+      _sum: { amount: true } 
+    });
+    const newLevel = calculateLevel(totalPoints._sum.amount || 0);
+    await prisma.user.update({ 
+      where: { id: payment.userId! }, 
+      data: { level: newLevel } 
+    });
+
+    // Get receiver from the request if not provided
+    if (!request) {
+      request = await prisma.request.findUnique({
+        where: { id: payment.requestId! },
+        include: { User: true }
+      });
+    }
+
+    if (request?.User) {
+      // Create a transaction record
+      await prisma.transaction.create({
+        data: {
+          giverId: payment.userId!,
+          receiverId: request.User.id,
+          amount: payment.amount,
+        },
+      });
+      console.log(`Transaction recorded: Giver ${payment.userId} -> Receiver ${request.User.id}`);
+
+      // Update receiver's wallet
+      let receiverWallet = await prisma.wallet.findUnique({ 
+        where: { userId: request.User.id } 
+      });
+
+      if (!receiverWallet) {
+        receiverWallet = await prisma.wallet.create({
+          data: { userId: request.User.id, balance: payment.amount }
+        });
+        console.log(`New wallet created for receiver with initial funding: ${request.User.id}`);
+      } else {
+        await prisma.wallet.update({
+          where: { userId: request.User.id },
+          data: { balance: { increment: payment.amount } },
+        });
+        console.log(`Receiver's wallet updated: ${request.User.id}, Amount added: ${payment.amount}`);
+      }
+    }
+  } catch (error) {
+    console.error('Error processing successful payment:', error);
   }
 }
