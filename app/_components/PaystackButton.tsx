@@ -1,10 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Loader2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { Button } from '@/components/ui/button'
-import PaystackPop from '@paystack/inline-js'
+import dynamic from 'next/dynamic'
 
 interface PaystackButtonProps {
   email: string
@@ -16,8 +16,15 @@ interface PaystackButtonProps {
 
 const PaystackButton = ({ email, amount, requestId, onSuccess, onError }: PaystackButtonProps) => {
   const [isLoading, setIsLoading] = useState(false)
+  const [isMounted, setIsMounted] = useState(false)
+
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
 
   const handlePayment = async () => {
+    if (!isMounted) return
+
     try {
       setIsLoading(true)
       toast.loading('Initializing payment...', {
@@ -25,7 +32,10 @@ const PaystackButton = ({ email, amount, requestId, onSuccess, onError }: Paysta
         position: 'top-center',
       })
 
+      // Dynamically import PaystackPop only on client side
+      const PaystackPop = (await import('@paystack/inline-js')).default
       const paystack = new PaystackPop()
+      
       paystack.newTransaction({
         key: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY!,
         email,
@@ -73,6 +83,11 @@ const PaystackButton = ({ email, amount, requestId, onSuccess, onError }: Paysta
     }
   }
 
+  // Don't render anything until mounted
+  if (!isMounted) {
+    return null
+  }
+
   return (
     <Button
       onClick={handlePayment}
@@ -106,4 +121,7 @@ const PaystackButton = ({ email, amount, requestId, onSuccess, onError }: Paysta
   )
 }
 
-export default PaystackButton
+// Prevent server-side rendering of this component
+export default dynamic(() => Promise.resolve(PaystackButton), {
+  ssr: false
+})
