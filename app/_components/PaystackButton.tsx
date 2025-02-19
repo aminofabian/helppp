@@ -19,60 +19,68 @@ export default function PaystackButton({
   onError
 }: PaystackButtonProps) {
   const [isLoading, setIsLoading] = useState(false)
-  const [PaystackPop, setPaystackPop] = useState<any>(null)
-
-  useEffect(() => {
-    // Import PayStack only on client side
-    const loadPaystack = async () => {
-      try {
-        const PaystackModule = await import('@paystack/inline-js')
-        setPaystackPop(PaystackModule.default)
-      } catch (error) {
-        console.error('Failed to load Paystack:', error)
-        onError('Failed to load payment module')
-      }
-    }
-    loadPaystack()
-  }, [onError])
+  const [isInitialized, setIsInitialized] = useState(false)
 
   const handlePayment = async () => {
-    if (!PaystackPop) {
+    if (!isInitialized) {
       onError('Payment module not initialized')
+      return
+    }
+
+    const paystackKey = process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY
+    if (!paystackKey) {
+      onError('PayStack API key is not configured')
       return
     }
 
     try {
       setIsLoading(true)
+      
+      const PaystackPop = (await import('@paystack/inline-js')).default
       const paystack = new PaystackPop()
-      await paystack.newTransaction({
-        key: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY,
+
+      paystack.newTransaction({
+        key: paystackKey,
         email,
         amount: amount * 100, // Convert to kobo
         currency: 'KES',
-        ref: `${requestId}_${Date.now()}`,
-        callback: (response: any) => {
-          if (response.status === 'success') {
-            onSuccess()
-          } else {
-            onError('Payment failed')
-          }
+        reference: `${requestId}_${Date.now()}`,
+        onSuccess: (response: any) => {
+          console.log('Payment successful:', response)
+          onSuccess()
           setIsLoading(false)
         },
-        onClose: () => {
-          onError('Payment window closed')
+        onCancel: () => {
+          console.log('Payment cancelled')
+          onError('Payment was cancelled')
           setIsLoading(false)
         }
       })
     } catch (error) {
+      console.error('Payment error:', error)
       setIsLoading(false)
       onError(error instanceof Error ? error.message : 'Payment initialization failed')
     }
   }
 
+  // Initialize Paystack on mount
+  useEffect(() => {
+    const initialize = async () => {
+      try {
+        await import('@paystack/inline-js')
+        setIsInitialized(true)
+      } catch (error) {
+        console.error('Failed to initialize Paystack:', error)
+        onError('Failed to initialize payment module')
+      }
+    }
+    initialize()
+  }, [onError])
+
   return (
     <button
       onClick={handlePayment}
-      disabled={isLoading || !PaystackPop}
+      disabled={isLoading || !isInitialized}
       className={`
         relative w-full px-6 py-3.5 font-medium text-white
         bg-gradient-to-r from-primary to-primary/90
@@ -91,7 +99,7 @@ export default function PaystackButton({
       <span className={`flex items-center justify-center gap-2
                      ${isLoading ? 'opacity-0' : 'opacity-100'} 
                      transition-opacity duration-300`}>
-        Pay with Paystack
+        {!isInitialized ? 'Loading...' : 'Pay with Paystack'}
       </span>
       {isLoading && (
         <span className="absolute inset-0 flex items-center justify-center">

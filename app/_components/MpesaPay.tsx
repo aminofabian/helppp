@@ -100,8 +100,7 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [stkQueryLoading, setStkQueryLoading] = useState(false);
   const [success, setSuccess] = useState(false);
-
-  const [showPayPal, setShowPayPal] = useState(false);
+  const [showPaystackButton, setShowPaystackButton] = useState(false);
 
   const [clientId, setClientId] = useState<string>("");
   const [loading, setLoading] = useState(true);
@@ -248,6 +247,7 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
 
     setIsLoading(true);
     setError(null);
+    setShowPaystackButton(false);
 
     try {
       const createPaymentFormData = () => {
@@ -307,38 +307,26 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
       }
 
       else if (paymentMethod === "Paystack") {
+        console.log('Initializing Paystack payment with:', {
+          email,
+          selectedAmount,
+          requestId
+        });
+
         if (!email) {
           setError("Email is required for Paystack payments");
           toast.error("Please enter your email address");
-          setIsLoading(false);
           return;
         }
 
         if (!selectedAmount) {
           setError("Please select an amount");
           toast.error("Please select an amount");
-          setIsLoading(false);
           return;
         }
 
-        setIsLoading(false); // Let PaystackButton handle its own loading state
-        return (
-          <PaystackButton
-            email={email}
-            amount={selectedAmount}
-            requestId={requestId}
-            onSuccess={() => {
-              setSuccess(true);
-              toast.success("Payment successful!");
-            }}
-            onError={(error) => {
-              setError(error);
-              toast.error(error);
-            }}
-          />
-        );
+        setShowPaystackButton(true);
       }
-      
 
       else {
         setError("This payment method is not yet implemented.");
@@ -354,199 +342,204 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
   
 
   return (
-    <>
-      <Toaster
-        position="top-center"
-        reverseOrder={false}
-        toastOptions={{
-          duration: 8000,
-          style: {
-            background: '#1F2937',
-            color: '#fff',
-            borderRadius: '12px',
-            padding: '16px',
-            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.2)',
-          },
-        }}
-      />
-      <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-        <div className="w-full max-w-2xl lg:max-w-4xl xl:max-w-6xl bg-white dark:bg-gray-900 rounded-2xl shadow-2xl 
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+      <div className="w-full max-w-2xl lg:max-w-4xl xl:max-w-6xl bg-white dark:bg-gray-900 rounded-2xl shadow-2xl 
                       overflow-hidden animate-in slide-in-from-bottom duration-300 
                       max-h-[90vh] overflow-y-auto
                       border border-gray-200/50 dark:border-gray-800/30">
-          {/* Header */}
-          <div className="bg-gradient-to-r from-primary to-primary/90 dark:from-gray-800 dark:to-gray-900
-                        p-5 sm:p-6 lg:p-8 relative overflow-hidden">
-            <div className="absolute inset-0 bg-grid-pattern opacity-10" />
-            <h2 className="text-xl font-bold text-center text-white mb-4 relative z-10">
-              Complete Your Payment
-            </h2>
-            <PaymentMethodSelector selectedMethod={paymentMethod} onSelect={setPaymentMethod} />
-          </div>
+        {/* Header */}
+        <div className="bg-gradient-to-r from-primary to-primary/90 dark:from-gray-800 dark:to-gray-900
+                      p-5 sm:p-6 lg:p-8 relative overflow-hidden">
+          <div className="absolute inset-0 bg-grid-pattern opacity-10" />
+          <h2 className="text-xl font-bold text-center text-white mb-4 relative z-10">
+            Complete Your Payment
+          </h2>
+          <PaymentMethodSelector selectedMethod={paymentMethod} onSelect={setPaymentMethod} />
+        </div>
 
-          <div className="p-5 sm:p-6 lg:p-8">
-            {/* Amount Selection */}
-            <div className="mb-8">
-              <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200 mb-4 
+        <div className="p-5 sm:p-6 lg:p-8">
+          {/* Amount Selection */}
+          <div className="mb-8">
+            <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200 mb-4 
                            flex items-center gap-2">
-                <span className="w-6 h-6 rounded-full bg-primary/10 dark:bg-gray-800 
+              <span className="w-6 h-6 rounded-full bg-primary/10 dark:bg-gray-800 
                              flex items-center justify-center text-primary dark:text-blue-400 text-xs">
-                  1
-                </span>
-                Choose Amount
-              </h3>
-              <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-4 xl:grid-cols-4 gap-4">
-                {numbers.map((number) => (
-                  <button
-                    key={number}
-                    onClick={() => handleAmountSelect(number)}
-                    className={`
-                      relative min-h-[5rem] group overflow-hidden rounded-xl p-3
-                      transition-all duration-300
-                      aspect-[2/1] w-full
-                      flex flex-col items-center justify-center
-                      ${selectedAmount === number 
-                        ? 'bg-gradient-to-br from-primary to-primary/90 dark:from-blue-600 dark:to-blue-700 scale-100'
-                        : 'bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/80 hover:scale-[1.02]'
-                      }
-                      ${selectedAmount === number 
-                        ? 'shadow-lg ring-2 ring-primary/20 dark:ring-blue-500/20'
-                        : 'shadow-sm hover:shadow-md border border-gray-200 dark:border-gray-700'
-                      }
-                    `}
-                  >
-                    <div className="absolute inset-0 bg-white/10 opacity-0 
-                                group-hover:opacity-100 transition-opacity duration-300" />
-                    <div className="flex flex-col items-center gap-1.5">
-                      <div className={`
-                        text-lg sm:text-xl font-semibold leading-none
-                        ${selectedAmount === number ? 'text-white' : 'text-gray-700 dark:text-gray-200'}
+                1
+              </span>
+              Choose Amount
+            </h3>
+            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-4 xl:grid-cols-4 gap-4">
+              {numbers.map((number) => (
+                <button
+                  key={number}
+                  onClick={() => handleAmountSelect(number)}
+                  className={`
+                    relative min-h-[5rem] group overflow-hidden rounded-xl p-3
+                    transition-all duration-300
+                    aspect-[2/1] w-full
+                    flex flex-col items-center justify-center
+                    ${selectedAmount === number 
+                      ? 'bg-gradient-to-br from-primary to-primary/90 dark:from-blue-600 dark:to-blue-700 scale-100'
+                      : 'bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/80 hover:scale-[1.02]'
+                    }
+                    ${selectedAmount === number 
+                      ? 'shadow-lg ring-2 ring-primary/20 dark:ring-blue-500/20'
+                      : 'shadow-sm hover:shadow-md border border-gray-200 dark:border-gray-700'
+                    }
+                  `}
+                >
+                  <div className="absolute inset-0 bg-white/10 opacity-0 
+                              group-hover:opacity-100 transition-opacity duration-300" />
+                  <div className="flex flex-col items-center gap-1.5">
+                    <div className={`
+                      text-lg sm:text-xl font-semibold leading-none
+                      ${selectedAmount === number ? 'text-white' : 'text-gray-700 dark:text-gray-200'}
+                    `}>
+                      {number}
+                      <span className={`
+                        text-sm ml-1 font-normal
+                        ${selectedAmount === number ? 'text-white/70' : 'text-gray-400 dark:text-gray-500'}
                       `}>
-                        {number}
-                        <span className={`
-                          text-sm ml-1 font-normal
-                          ${selectedAmount === number ? 'text-white/70' : 'text-gray-400 dark:text-gray-500'}
-                        `}>
-                          {paymentMethod === 'PayPal' ? 'USD' : 'KES'}
-                        </span>
-                      </div>
-                      <div className={`
-                        text-xs font-normal
-                        ${selectedAmount === number ? 'text-white/70' : 'text-primary dark:text-blue-400'}
-                      `}>
-                        {number/50} pts
-                      </div>
+                        {paymentMethod === 'PayPal' ? 'USD' : 'KES'}
+                      </span>
                     </div>
-                  </button>
-                ))}
-              </div>
-
-              {/* Custom Amount Input */}
-              <div className="mt-4">
-                <div className="relative">
-                  <input
-                    type="number"
-                    className="block w-full pl-4 pr-12 py-3 text-base
-                           bg-white dark:bg-gray-800 
-                           border border-gray-200 dark:border-gray-700
-                           rounded-xl
-                           focus:outline-none focus:ring-2 focus:ring-primary/20 dark:focus:ring-blue-500/20
-                           focus:border-primary dark:focus:border-blue-500
-                           placeholder-gray-400 dark:placeholder-gray-500
-                           text-gray-900 dark:text-gray-100"
-                    value={customAmount}
-                    onChange={handleInputChange}
-                    placeholder="Or enter custom amount"
-                  />
-                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                    <span className="text-gray-400 dark:text-gray-500 text-sm">
-                      {paymentMethod === 'PayPal' ? 'USD' : 'KES'}
-                    </span>
+                    <div className={`
+                      text-xs font-normal
+                      ${selectedAmount === number ? 'text-white/70' : 'text-primary dark:text-blue-400'}
+                    `}>
+                      {number/50} pts
+                    </div>
                   </div>
+                </button>
+              ))}
+            </div>
+
+            {/* Custom Amount Input */}
+            <div className="mt-4">
+              <div className="relative">
+                <input
+                  type="number"
+                  className="block w-full pl-4 pr-12 py-3 text-base
+                         bg-white dark:bg-gray-800 
+                         border border-gray-200 dark:border-gray-700
+                         rounded-xl
+                         focus:outline-none focus:ring-2 focus:ring-primary/20 dark:focus:ring-blue-500/20
+                         focus:border-primary dark:focus:border-blue-500
+                         placeholder-gray-400 dark:placeholder-gray-500
+                         text-gray-900 dark:text-gray-100"
+                  value={customAmount}
+                  onChange={handleInputChange}
+                  placeholder="Or enter custom amount"
+                />
+                <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                  <span className="text-gray-400 dark:text-gray-500 text-sm">
+                    {paymentMethod === 'PayPal' ? 'USD' : 'KES'}
+                  </span>
                 </div>
               </div>
             </div>
+          </div>
 
-            {/* Payment Details Section */}
-            <div className="space-y-6">
-              {/* Phone Number Input */}
-              <div>
-                <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200 mb-4 
-                           flex items-center gap-2">
-                  <span className="w-6 h-6 rounded-full bg-primary/10 dark:bg-gray-800 
+          {/* Payment Details Section */}
+          <div className="space-y-6">
+            {/* Phone Number Input */}
+            <div>
+              <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200 mb-4 
+                             flex items-center gap-2">
+                <span className="w-6 h-6 rounded-full bg-primary/10 dark:bg-gray-800 
                                flex items-center justify-center text-primary dark:text-blue-400 text-xs">
-                    2
-                  </span>
-                  Enter Phone Number
-                </h3>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Phone className="h-5 w-5 text-gray-400" />
-                  </div>
-                  <input
-                    type="tel"
-                    value={phoneNumber}
-                    onChange={handlePhoneChange}
-                    className="block w-full pl-10 pr-3 py-3 text-base
-                           bg-white dark:bg-gray-800 
-                           border border-gray-200 dark:border-gray-700
-                           rounded-xl
-                           focus:outline-none focus:ring-2 focus:ring-primary/20 dark:focus:ring-blue-500/20
-                           focus:border-primary dark:focus:border-blue-500
-                           placeholder-gray-400 dark:placeholder-gray-500
-                           text-gray-900 dark:text-gray-100"
-                    placeholder="Enter your M-Pesa number"
-                  />
+                  2
+                </span>
+                Enter Phone Number
+              </h3>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Phone className="h-5 w-5 text-gray-400" />
                 </div>
+                <input
+                  type="tel"
+                  value={phoneNumber}
+                  onChange={handlePhoneChange}
+                  className="block w-full pl-10 pr-3 py-3 text-base
+                         bg-white dark:bg-gray-800 
+                         border border-gray-200 dark:border-gray-700
+                         rounded-xl
+                         focus:outline-none focus:ring-2 focus:ring-primary/20 dark:focus:ring-blue-500/20
+                         focus:border-primary dark:focus:border-blue-500
+                         placeholder-gray-400 dark:placeholder-gray-500
+                         text-gray-900 dark:text-gray-100"
+                  placeholder="Enter your M-Pesa number"
+                />
               </div>
+            </div>
 
-              {/* Email Input */}
-              <div>
-                <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200 mb-4 
-                           flex items-center gap-2">
-                  <span className="w-6 h-6 rounded-full bg-primary/10 dark:bg-gray-800 
+            {/* Email Input */}
+            <div>
+              <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200 mb-4 
+                             flex items-center gap-2">
+                <span className="w-6 h-6 rounded-full bg-primary/10 dark:bg-gray-800 
                                flex items-center justify-center text-primary dark:text-blue-400 text-xs">
-                    3
-                  </span>
-                  Enter Email
-                </h3>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Mail className="h-5 w-5 text-gray-400" />
-                  </div>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="block w-full pl-10 pr-3 py-3 text-base
-                           bg-white dark:bg-gray-800 
-                           border border-gray-200 dark:border-gray-700
-                           rounded-xl
-                           focus:outline-none focus:ring-2 focus:ring-primary/20 dark:focus:ring-blue-500/20
-                           focus:border-primary dark:focus:border-blue-500
-                           placeholder-gray-400 dark:placeholder-gray-500
-                           text-gray-900 dark:text-gray-100"
-                    placeholder="Enter your email address"
-                  />
+                  3
+                </span>
+                Enter Email
+              </h3>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Mail className="h-5 w-5 text-gray-400" />
                 </div>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="block w-full pl-10 pr-3 py-3 text-base
+                         bg-white dark:bg-gray-800 
+                         border border-gray-200 dark:border-gray-700
+                         rounded-xl
+                         focus:outline-none focus:ring-2 focus:ring-primary/20 dark:focus:ring-blue-500/20
+                         focus:border-primary dark:focus:border-blue-500
+                         placeholder-gray-400 dark:placeholder-gray-500
+                         text-gray-900 dark:text-gray-100"
+                  placeholder="Enter your email address"
+                />
               </div>
+            </div>
 
-              {/* Submit Button */}
+            {/* Submit Button or PayStack Button */}
+            {showPaystackButton ? (
+              <div className="mt-4">
+                <PaystackButton
+                  email={email}
+                  amount={selectedAmount || 0}
+                  requestId={requestId}
+                  onSuccess={() => {
+                    console.log('Payment successful');
+                    setSuccess(true);
+                    toast.success("Payment successful!");
+                  }}
+                  onError={(error) => {
+                    console.error('Payment error:', error);
+                    setError(error);
+                    toast.error(error);
+                    setShowPaystackButton(false);
+                  }}
+                />
+              </div>
+            ) : (
               <SubmitButton
                 ButtonName={`Pay ${selectedAmount || customAmount || 0} ${paymentMethod === 'PayPal' ? 'USD' : 'KES'}`}
                 isLoading={isLoading}
                 onClick={handleSubmit}
               />
+            )}
 
-              {/* Points Display */}
-              <div className="text-center text-sm text-gray-500 dark:text-gray-400">
-                You will receive {(Number(selectedAmount || customAmount || 0) / 50).toFixed(1)} points
-              </div>
+            {/* Points Display */}
+            <div className="text-center text-sm text-gray-500 dark:text-gray-400">
+              You will receive {(Number(selectedAmount || customAmount || 0) / 50).toFixed(1)} points
             </div>
           </div>
         </div>
       </div>
-    </>
+    </div>
   );
 };
 
