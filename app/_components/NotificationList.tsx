@@ -179,7 +179,34 @@ export default function NotificationList({
         return <p className="text-sm">{notification.content}</p>;
     }
   };
+
+  const getNotificationStyle = (notification: Notification) => {
+    if (!notification.read) {
+      switch (notification.type) {
+        case 'DONATION':
+          return "bg-green-50 hover:bg-green-100 border-l-4 border-green-500";
+        case 'COMMENT':
+          return "bg-blue-50 hover:bg-blue-100 border-l-4 border-blue-500";
+        case 'LIKE':
+          return "bg-purple-50 hover:bg-purple-100 border-l-4 border-purple-500";
+        case 'NEWREQUEST':
+          return "bg-yellow-50 hover:bg-yellow-100 border-l-4 border-yellow-500";
+        default:
+          return "bg-blue-50 hover:bg-blue-100 border-l-4 border-blue-500";
+      }
+    }
+    return "bg-gray-50 hover:bg-gray-100";
+  };
   
+  const sortedNotifications = [...notifications].sort((a, b) => {
+    // First sort by read status (unread first)
+    if (a.read !== b.read) {
+      return a.read ? 1 : -1;
+    }
+    // Then sort by date (newest first)
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+  });
+
   return (
     <div className={cn("relative", className)}>
       {showIcon && (
@@ -197,24 +224,33 @@ export default function NotificationList({
           <p className="text-gray-500 text-sm text-center py-4">Loading notifications...</p>
         ) : error ? (
           <p className="text-red-500 text-sm text-center py-4">{error}</p>
-        ) : notifications.length === 0 ? (
+        ) : sortedNotifications.length === 0 ? (
           <p className="text-gray-500 text-sm text-center py-4">No notifications</p>
         ) : (
-          notifications.map((notification) => (
-            <div 
-              key={notification.id}
-              className={cn(
-                "p-3 rounded-lg transition-colors cursor-pointer",
-                notification.read ? "bg-gray-100" : "bg-blue-50 hover:bg-blue-100"
-              )}
-              onClick={() => !notification.read && markAsRead(notification.id)}
-            >
-              {getNotificationContent(notification)}
-              <p className="text-xs text-gray-500 mt-1">
-                {new Date(notification.createdAt).toLocaleDateString()} at {new Date(notification.createdAt).toLocaleTimeString()}
-              </p>
-            </div>
-          ))
+          <>
+            {unreadCount > 0 && (
+              <div className="sticky top-0 bg-white p-2 shadow-sm z-10">
+                <p className="text-sm font-medium text-gray-500">
+                  {unreadCount} unread notification{unreadCount !== 1 ? 's' : ''}
+                </p>
+              </div>
+            )}
+            {sortedNotifications.map((notification) => (
+              <div 
+                key={notification.id}
+                className={cn(
+                  "p-3 rounded-lg transition-colors cursor-pointer",
+                  getNotificationStyle(notification)
+                )}
+                onClick={() => !notification.read && markAsRead(notification.id)}
+              >
+                {getNotificationContent(notification)}
+                <p className="text-xs text-gray-500 mt-1">
+                  {new Date(notification.createdAt).toLocaleDateString()} at {new Date(notification.createdAt).toLocaleTimeString()}
+                </p>
+              </div>
+            ))}
+          </>
         )}
       </div>
     </div>
