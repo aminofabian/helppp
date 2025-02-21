@@ -27,26 +27,41 @@ export interface NotificationListProps {
   className?: string;
   showIcon?: boolean;
   onCountChange?: (count: number) => void;
+  isOpen?: boolean;
 }
 
-export default function NotificationList({ className, showIcon = false, onCountChange }: NotificationListProps) {
+export default function NotificationList({ 
+  className, 
+  showIcon = false, 
+  onCountChange,
+  isOpen = false
+}: NotificationListProps) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   
   useEffect(() => {
     async function fetchNotifications() {
       try {
+        setLoading(true);
+        setError(null);
+        console.log('Fetching notifications...');
         const response = await fetch('/api/notifications');
         if (!response.ok) {
           throw new Error('Failed to fetch notifications');
         }
         const data = await response.json();
+        console.log('Received notifications:', data);
         setNotifications(data);
         const unread = data.filter((n: Notification) => !n.read).length;
         setUnreadCount(unread);
         onCountChange?.(unread);
       } catch (error) {
         console.error('Error fetching notifications:', error);
+        setError(error instanceof Error ? error.message : 'Failed to fetch notifications');
+      } finally {
+        setLoading(false);
       }
     }
     
@@ -55,8 +70,34 @@ export default function NotificationList({ className, showIcon = false, onCountC
     return () => clearInterval(interval);
   }, [onCountChange]);
 
+  // Mark all notifications as read when the dialog is opened
+  useEffect(() => {
+    if (isOpen && unreadCount > 0) {
+      markAllAsRead();
+    }
+  }, [isOpen]);
+
+  const markAllAsRead = async () => {
+    try {
+      console.log('Marking all notifications as read...');
+      const response = await fetch('/api/notifications/mark-all-read', {
+        method: 'POST',
+      });
+      if (!response.ok) {
+        throw new Error('Failed to mark notifications as read');
+      }
+      setNotifications(notifications.map(n => ({ ...n, read: true })));
+      setUnreadCount(0);
+      onCountChange?.(0);
+      console.log('All notifications marked as read');
+    } catch (error) {
+      console.error('Error marking all notifications as read:', error);
+    }
+  };
+
   const markAsRead = async (id: string) => {
     try {
+      console.log('Marking notification as read:', id);
       const response = await fetch(`/api/notifications/${id}`, {
         method: 'PATCH',
         body: JSON.stringify({ read: true }),
@@ -69,6 +110,7 @@ export default function NotificationList({ className, showIcon = false, onCountC
       ));
       setUnreadCount(prev => Math.max(0, prev - 1));
       onCountChange?.(unreadCount - 1);
+      console.log('Notification marked as read:', id);
     } catch (error) {
       console.error('Error marking notification as read:', error);
     }
@@ -151,23 +193,28 @@ export default function NotificationList({ className, showIcon = false, onCountC
         </div>
       )}
       <div className="space-y-2">
-        {notifications.map((notification) => (
-          <div 
-            key={notification.id}
-            className={cn(
-              "p-3 rounded-lg transition-colors cursor-pointer",
-              notification.read ? "bg-gray-100" : "bg-blue-50 hover:bg-blue-100"
-            )}
-            onClick={() => !notification.read && markAsRead(notification.id)}
-          >
-            {getNotificationContent(notification)}
-            <p className="text-xs text-gray-500 mt-1">
-              {new Date(notification.createdAt).toLocaleDateString()} at {new Date(notification.createdAt).toLocaleTimeString()}
-            </p>
-          </div>
-        ))}
-        {notifications.length === 0 && (
+        {loading ? (
+          <p className="text-gray-500 text-sm text-center py-4">Loading notifications...</p>
+        ) : error ? (
+          <p className="text-red-500 text-sm text-center py-4">{error}</p>
+        ) : notifications.length === 0 ? (
           <p className="text-gray-500 text-sm text-center py-4">No notifications</p>
+        ) : (
+          notifications.map((notification) => (
+            <div 
+              key={notification.id}
+              className={cn(
+                "p-3 rounded-lg transition-colors cursor-pointer",
+                notification.read ? "bg-gray-100" : "bg-blue-50 hover:bg-blue-100"
+              )}
+              onClick={() => !notification.read && markAsRead(notification.id)}
+            >
+              {getNotificationContent(notification)}
+              <p className="text-xs text-gray-500 mt-1">
+                {new Date(notification.createdAt).toLocaleDateString()} at {new Date(notification.createdAt).toLocaleTimeString()}
+              </p>
+            </div>
+          ))
         )}
       </div>
     </div>

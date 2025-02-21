@@ -26,11 +26,13 @@ export default function MenuBar({ className }: MenuBarProps) {
   useEffect(() => {
     async function fetchNotificationCount() {
       try {
+        console.log('Fetching notification count...');
         const response = await fetch('/api/notifications/count');
         if (!response.ok) {
           throw new Error('Failed to fetch notification count');
         }
         const data = await response.json();
+        console.log('Notification count:', data.count);
         setNotificationCount(data.count);
       } catch (error) {
         console.error('Error fetching notification count:', error);
@@ -38,9 +40,7 @@ export default function MenuBar({ className }: MenuBarProps) {
     }
     
     fetchNotificationCount();
-    
     const intervalId = setInterval(fetchNotificationCount, 30000);
-    
     return () => clearInterval(intervalId);
   }, []);
 
@@ -81,12 +81,14 @@ export default function MenuBar({ className }: MenuBarProps) {
             title='Notifications'
             onClick={handleNotificationClick}
           >
-            <Bell />
-            {notificationCount > 0 && (
-              <span className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full px-2 py-1 text-xs">
-                {notificationCount}
-              </span>
-            )}
+            <div className="relative">
+              <Bell className="w-6 h-6" />
+              {notificationCount > 0 && (
+                <span className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full px-2 py-1 text-xs min-w-[20px] h-5 flex items-center justify-center">
+                  {notificationCount}
+                </span>
+              )}
+            </div>
           </Button>
         </DialogTrigger>
         <DialogContent>
@@ -97,7 +99,9 @@ export default function MenuBar({ className }: MenuBarProps) {
             </DialogDescription>
           </DialogHeader>
           <NotificationList 
-            onCountChange={(count) => setNotificationCount(count)}
+            onCountChange={setNotificationCount}
+            isOpen={isNotificationsOpen}
+            className="max-h-[60vh] overflow-y-auto"
           />
         </DialogContent>
       </Dialog>
