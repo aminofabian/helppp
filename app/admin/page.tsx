@@ -67,6 +67,12 @@ interface Stats {
 export default function AdminPage() {
   const [users, setUsers] = useState<UserData[]>([]);
   const [donations, setDonations] = useState<DonationData[]>([]);
+  const [donationsPagination, setDonationsPagination] = useState({
+    total: 0,
+    pages: 0,
+    currentPage: 1,
+    perPage: 20,
+  });
   const [requests, setRequests] = useState<RequestData[]>([]);
   const [stats, setStats] = useState<Stats>({
     totalUsers: 0,
@@ -80,6 +86,12 @@ export default function AdminPage() {
   const [newLevel, setNewLevel] = useState<number>(0);
   const [extendingRequest, setExtendingRequest] = useState<string | null>(null);
   const [extensionDays, setExtensionDays] = useState<number>(7);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Reset page when search term changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
 
   const handleUpdateLevel = async (userId: string) => {
     try {
@@ -130,22 +142,23 @@ export default function AdminPage() {
       try {
         const [usersRes, donationsRes, requestsRes] = await Promise.all([
           fetch('/api/admin/users'),
-          fetch('/api/admin/donations'),
+          fetch(`/api/admin/donations?page=${currentPage}&limit=20${searchTerm ? `&search=${encodeURIComponent(searchTerm)}` : ''}`),
           fetch('/api/admin/requests')
         ]);
 
         const usersData = await usersRes.json();
-        const donationsData = await donationsRes.json();
+        const { donations: donationsData, pagination } = await donationsRes.json();
         const requestsData = await requestsRes.json();
 
         setUsers(usersData);
         setDonations(donationsData);
+        setDonationsPagination(pagination);
         setRequests(requestsData);
 
         // Calculate stats
         setStats({
           totalUsers: usersData.length,
-          totalDonations: donationsData.length,
+          totalDonations: pagination.total,
           totalAmount: donationsData.reduce((sum: number, d: DonationData) => 
             sum + (d.status === 'COMPLETED' ? d.amount : 0), 0),
           activeRequests: requestsData.filter((r: RequestData) => !r.isFullyFunded).length,
@@ -158,20 +171,20 @@ export default function AdminPage() {
     };
 
     fetchData();
-  }, []);
+  }, [currentPage, searchTerm]);
 
   const filteredUsers = users.filter(user =>
     user.email.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const filteredDonations = donations.filter(donation =>
-    donation.userId.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const filteredRequests = requests.filter(request =>
     request.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
     request.user.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage);
+  };
 
   if (loading) {
     return (
@@ -337,7 +350,7 @@ export default function AdminPage() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="donations">
+          <TabsContent value="donations" className="space-y-4">
             <Card>
               <Table>
                 <TableHeader>
@@ -346,29 +359,59 @@ export default function AdminPage() {
                     <TableHead>Amount</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Date</TableHead>
-                    <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredDonations.map((donation) => (
-                    <TableRow key={donation.id}>
-                      <TableCell className="font-medium">{donation.userId}</TableCell>
-                      <TableCell>KES {donation.amount.toLocaleString()}</TableCell>
-                      <TableCell>
-                        <Badge 
-                          className={getStatusColor(donation.status)}
-                        >
-                          {donation.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{new Date(donation.createdAt).toLocaleDateString()}</TableCell>
-                      <TableCell>
-                        <Button variant="ghost" size="sm">View Details</Button>
+                  {donations.length > 0 ? (
+                    donations.map((donation) => (
+                      <TableRow key={donation.id}>
+                        <TableCell>{donation.userId}</TableCell>
+                        <TableCell>KES {donation.amount.toLocaleString()}</TableCell>
+                        <TableCell>
+                          <span className={`px-2 py-1 rounded-full text-xs ${getStatusColor(donation.status)}`}>
+                            {donation.status}
+                          </span>
+                        </TableCell>
+                        <TableCell>{new Date(donation.createdAt).toLocaleDateString()}</TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={4} className="text-center py-4">
+                        {searchTerm ? 'No donations found matching your search.' : 'No donations available.'}
                       </TableCell>
                     </TableRow>
-                  ))}
+                  )}
                 </TableBody>
               </Table>
+              {donations.length > 0 && (
+                <div className="flex items-center justify-between py-4 px-4">
+                  <div className="text-sm text-gray-600">
+                    Showing {donations.length} of {donationsPagination.total} donations
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handlePageChange(currentPage - 1)}
+                      disabled={currentPage === 1}
+                    >
+                      Previous
+                    </Button>
+                    <span className="text-sm text-gray-600">
+                      Page {currentPage} of {donationsPagination.pages}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handlePageChange(currentPage + 1)}
+                      disabled={currentPage === donationsPagination.pages}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              )}
             </Card>
           </TabsContent>
 
