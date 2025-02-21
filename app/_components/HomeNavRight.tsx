@@ -397,7 +397,7 @@ export default function HomeNavRight({
                           <div>
                             <Button 
                               variant="outline" 
-                              className="w-full lowercase text-xs text-white
+                              className="w-full lowercase text-xs text-slate-600
                                        dark:text-gray-300 dark:border-gray-700
                                        dark:hover:bg-gray-700
                                        transition-colors"
