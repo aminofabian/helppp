@@ -41,6 +41,22 @@ interface DonationData {
   createdAt: string;
 }
 
+interface RequestData {
+  id: string;
+  title: string;
+  amount: number;
+  createdAt: string;
+  deadline: string;
+  totalDonated: number;
+  isFullyFunded: boolean;
+  daysRunning: number;
+  daysUntilDeadline: number;
+  isExpired: boolean;
+  user: {
+    email: string;
+  };
+}
+
 interface Stats {
   totalUsers: number;
   totalDonations: number;
@@ -51,6 +67,7 @@ interface Stats {
 export default function AdminPage() {
   const [users, setUsers] = useState<UserData[]>([]);
   const [donations, setDonations] = useState<DonationData[]>([]);
+  const [requests, setRequests] = useState<RequestData[]>([]);
   const [stats, setStats] = useState<Stats>({
     totalUsers: 0,
     totalDonations: 0,
@@ -61,6 +78,8 @@ export default function AdminPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [editingUser, setEditingUser] = useState<string | null>(null);
   const [newLevel, setNewLevel] = useState<number>(0);
+  const [extendingRequest, setExtendingRequest] = useState<string | null>(null);
+  const [extensionDays, setExtensionDays] = useState<number>(7);
 
   const handleUpdateLevel = async (userId: string) => {
     try {
@@ -84,19 +103,44 @@ export default function AdminPage() {
     }
   };
 
+  const handleExtendExpiry = async (requestId: string) => {
+    try {
+      const response = await fetch('/api/admin/requests', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ requestId, extensionDays }),
+      });
+
+      if (!response.ok) throw new Error('Failed to extend request expiry');
+
+      const updatedRequest = await response.json();
+      setRequests(requests.map(request => 
+        request.id === updatedRequest.id ? updatedRequest : request
+      ));
+      setExtendingRequest(null);
+    } catch (error) {
+      console.error('Error extending request expiry:', error);
+    }
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [usersRes, donationsRes] = await Promise.all([
+        const [usersRes, donationsRes, requestsRes] = await Promise.all([
           fetch('/api/admin/users'),
-          fetch('/api/admin/donations')
+          fetch('/api/admin/donations'),
+          fetch('/api/admin/requests')
         ]);
 
         const usersData = await usersRes.json();
         const donationsData = await donationsRes.json();
+        const requestsData = await requestsRes.json();
 
         setUsers(usersData);
         setDonations(donationsData);
+        setRequests(requestsData);
 
         // Calculate stats
         setStats({
@@ -104,8 +148,7 @@ export default function AdminPage() {
           totalDonations: donationsData.length,
           totalAmount: donationsData.reduce((sum: number, d: DonationData) => 
             sum + (d.status === 'COMPLETED' ? d.amount : 0), 0),
-          activeRequests: donationsData.filter((d: DonationData) => 
-            d.status === 'PENDING').length,
+          activeRequests: requestsData.filter((r: RequestData) => !r.isFullyFunded).length,
         });
       } catch (error) {
         console.error('Error fetching admin data:', error);
@@ -123,6 +166,11 @@ export default function AdminPage() {
 
   const filteredDonations = donations.filter(donation =>
     donation.userId.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const filteredRequests = requests.filter(request =>
+    request.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    request.user.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   if (loading) {
@@ -206,9 +254,19 @@ export default function AdminPage() {
         </div>
 
         <Tabs defaultValue="users" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-2 lg:w-[400px]">
-            <TabsTrigger value="users">Users</TabsTrigger>
-            <TabsTrigger value="donations">Donations</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-3 mb-8">
+            <TabsTrigger value="users">
+              <Users className="w-4 h-4 mr-2" />
+              Users
+            </TabsTrigger>
+            <TabsTrigger value="donations">
+              <HandHeart className="w-4 h-4 mr-2" />
+              Donations
+            </TabsTrigger>
+            <TabsTrigger value="requests">
+              <AlertCircle className="w-4 h-4 mr-2" />
+              Requests
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="users">
@@ -306,6 +364,101 @@ export default function AdminPage() {
                       <TableCell>{new Date(donation.createdAt).toLocaleDateString()}</TableCell>
                       <TableCell>
                         <Button variant="ghost" size="sm">View Details</Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="requests" className="space-y-4">
+            <div className="flex items-center space-x-2">
+              <Search className="w-4 h-4 text-gray-500" />
+              <Input
+                placeholder="Search requests..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="max-w-sm"
+              />
+            </div>
+
+            <Card>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Title</TableHead>
+                    <TableHead>User</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead>Donated</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Duration</TableHead>
+                    <TableHead>Deadline</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredRequests.map((request) => (
+                    <TableRow key={request.id}>
+                      <TableCell className="font-medium">{request.title}</TableCell>
+                      <TableCell>{request.user.email}</TableCell>
+                      <TableCell>KES {request.amount.toLocaleString()}</TableCell>
+                      <TableCell>KES {request.totalDonated.toLocaleString()}</TableCell>
+                      <TableCell>
+                        <Badge variant={request.isFullyFunded ? "success" : request.isExpired ? "destructive" : "secondary"}>
+                          {request.isFullyFunded ? 'Fully Funded' : request.isExpired ? 'Expired' : 'In Progress'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {request.daysRunning} days
+                      </TableCell>
+                      <TableCell>
+                        {request.daysUntilDeadline !== null ? (
+                          request.isExpired ? (
+                            <span className="text-red-500">Expired</span>
+                          ) : (
+                            <span>{request.daysUntilDeadline} days left</span>
+                          )
+                        ) : (
+                          'No deadline'
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {extendingRequest === request.id ? (
+                          <div className="flex items-center gap-2">
+                            <Input
+                              type="number"
+                              min="1"
+                              value={extensionDays}
+                              onChange={(e) => setExtensionDays(parseInt(e.target.value))}
+                              className="w-20"
+                            />
+                            <Button 
+                              size="sm"
+                              onClick={() => handleExtendExpiry(request.id)}
+                            >
+                              Extend
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => setExtendingRequest(null)}
+                            >
+                              Cancel
+                            </Button>
+                          </div>
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setExtendingRequest(request.id);
+                              setExtensionDays(7);
+                            }}
+                          >
+                            Extend Time
+                          </Button>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}
