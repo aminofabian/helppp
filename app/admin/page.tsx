@@ -64,6 +64,14 @@ interface Stats {
   activeRequests: number;
 }
 
+// Add currency formatter
+const formatCurrency = (amount: number) => {
+  return new Intl.NumberFormat('en-NG', {
+    style: 'currency',
+    currency: 'NGN',
+  }).format(amount);
+};
+
 export default function AdminPage() {
   const [users, setUsers] = useState<UserData[]>([]);
   const [donations, setDonations] = useState<DonationData[]>([]);
@@ -241,7 +249,7 @@ export default function AdminPage() {
             </div>
             <div>
               <p className="text-sm text-gray-600">Total Donations</p>
-              <h3 className="text-2xl font-bold">KES {stats.totalAmount.toLocaleString()}</h3>
+              <p className="text-2xl font-bold">{formatCurrency(stats.totalAmount)}</p>
             </div>
           </Card>
 
@@ -338,7 +346,7 @@ export default function AdminPage() {
                           </div>
                         )}
                       </TableCell>
-                      <TableCell>KES {user.totalDonated.toLocaleString()}</TableCell>
+                      <TableCell>{formatCurrency(user.totalDonated)}</TableCell>
                       <TableCell>{user.donationCount}</TableCell>
                       <TableCell>
                         <Button variant="ghost" size="sm">View Details</Button>
@@ -366,7 +374,7 @@ export default function AdminPage() {
                     donations.map((donation) => (
                       <TableRow key={donation.id}>
                         <TableCell>{donation.userId}</TableCell>
-                        <TableCell>KES {donation.amount.toLocaleString()}</TableCell>
+                        <TableCell>{formatCurrency(donation.amount)}</TableCell>
                         <TableCell>
                           <span className={`px-2 py-1 rounded-full text-xs ${getStatusColor(donation.status)}`}>
                             {donation.status}
@@ -445,8 +453,8 @@ export default function AdminPage() {
                     <TableRow key={request.id}>
                       <TableCell className="font-medium">{request.title}</TableCell>
                       <TableCell>{request.user.email}</TableCell>
-                      <TableCell>KES {request.amount.toLocaleString()}</TableCell>
-                      <TableCell>KES {request.totalDonated.toLocaleString()}</TableCell>
+                      <TableCell>{formatCurrency(request.amount)}</TableCell>
+                      <TableCell>{formatCurrency(request.totalDonated)}</TableCell>
                       <TableCell>
                         <Badge variant={request.isFullyFunded ? "default" : request.isExpired ? "destructive" : "secondary"}>
                           {request.isFullyFunded ? 'Fully Funded' : request.isExpired ? 'Expired' : 'In Progress'}
