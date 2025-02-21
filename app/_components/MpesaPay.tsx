@@ -499,23 +499,28 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
     });
   };
 
-  const initializePaystack = () => {
+  const initializePaystack = async () => {
     if (typeof window === 'undefined') return;
     
-    const paystack = new PaystackPop();
-    paystack.newTransaction({
-      key: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || '',
-      email: user?.email || '',
-      amount: parseFloat(customAmount) * 100,
-      currency: 'KES',
-      onSuccess: (transaction: any) => {
-        // Handle successful payment
-        toast.success('Payment successful!');
-      },
-      onCancel: () => {
-        toast.error('Payment cancelled');
-      }
-    });
+    try {
+      const PaystackPop = (await import('@paystack/inline-js')).default;
+      const paystack = new PaystackPop();
+      paystack.newTransaction({
+        key: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || '',
+        email: user?.email || '',
+        amount: parseFloat(customAmount) * 100,
+        currency: 'KES',
+        onSuccess: (transaction: any) => {
+          toast.success('Payment successful!');
+        },
+        onCancel: () => {
+          toast.error('Payment cancelled');
+        }
+      });
+    } catch (error) {
+      console.error('Failed to initialize Paystack:', error);
+      toast.error('Failed to initialize payment');
+    }
   };
 
   return (
