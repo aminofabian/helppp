@@ -1,8 +1,9 @@
 'use client'
 import React from 'react';
 import { useEffect, useState } from 'react';
-import { Bell } from 'lucide-react';
+import { Bell, Check } from 'lucide-react';
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 interface Notification {
   id: string;
@@ -229,25 +230,54 @@ export default function NotificationList({
         ) : (
           <>
             {unreadCount > 0 && (
-              <div className="sticky top-0 bg-white p-2 shadow-sm z-10">
+              <div className="sticky top-0 bg-white p-2 shadow-sm z-10 flex items-center justify-between">
                 <p className="text-sm font-medium text-gray-500">
                   {unreadCount} unread notification{unreadCount !== 1 ? 's' : ''}
                 </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-xs"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    markAllAsRead();
+                  }}
+                >
+                  <Check className="w-4 h-4 mr-1" />
+                  Mark all as read
+                </Button>
               </div>
             )}
             {sortedNotifications.map((notification) => (
               <div 
                 key={notification.id}
                 className={cn(
-                  "p-3 rounded-lg transition-colors cursor-pointer",
+                  "p-3 rounded-lg transition-colors",
                   getNotificationStyle(notification)
                 )}
-                onClick={() => !notification.read && markAsRead(notification.id)}
               >
-                {getNotificationContent(notification)}
-                <p className="text-xs text-gray-500 mt-1">
-                  {new Date(notification.createdAt).toLocaleDateString()} at {new Date(notification.createdAt).toLocaleTimeString()}
-                </p>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1">
+                    {getNotificationContent(notification)}
+                    <p className="text-xs text-gray-500 mt-1">
+                      {new Date(notification.createdAt).toLocaleDateString()} at {new Date(notification.createdAt).toLocaleTimeString()}
+                    </p>
+                  </div>
+                  {!notification.read && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-xs shrink-0 hover:bg-white/50"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        markAsRead(notification.id);
+                      }}
+                    >
+                      <Check className="w-4 h-4 mr-1" />
+                      Mark as read
+                    </Button>
+                  )}
+                </div>
               </div>
             ))}
           </>
