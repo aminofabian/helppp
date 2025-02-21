@@ -161,15 +161,15 @@ export default function HomeNavRight({
           const data = await response.json();
           console.log('Fetched updated stats:', data);
           
-          // Update stats with new values, regardless of whether they are zero
+          // Update stats with new values
           setStats(prevStats => ({
             ...prevStats,
-            level: data.level !== undefined ? data.level : prevStats.level,
-            totalDonated: data.totalDonated !== undefined ? data.totalDonated : prevStats.totalDonated,
-            donationCount: data.donationCount !== undefined ? data.donationCount : prevStats.donationCount,
+            level: data.level || prevStats.level,
+            totalDonated: data.totalDonated || prevStats.totalDonated,
+            donationCount: data.donationCount || prevStats.donationCount,
             points: data.points || prevStats.points,
-            calculatedDonationCount: data.calculatedDonationCount !== undefined ? data.calculatedDonationCount : prevStats.calculatedDonationCount,
-            calculatedTotalDonated: data.calculatedTotalDonated !== undefined ? data.calculatedTotalDonated : prevStats.calculatedTotalDonated
+            calculatedDonationCount: data.calculatedDonationCount,
+            calculatedTotalDonated: data.calculatedTotalDonated
           }));
         }
       } catch (error) {
@@ -177,14 +177,35 @@ export default function HomeNavRight({
       }
     };
 
+    // Set up event listener for donation events
+    const handleDonationEvent = (event: CustomEvent) => {
+      const { amount, points } = event.detail;
+      setStats(prevStats => ({
+        ...prevStats,
+        totalDonated: (prevStats.totalDonated || 0) + amount,
+        donationCount: (prevStats.donationCount || 0) + 1,
+        calculatedTotalDonated: (prevStats.calculatedTotalDonated || 0) + amount,
+        calculatedDonationCount: (prevStats.calculatedDonationCount || 0) + 1,
+        points: [...(prevStats.points || []), { amount: points }]
+      }));
+      
+      // Fetch latest stats to ensure consistency
+      fetchUpdatedStats();
+    };
+
+    window.addEventListener('donation-made', handleDonationEvent as EventListener);
+
     // Fetch immediately when component mounts
     fetchUpdatedStats();
 
     // Then poll for updates every 10 seconds
     const interval = setInterval(fetchUpdatedStats, 10000);
 
-    // Clean up interval on unmount
-    return () => clearInterval(interval);
+    // Clean up
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('donation-made', handleDonationEvent as EventListener);
+    };
   }, [initialUser.id]);
 
   useEffect(() => {
@@ -206,6 +227,13 @@ export default function HomeNavRight({
 
     return () => clearInterval(interval);
   }, [initialUser.id]);
+
+  // Calculate total points
+  const totalPoints = stats.points.reduce((acc, point) => acc + point.amount, 0);
+  const currentLevelPoints = LEVEL_THRESHOLDS.find((t: { level: number }) => t.level === stats.level)?.points || 0;
+  const nextLevelPoints = LEVEL_THRESHOLDS.find((t: { level: number }) => t.level === stats.level + 1)?.points || LEVEL_THRESHOLDS[0].points;
+  const pointsToNextLevel = nextLevelPoints - totalPoints;
+  const progressPercentage = ((totalPoints - currentLevelPoints) / (nextLevelPoints - currentLevelPoints)) * 100;
 
   if (!initialUser) {
     return <div>
@@ -288,7 +316,7 @@ export default function HomeNavRight({
                       <span className="font-semibold">Level {stats.level}</span>
                     </div>
                     <div className="text-sm text-gray-600 dark:text-gray-400">
-                      {stats.points.reduce((acc, point) => acc + point.amount, 0)} / {LEVEL_THRESHOLDS.find((t: { level: number }) => t.level === stats.level + 1)?.points || LEVEL_THRESHOLDS[0].points} XP
+                      {totalPoints} / {nextLevelPoints} XP
                     </div>
                   </div>
                 </DialogTrigger>
@@ -303,17 +331,14 @@ export default function HomeNavRight({
                         <div>
                           <div className="flex justify-between mb-2">
                             <span>Current Level: {stats.level}</span>
-                            <span>Points: {stats.points.reduce((acc, point) => acc + point.amount, 0)}</span>
+                            <span>Points: {totalPoints}</span>
                           </div>
                           <Progress 
-                            value={((stats.points.reduce((acc, point) => acc + point.amount, 0) - (LEVEL_THRESHOLDS.find((t: { level: number }) => t.level === stats.level)?.points || 0)) / 
-                                  ((LEVEL_THRESHOLDS.find((t: { level: number }) => t.level === stats.level + 1)?.points || LEVEL_THRESHOLDS[0].points) - 
-                                  (LEVEL_THRESHOLDS.find((t: { level: number }) => t.level === stats.level)?.points || 0)) * 100)} 
+                            value={progressPercentage} 
                             className="h-2 dark:bg-gray-800" 
                           />
                           <p className="text-sm text-muted-foreground mt-1">
-                            {(LEVEL_THRESHOLDS.find((t: { level: number }) => t.level === stats.level + 1)?.points || LEVEL_THRESHOLDS[0].points) - 
-                             stats.points.reduce((acc, point) => acc + point.amount, 0)} points needed for Level {stats.level + 1}
+                            {pointsToNextLevel} points needed for Level {stats.level + 1}
                           </p>
                           {LEVEL_PERKS[stats.level as LevelNumber] && (
                             <p className="text-xs text-muted-foreground mt-1">
@@ -365,7 +390,7 @@ export default function HomeNavRight({
                 </DialogContent>
               </Dialog>
             </Suspense>
-            <Progress value={(stats.points.reduce((acc, point) => acc + point.amount, 0) / (stats.level * 1000)) * 100} className="h-2 dark:bg-gray-800" />
+            <Progress value={(totalPoints / (stats.level * 1000)) * 100} className="h-2 dark:bg-gray-800" />
           </div>
           
           <div className="grid grid-cols-2 gap-4">
@@ -446,22 +471,17 @@ export default function HomeNavRight({
                         </div>
                         <div className="flex justify-between text-sm">
                           <span className="text-gray-600 dark:text-gray-400">Total Points</span>
-                          <span className="font-medium">{stats.points.reduce((acc, point) => acc + point.amount, 0).toLocaleString()} XP</span>
+                          <span className="font-medium">{totalPoints.toLocaleString()} XP</span>
                         </div>
                         <div className="flex justify-between text-sm">
                           <span className="text-gray-600 dark:text-gray-400">Next Level At</span>
                           <span className="font-medium">
-                            {LEVEL_THRESHOLDS.find((t: { level: number }) => t.level === stats.level + 1)?.points.toLocaleString()} XP
+                            {nextLevelPoints.toLocaleString()} XP
                           </span>
                         </div>
                       </div>
                       <Progress 
-                        value={(() => {
-                          const currentPoints = stats.points.reduce((acc, point) => acc + point.amount, 0);
-                          const currentLevelPoints = LEVEL_THRESHOLDS.find((t: { level: number }) => t.level === stats.level)?.points || 0;
-                          const nextLevelPoints = LEVEL_THRESHOLDS.find((t: { level: number }) => t.level === stats.level + 1)?.points || LEVEL_THRESHOLDS[0].points;
-                          return ((currentPoints - currentLevelPoints) / (nextLevelPoints - currentLevelPoints)) * 100;
-                        })()} 
+                        value={progressPercentage} 
                         className="h-2" 
                       />
                     </div>
@@ -509,36 +529,18 @@ export default function HomeNavRight({
             <div className="space-y-2">
               <div className="flex justify-between text-xs text-gray-600 dark:text-gray-400">
                 <span>Progress to Level {stats.level + 1}</span>
-                {(() => {
-                  const currentPoints = stats.points.reduce((acc, point) => acc + point.amount, 0);
-                  const currentLevelPoints = LEVEL_THRESHOLDS.find((t: { level: number }) => t.level === stats.level)?.points || 0;
-                  const nextLevelPoints = LEVEL_THRESHOLDS.find((t: { level: number }) => t.level === stats.level + 1)?.points || LEVEL_THRESHOLDS[0].points;
-                  const percentage = ((currentPoints - currentLevelPoints) / (nextLevelPoints - currentLevelPoints)) * 100;
-                  return <span>{percentage.toFixed(2)}%</span>;
-                })()}
+                <span>{progressPercentage.toFixed(2)}%</span>
               </div>
               <Progress 
-                value={(() => {
-                  const currentPoints = stats.points.reduce((acc, point) => acc + point.amount, 0);
-                  const currentLevelPoints = LEVEL_THRESHOLDS.find((t: { level: number }) => t.level === stats.level)?.points || 0;
-                  const nextLevelPoints = LEVEL_THRESHOLDS.find((t: { level: number }) => t.level === stats.level + 1)?.points || LEVEL_THRESHOLDS[0].points;
-                  return ((currentPoints - currentLevelPoints) / (nextLevelPoints - currentLevelPoints)) * 100;
-                })()} 
+                value={progressPercentage} 
                 className="h-2 dark:bg-gray-800" 
               />
               <div className="text-xs text-gray-500 dark:text-gray-400">
-                {(() => {
-                  const currentPoints = stats.points.reduce((acc, point) => acc + point.amount, 0);
-                  const currentLevelPoints = LEVEL_THRESHOLDS.find((t: { level: number }) => t.level === stats.level)?.points || 0;
-                  const nextLevelPoints = LEVEL_THRESHOLDS.find((t: { level: number }) => t.level === stats.level + 1)?.points || LEVEL_THRESHOLDS[0].points;
-                  return (
-                    <div className="flex flex-col gap-1">
-                      <span>Current: {currentPoints} points</span>
-                      <span>Next Level: {nextLevelPoints} points</span>
-                      <span>Remaining: {nextLevelPoints - currentPoints} points</span>
-                    </div>
-                  );
-                })()}
+                <div className="flex flex-col gap-1">
+                  <span>Current: {totalPoints} points</span>
+                  <span>Next Level: {nextLevelPoints} points</span>
+                  <span>Remaining: {pointsToNextLevel} points</span>
+                </div>
               </div>
             </div>
           </div>
