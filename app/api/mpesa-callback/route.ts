@@ -65,14 +65,7 @@ export async function POST(req: Request) {
     const result = await updateDonationStatus(
       CheckoutRequestID,
       status,
-      {
-        mpesaReceiptNumber,
-        transactionDate,
-        phoneNumber,
-        amount,
-        ResultCode,
-        ResultDesc: callbackData.ResultDesc
-      }
+      mpesaReceiptNumber?.toString()
     );
 
     if (!result.success) {
