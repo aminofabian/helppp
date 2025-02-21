@@ -12,7 +12,7 @@ export async function GET(req: Request) {
 
     if (!reference) {
       console.error('No reference found in callback');
-      return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/payment?error=missing_reference`);
+      return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}?error=missing_reference`);
     }
 
     // Verify payment status with Paystack
@@ -31,7 +31,7 @@ export async function GET(req: Request) {
 
     if (!verifyResponse.ok || !verifyData.status || verifyData.data.status !== 'success') {
       console.error('Payment verification failed:', verifyData);
-      return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/payment?error=verification_failed&reference=${reference}`);
+      return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}?error=verification_failed&reference=${reference}`);
     }
 
     // Find the most recent pending donation
@@ -49,16 +49,16 @@ export async function GET(req: Request) {
 
     if (!donation) {
       console.error('No pending donation found for reference:', reference);
-      return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/payment?error=donation_not_found&reference=${reference}`);
+      return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}?error=donation_not_found&reference=${reference}`);
     }
 
-    // Redirect to success page - actual payment processing happens in webhook
+    // Redirect to root domain with success message
     return NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_APP_URL}/payment?success=true&reference=${reference}&request=${donation.requestId}`
+      `${process.env.NEXT_PUBLIC_APP_URL}?success=true&message=Thank you for your donation!`
     );
 
   } catch (error) {
     console.error('Callback error:', error);
-    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/payment?error=server_error`);
+    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}?error=server_error`);
   }
 }
