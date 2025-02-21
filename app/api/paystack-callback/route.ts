@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import prisma from "@/app/lib/db";
-import { PaymentMethod, PaymentStatus } from "@prisma/client";
 
 export async function GET(req: Request) {
   try {
@@ -38,10 +37,9 @@ export async function GET(req: Request) {
       return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}?error=verification_failed`);
     }
 
-    // Get the request to find the user
+    // Get the request to verify it exists
     const request = await prisma.request.findUnique({
-      where: { id: requestId },
-      include: { User: true }
+      where: { id: requestId }
     });
 
     if (!request) {
@@ -49,33 +47,7 @@ export async function GET(req: Request) {
       return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}?error=request_not_found`);
     }
 
-    // Create payment record
-    const payment = await prisma.payment.create({
-      data: {
-        userId: request.userId,
-        amount: verifyData.data.amount / 100, // Convert from smallest currency unit
-        status: PaymentStatus.COMPLETED,
-        paymentMethod: PaymentMethod.PAYSTACK,
-        mpesaReceiptNumber: reference,
-        currency: verifyData.data.currency,
-        requestId: requestId,
-        userts: new Date(),
-      },
-    });
-
-    // Create donation record
-    await prisma.donation.create({
-      data: {
-        userId: request.userId,
-        requestId: requestId,
-        amount: verifyData.data.amount / 100,
-        payment: { connect: { id: payment.id } },
-        status: "COMPLETED",
-        invoice: reference,
-      },
-    });
-
-    // Redirect to success page
+    // Redirect to success page - actual payment processing will be handled by webhook
     return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}?success=true&reference=${reference}`);
 
   } catch (error) {
