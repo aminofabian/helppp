@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import crypto from "crypto";
-import prisma from "@/app/lib/db";
-import { PaymentMethod, PaymentStatus } from "@prisma/client";
-import { calculateLevel } from "@/app/lib/levelCalculator";
+import { PaymentStatus } from "@prisma/client";
+import { updateDonationStatus } from "@/app/(actions)/handleDonation";
 
 // Keep track of processed references in memory
 const processedReferences = new Set<string>();
@@ -51,171 +50,27 @@ export async function POST(req: Request) {
         return NextResponse.json({ status: "success", message: "Payment already processed" });
       }
 
-      // Check database for existing payment or donation
-      const [existingPayment, existingDonation] = await Promise.all([
-        prisma.payment.findFirst({
-          where: {
-            OR: [
-              { checkoutRequestId: reference },
-              { mpesaReceiptNumber: reference },
-            ],
-          },
-        }),
-        prisma.donation.findFirst({
-          where: { invoice: reference },
-        }),
-      ]);
+      // Update donation status
+      const result = await updateDonationStatus(
+        reference,
+        PaymentStatus.COMPLETED,
+        event.data
+      );
 
-      if (existingPayment || existingDonation) {
-        console.log(`[${webhookId}] Payment already processed (database): ${reference}`);
-        processedReferences.add(reference); // Add to memory cache
-        return NextResponse.json({ status: "success", message: "Payment already processed" });
+      if (result.success) {
+        // Add to processed references
+        processedReferences.add(reference);
+        console.log(`[${webhookId}] Payment processed successfully: ${reference}`);
+        return NextResponse.json({ status: "success", message: "Payment processed" });
+      } else {
+        console.error(`[${webhookId}] Error processing payment:`, result.error);
+        return NextResponse.json({ status: "error", message: "Error processing payment" }, { status: 500 });
       }
-
-      // Add to memory cache before processing
-      processedReferences.add(reference);
-
-      // Process the payment in a transaction to ensure atomicity
-      const result = await prisma.$transaction(async (prisma) => {
-        console.log(`[${webhookId}] Starting payment processing in transaction`);
-
-        const email = event.data.customer.email?.toLowerCase().trim();
-        const amount = event.data.amount; // Convert from kobo to NGN/KES
-        const currency = event.data.currency;
-        const requestId = event.data.metadata?.custom_fields?.find(
-          (field: { variable_name: string; value: string }) =>
-            field.variable_name === "request_id"
-        )?.value;
-
-        console.log("Extracted data:", {
-          email,
-          amount,
-          reference,
-          currency,
-          requestId,
-        });
-
-        if (!email || !requestId) {
-          console.error("Missing required data:", { email, requestId });
-          return NextResponse.json({ message: "Email or requestId missing" }, { status: 400 });
-        }
-
-        // Find user by email (Giver)
-        const giver = await prisma.user.findUnique({ where: { email } });
-        if (!giver) {
-          console.error("User not found for email:", email);
-          return NextResponse.json({ message: "User not found" }, { status: 404 });
-        }
-        console.log("Giver found:", giver.id);
-
-        // Fetch receiver from the requestId
-        const request = await prisma.request.findUnique({
-          where: { id: requestId },
-          include: { User: true },
-        });
-        if (!request) {
-          console.error("Request not found for requestId:", requestId);
-          return NextResponse.json({ message: "Request not found" }, { status: 404 });
-        }
-
-        const receiver = await prisma.user.findUnique({ where: { id: request.userId } });
-        if (!receiver) {
-          console.error("Receiver user not found for userId:", request.userId);
-          return NextResponse.json({ message: "Receiver user not found" }, { status: 404 });
-        }
-        console.log("Receiver found:", receiver.id);
-
-        // Store payment record
-        const payment = await prisma.payment.create({
-          data: {
-            userId: giver.id,
-            amount: amount,
-            status: PaymentStatus.COMPLETED,
-            paymentMethod: PaymentMethod.PAYSTACK,
-            mpesaReceiptNumber: reference,
-            currency: currency,
-            requestId: requestId,
-            userts: new Date(),
-          },
-        });
-        console.log(`Payment recorded successfully for user: ${giver.id} and requestId: ${requestId}`);
-
-        // Create a donation record
-        const donation = await prisma.donation.create({
-          data: {
-            userId: giver.id,
-            requestId: requestId,
-            amount: amount,
-            payment: { connect: { id: payment.id } },
-            status: "COMPLETED",
-            invoice: reference,
-          },
-        });
-        console.log(`Donation recorded successfully: ${donation.id}`);
-
-        // Update user points and total donated
-        const pointsEarned = Math.floor(amount / 50);
-        await prisma.points.create({
-          data: { userId: giver.id, amount: pointsEarned, paymentId: payment.id },
-        });
-
-        const totalPoints = await prisma.points.aggregate({
-          where: { userId: giver.id },
-          _sum: { amount: true },
-        });
-        const newLevel = calculateLevel(totalPoints._sum.amount || 0);
-        
-        // Update user's level and total donated amount
-        await prisma.user.update({
-          where: { id: giver.id },
-          data: { 
-            level: newLevel,
-            totalDonated: { increment: amount },  // Increment total donated
-            donationCount: { increment: 1 }       // Increment donation count
-          },
-        });
-
-        // Create a transaction record
-        await prisma.transaction.create({
-          data: {
-            giverId: giver.id,
-            receiverId: receiver.id,
-            amount: amount,
-          },
-        });
-        console.log(`Transaction recorded: Giver ${giver.id} -> Receiver ${receiver.id}`);
-
-        // Update receiver's wallet
-        let receiverWallet = await prisma.wallet.findUnique({
-          where: { userId: receiver.id },
-        });
-
-        if (!receiverWallet) {
-          receiverWallet = await prisma.wallet.create({
-            data: { userId: receiver.id, balance: amount },
-          });
-          console.log(`New wallet created for receiver with initial funding: ${receiver.id}`);
-        } else {
-          await prisma.wallet.update({
-            where: { userId: receiver.id },
-            data: { balance: { increment: amount } },
-          });
-          console.log(`Receiver's wallet updated: ${receiver.id}, Amount added: ${amount}`);
-        }
-
-        console.log(`[${webhookId}] Transaction completed successfully`);
-        return { success: true };
-      });
-
-      console.log(`[${webhookId}] Webhook processing completed`);
-      return NextResponse.json({ status: "success", message: "Payment processed successfully" });
     }
 
-    console.log(`[${webhookId}] Unhandled event type:`, event.event);
-    return NextResponse.json({ status: "success", message: "Unhandled event type" });
-  } catch (error: any) {
-    console.error(`[${webhookId}] Error processing webhook:`, error);
-    // Don't remove from processedReferences on error to prevent duplicate processing
-    return NextResponse.json({ status: "error", message: "Server error" }, { status: 500 });
+    return NextResponse.json({ status: "success", message: "Webhook received" });
+  } catch (error) {
+    console.error(`[${webhookId}] Webhook processing error:`, error);
+    return NextResponse.json({ status: "error", message: "Internal server error" }, { status: 500 });
   }
 }

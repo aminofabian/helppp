@@ -380,6 +380,71 @@ export default function HomeNavRight({
               userId={initialUser.id} 
             />
           </div>
+
+          <div className="bg-secondary/10 dark:bg-gray-800/50 p-4 rounded-lg space-y-3">
+            <h3 className="text-sm font-medium text-primary dark:text-gray-200 flex items-center gap-2">
+              <Activity className="w-4 h-4" />
+              Your Impact Stats
+            </h3>
+            
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-white/50 dark:bg-gray-800 p-3 rounded-lg">
+                <div className="text-xs text-gray-600 dark:text-gray-400">Total Points</div>
+                <div className="text-lg font-semibold text-primary">
+                  {stats.points.reduce((acc, point) => acc + point.amount, 0).toLocaleString()} XP
+                </div>
+                <div className="text-xs text-gray-500 mt-1">
+                  Next Level: {(stats.level * 1000).toLocaleString()} XP
+                </div>
+              </div>
+              
+              <div className="bg-white/50 dark:bg-gray-800 p-3 rounded-lg">
+                <div className="text-xs text-gray-600 dark:text-gray-400">People Helped</div>
+                <div className="text-lg font-semibold text-primary">
+                  {stats.calculatedDonationCount || stats.donationCount || 0}
+                </div>
+                <div className="text-xs text-gray-500 mt-1">
+                  Through {(stats.calculatedTotalDonated || stats.totalDonated || 0).toLocaleString()} KES
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex justify-between text-xs text-gray-600 dark:text-gray-400">
+                <span>Progress to Level {stats.level + 1}</span>
+                <span>{Math.round((stats.points.reduce((acc, point) => acc + point.amount, 0) / (stats.level * 1000)) * 100)}%</span>
+              </div>
+              <Progress 
+                value={(stats.points.reduce((acc, point) => acc + point.amount, 0) / (stats.level * 1000)) * 100} 
+                className="h-2 dark:bg-gray-800" 
+              />
+              <div className="text-xs text-gray-500 dark:text-gray-400">
+                {(stats.level * 1000) - stats.points.reduce((acc, point) => acc + point.amount, 0)} points needed
+              </div>
+            </div>
+
+            <div className="bg-white/50 dark:bg-gray-800 p-3 rounded-lg">
+              <h4 className="text-sm font-medium mb-2 text-primary dark:text-gray-200">Quick Stats</h4>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-600 dark:text-gray-400">Current Level</span>
+                  <span className="font-medium text-primary">{stats.level}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600 dark:text-gray-400">Max Request Amount</span>
+                  <span className="font-medium text-primary">
+                    {LEVEL_PERKS[stats.level as LevelNumber]?.maxAmount.toLocaleString()} KES
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600 dark:text-gray-400">Active Perks</span>
+                  <span className="font-medium text-primary">
+                    {LEVEL_PERKS[stats.level as LevelNumber]?.perks.length || 0}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
           
           <div className="space-y-4">
             <div className="bg-primary text-white 

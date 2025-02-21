@@ -1,30 +1,27 @@
 // app/api/mpesa-callback/route.ts
 
 import { NextResponse } from 'next/server';
-import { processMpesaCallback } from '@/app/(actions)/processMpesaCallback';
+import { PaymentStatus } from '@prisma/client';
+import { updateDonationStatus } from '@/app/(actions)/handleDonation';
 
 interface CallbackMetadataItem {
   Name: string;
   Value: string | number;
 }
 
-
-
-export interface CallbackData {
+interface CallbackData {
   MerchantRequestID: string;
   CheckoutRequestID: string;
   ResultCode: number;
   ResultDesc: string;
-  amount: number; // Type 'Float' is not a valid TypeScript type. Use 'number' instead.
-  phoneNumber?: string; // Optional field based on the schema
-  mpesaReceiptNumber?: string; // Optional field based on the schema
-  transactionDate?: Date; // Use 'Date' for DateTime types in TypeScript
+  amount: number;
+  phoneNumber?: string;
+  mpesaReceiptNumber?: string;
+  transactionDate?: Date;
   CallbackMetadata: {
     Item: CallbackMetadataItem[];
   };
 }
-
-
 
 interface STKCallback {
   stkCallback: CallbackData;
@@ -48,24 +45,44 @@ export async function POST(req: Request) {
       return NextResponse.json({ ResultCode: 1, ResultDesc: "Invalid request body structure" }, { status: 400 });
     }
 
-    const callbackData: CallbackData = body.Body.stkCallback;
-    console.log('Callback data:', JSON.stringify(callbackData, null, 2));
+    const callbackData = body.Body.stkCallback;
+    const { CheckoutRequestID, ResultCode, CallbackMetadata } = callbackData;
 
-    if (callbackData.ResultCode !== 0) {
-      console.log('Payment failed:', callbackData.ResultDesc);
-      return NextResponse.json({ ResultCode: callbackData.ResultCode, ResultDesc: callbackData.ResultDesc });
+    // Extract metadata values
+    const getMetadataValue = (name: string) => {
+      const item = CallbackMetadata?.Item?.find((item: CallbackMetadataItem) => item.Name === name);
+      return item?.Value;
+    };
+
+    const amount = getMetadataValue('Amount');
+    const mpesaReceiptNumber = getMetadataValue('MpesaReceiptNumber');
+    const transactionDate = getMetadataValue('TransactionDate');
+    const phoneNumber = getMetadataValue('PhoneNumber')?.toString();
+
+    // Update donation status based on the result code
+    const status = ResultCode === 0 ? PaymentStatus.COMPLETED : PaymentStatus.FAILED;
+    
+    const result = await updateDonationStatus(
+      CheckoutRequestID,
+      status,
+      {
+        mpesaReceiptNumber,
+        transactionDate,
+        phoneNumber,
+        amount,
+        ResultCode,
+        ResultDesc: callbackData.ResultDesc
+      }
+    );
+
+    if (!result.success) {
+      console.error('Failed to update donation:', result.error);
+      return NextResponse.json({ ResultCode: 1, ResultDesc: "Failed to update donation" }, { status: 500 });
     }
 
-    const result = await processMpesaCallback(callbackData);
-
-    if (result.success) {
-      console.log('Payment processed successfully');
-      return NextResponse.json({ ResultCode: 0, ResultDesc: "Accepted" });
-    } else {
-      throw new Error('Transaction failed');
-    }
+    return NextResponse.json({ ResultCode: 0, ResultDesc: "Success" });
   } catch (error) {
-    console.error('Unexpected error in M-Pesa callback:', error);
-    return NextResponse.json({ ResultCode: 1, ResultDesc: "Internal Server Error" }, { status: 500 });
+    console.error('Error processing M-Pesa callback:', error);
+    return NextResponse.json({ ResultCode: 1, ResultDesc: "Internal server error" }, { status: 500 });
   }
 }
