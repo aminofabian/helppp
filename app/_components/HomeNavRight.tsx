@@ -387,34 +387,148 @@ export default function HomeNavRight({
             />
           </div>
 
-          <div className="bg-secondary/10 dark:bg-gray-800/50 p-4 rounded-lg space-y-3">
-            <h3 className="text-sm font-medium text-primary dark:text-gray-200 flex items-center gap-2">
-              <Activity className="w-4 h-4" />
-              Your Impact Stats
-            </h3>
-            
+          <div className="bg-secondary/10 dark:bg-gray-800/50 p-4 rounded-lg space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-medium text-primary dark:text-gray-200 flex items-center gap-2">
+                <Activity className="w-4 h-4" />
+                Your Impact Stats
+              </h3>
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button variant="ghost" size="sm" className="text-xs">
+                    View Details
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl">
+                  <DialogHeader>
+                    <DialogTitle>Detailed Impact Statistics</DialogTitle>
+                    <DialogDescription>
+                      Your complete contribution and impact metrics
+                    </DialogDescription>
+                  </DialogHeader>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                    {/* Giving Impact */}
+                    <div className="space-y-3 p-4 bg-secondary/10 dark:bg-gray-800/50 rounded-lg">
+                      <h4 className="font-medium text-primary flex items-center gap-2">
+                        <HandHeart className="w-4 h-4" />
+                        Giving Impact
+                      </h4>
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600 dark:text-gray-400">Total Amount Given</span>
+                          <span className="font-medium">KES {(stats.calculatedTotalDonated || stats.totalDonated || 0).toLocaleString()}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600 dark:text-gray-400">People Helped</span>
+                          <span className="font-medium">{stats.calculatedDonationCount || stats.donationCount || 0}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600 dark:text-gray-400">Average Donation</span>
+                          <span className="font-medium">
+                            KES {stats.calculatedDonationCount ? 
+                              Math.round((stats.calculatedTotalDonated || 0) / stats.calculatedDonationCount).toLocaleString() : 0}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Level Progress */}
+                    <div className="space-y-3 p-4 bg-secondary/10 dark:bg-gray-800/50 rounded-lg">
+                      <h4 className="font-medium text-primary flex items-center gap-2">
+                        <Trophy className="w-4 h-4" />
+                        Level & Points
+                      </h4>
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600 dark:text-gray-400">Current Level</span>
+                          <span className="font-medium">{stats.level}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600 dark:text-gray-400">Total Points</span>
+                          <span className="font-medium">{stats.points.reduce((acc, point) => acc + point.amount, 0).toLocaleString()} XP</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600 dark:text-gray-400">Next Level At</span>
+                          <span className="font-medium">
+                            {LEVEL_THRESHOLDS.find((t: { level: number }) => t.level === stats.level + 1)?.points.toLocaleString()} XP
+                          </span>
+                        </div>
+                      </div>
+                      <Progress 
+                        value={(() => {
+                          const currentPoints = stats.points.reduce((acc, point) => acc + point.amount, 0);
+                          const currentLevelPoints = LEVEL_THRESHOLDS.find((t: { level: number }) => t.level === stats.level)?.points || 0;
+                          const nextLevelPoints = LEVEL_THRESHOLDS.find((t: { level: number }) => t.level === stats.level + 1)?.points || LEVEL_THRESHOLDS[0].points;
+                          return ((currentPoints - currentLevelPoints) / (nextLevelPoints - currentLevelPoints)) * 100;
+                        })()} 
+                        className="h-2" 
+                      />
+                    </div>
+
+                    {/* Account Limits */}
+                    <div className="space-y-3 p-4 bg-secondary/10 dark:bg-gray-800/50 rounded-lg">
+                      <h4 className="font-medium text-primary flex items-center gap-2">
+                        <CreditCard className="w-4 h-4" />
+                        Account Limits
+                      </h4>
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600 dark:text-gray-400">Max Request Amount</span>
+                          <span className="font-medium">KES {LEVEL_PERKS[stats.level as LevelNumber]?.maxAmount.toLocaleString()}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600 dark:text-gray-400">Active Perks</span>
+                          <span className="font-medium">{LEVEL_PERKS[stats.level as LevelNumber]?.perks.length || 0}</span>
+                        </div>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-2">{LEVEL_PERKS[stats.level as LevelNumber]?.limit}</p>
+                    </div>
+
+                    {/* Current Perks */}
+                    <div className="space-y-3 p-4 bg-secondary/10 dark:bg-gray-800/50 rounded-lg">
+                      <h4 className="font-medium text-primary flex items-center gap-2">
+                        <Star className="w-4 h-4" />
+                        Current Perks
+                      </h4>
+                      <ul className="space-y-2">
+                        {LEVEL_PERKS[stats.level as LevelNumber]?.perks.map((perk, index) => (
+                          <li key={index} className="flex items-center gap-2 text-sm">
+                            {perk.icon}
+                            <span className="text-gray-600 dark:text-gray-400">{perk.text}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
+
+            {/* Summary Cards */}
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-white/50 dark:bg-gray-800 p-3 rounded-lg">
-                <div className="text-xs text-gray-600 dark:text-gray-400">Total Points</div>
+                <div className="text-xs text-gray-600 dark:text-gray-400">Impact Score</div>
                 <div className="text-lg font-semibold text-primary">
                   {stats.points.reduce((acc, point) => acc + point.amount, 0).toLocaleString()} XP
                 </div>
                 <div className="text-xs text-gray-500 mt-1">
-                  Next Level: {(stats.level * 1000).toLocaleString()} XP
+                  Level {stats.level} • {LEVEL_PERKS[stats.level as LevelNumber]?.perks.length} Perks
                 </div>
               </div>
               
               <div className="bg-white/50 dark:bg-gray-800 p-3 rounded-lg">
-                <div className="text-xs text-gray-600 dark:text-gray-400">People Helped</div>
+                <div className="text-xs text-gray-600 dark:text-gray-400">Total Impact</div>
                 <div className="text-lg font-semibold text-primary">
-                  {stats.calculatedDonationCount || stats.donationCount || 0}
+                  {stats.calculatedDonationCount || stats.donationCount || 0} Helped
                 </div>
                 <div className="text-xs text-gray-500 mt-1">
-                  Through {(stats.calculatedTotalDonated || stats.totalDonated || 0).toLocaleString()} KES
+                  KES {(stats.calculatedTotalDonated || stats.totalDonated || 0).toLocaleString()} Given
                 </div>
               </div>
             </div>
 
+            {/* Progress Bar */}
             <div className="space-y-2">
               <div className="flex justify-between text-xs text-gray-600 dark:text-gray-400">
                 <span>Progress to Level {stats.level + 1}</span>
@@ -427,36 +541,20 @@ export default function HomeNavRight({
                 })()}
               </div>
               <Progress 
-                value={((stats.points.reduce((acc, point) => acc + point.amount, 0) - (LEVEL_THRESHOLDS.find((t: { level: number }) => t.level === stats.level)?.points || 0)) / 
-                      ((LEVEL_THRESHOLDS.find((t: { level: number }) => t.level === stats.level + 1)?.points || LEVEL_THRESHOLDS[0].points) - 
-                      (LEVEL_THRESHOLDS.find((t: { level: number }) => t.level === stats.level)?.points || 0)) * 100)} 
+                value={(() => {
+                  const currentPoints = stats.points.reduce((acc, point) => acc + point.amount, 0);
+                  const currentLevelPoints = LEVEL_THRESHOLDS.find((t: { level: number }) => t.level === stats.level)?.points || 0;
+                  const nextLevelPoints = LEVEL_THRESHOLDS.find((t: { level: number }) => t.level === stats.level + 1)?.points || LEVEL_THRESHOLDS[0].points;
+                  return ((currentPoints - currentLevelPoints) / (nextLevelPoints - currentLevelPoints)) * 100;
+                })()} 
                 className="h-2 dark:bg-gray-800" 
               />
               <div className="text-xs text-gray-500 dark:text-gray-400">
-                {(LEVEL_THRESHOLDS.find((t: { level: number }) => t.level === stats.level + 1)?.points || LEVEL_THRESHOLDS[0].points) - 
-                 stats.points.reduce((acc, point) => acc + point.amount, 0)} points needed,
-              </div>
-            </div>
-
-            <div className="bg-white/50 dark:bg-gray-800 p-3 rounded-lg">
-              <h4 className="text-sm font-medium mb-2 text-primary dark:text-gray-200">Quick Stats</h4>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-600 dark:text-gray-400">Current Level</span>
-                  <span className="font-medium text-primary">{stats.level}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600 dark:text-gray-400">Max Request Amount</span>
-                  <span className="font-medium text-primary">
-                    {LEVEL_PERKS[stats.level as LevelNumber]?.maxAmount.toLocaleString()} KES
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600 dark:text-gray-400">Active Perks</span>
-                  <span className="font-medium text-primary">
-                    {LEVEL_PERKS[stats.level as LevelNumber]?.perks.length || 0}
-                  </span>
-                </div>
+                {(() => {
+                  const currentPoints = stats.points.reduce((acc, point) => acc + point.amount, 0);
+                  const nextLevelPoints = LEVEL_THRESHOLDS.find((t: { level: number }) => t.level === stats.level + 1)?.points || LEVEL_THRESHOLDS[0].points;
+                  return `${nextLevelPoints - currentPoints} points needed`;
+                })()}
               </div>
             </div>
           </div>
