@@ -391,7 +391,7 @@ export default function HomeNavRight({
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-medium text-primary dark:text-gray-200 flex items-center gap-2">
                 <Activity className="w-4 h-4" />
-                Your Impact Stats
+                Level Progress
               </h3>
               <Dialog>
                 <DialogTrigger asChild>
@@ -503,29 +503,6 @@ export default function HomeNavRight({
                   </div>
                 </DialogContent>
               </Dialog>
-            </div>
-
-            {/* Summary Cards */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="bg-white/50 dark:bg-gray-800 p-3 rounded-lg">
-                <div className="text-xs text-gray-600 dark:text-gray-400">Impact Score</div>
-                <div className="text-lg font-semibold text-primary">
-                  {stats.points.reduce((acc, point) => acc + point.amount, 0).toLocaleString()} XP
-                </div>
-                <div className="text-xs text-gray-500 mt-1">
-                  Level {stats.level} • {LEVEL_PERKS[stats.level as LevelNumber]?.perks.length} Perks
-                </div>
-              </div>
-              
-              <div className="bg-white/50 dark:bg-gray-800 p-3 rounded-lg">
-                <div className="text-xs text-gray-600 dark:text-gray-400">Total Impact</div>
-                <div className="text-lg font-semibold text-primary">
-                  {stats.calculatedDonationCount || stats.donationCount || 0} Helped
-                </div>
-                <div className="text-xs text-gray-500 mt-1">
-                  KES {(stats.calculatedTotalDonated || stats.totalDonated || 0).toLocaleString()} Given
-                </div>
-              </div>
             </div>
 
             {/* Progress Bar */}
