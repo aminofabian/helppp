@@ -232,7 +232,7 @@ model Donation {
   createdAt DateTime @default(now())
   phoneNumber String?
   payment   Payment?
-  invoice   String
+  invoice   String   @unique
   status    String
   mpesaReceiptNumber String?
   transactionDate    DateTime?

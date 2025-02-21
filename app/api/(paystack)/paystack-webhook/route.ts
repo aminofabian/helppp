@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import prisma from '@/app/lib/db';
 import { calculateLevel } from '@/app/lib/levelCalculator';
-
+import { PaymentMethod, PaymentStatus } from '@prisma/client';
 
 export async function POST(request: NextRequest) {
   const secretKey = process.env.PAYSTACK_SECRET_KEY;
@@ -42,35 +42,58 @@ export async function POST(request: NextRequest) {
   if (event.event === 'charge.success') {
     console.log('Payment successful:', event.data);
     try {
-      const donation = await prisma.donation.findFirst({
-        where: { invoice: event.data.reference },
+      // Extract requestId from reference (format: requestId_timestamp)
+      const requestId = event.data.reference.split('_')[0];
+      
+      if (!requestId) {
+        throw new Error('Could not extract requestId from reference');
+      }
+
+      // Get the request details
+      const request = await prisma.request.findUnique({
+        where: { id: requestId },
         include: {
           User: true,
-          Request: {
-            include: {
-              User: true,
-              Community: true
-            }
-          }
+          Community: true
         }
       });
 
-      if (!donation || !donation.Request || !donation.Request.User) {
-        throw new Error('Donation or related data not found');
+      if (!request || !request.User) {
+        throw new Error('Request or User not found');
       }
 
+      // Create payment record
       const payment = await prisma.payment.create({
         data: {
-          merchantRequestId: event.data.id,
+          userId: event.data.customer.id,
+          amount: event.data.amount / 100,
+          status: PaymentStatus.COMPLETED,
+          paymentMethod: PaymentMethod.PAYSTACK,
+          mpesaReceiptNumber: event.data.reference,
+          currency: event.data.currency,
+          requestId: requestId,
+          userts: new Date(event.data.paid_at),
+          merchantRequestId: event.data.id.toString(),
           checkoutRequestId: event.data.reference,
           resultCode: event.data.status,
           resultDesc: event.data.gateway_response,
+        }
+      });
+
+      // Create or update donation record
+      const donation = await prisma.donation.upsert({
+        where: { invoice: event.data.reference },
+        create: {
+          userId: event.data.customer.id,
+          requestId: requestId,
           amount: event.data.amount / 100,
-          userts: new Date(event.data.paid_at),
-          paymentMethod: event.data.channel,
-          sender: { connect: { id: donation.userId } },
-          donation: { connect: { id: donation.id } },
-          request: donation.requestId ? { connect: { id: donation.requestId } } : undefined
+          payment: { connect: { id: payment.id } },
+          status: "COMPLETED",
+          invoice: event.data.reference,
+        },
+        update: {
+          status: "COMPLETED",
+          payment: { connect: { id: payment.id } }
         }
       });
 
@@ -79,16 +102,16 @@ export async function POST(request: NextRequest) {
 
       await prisma.points.create({
         data: {
-          user: { connect: { id: donation.userId } },
+          userId: event.data.customer.id,
           amount: pointsEarned,
-          payment: { connect: { id: payment.id } }
+          paymentId: payment.id
         }
       });
 
       // Calculate total points from all donations
       const totalDonated = await prisma.donation.aggregate({
         where: {
-          userId: donation.userId,
+          userId: event.data.customer.id,
           status: {
             in: ['Paid', 'PAID', 'paid', 'COMPLETED', 'Completed', 'completed', 'SUCCESS', 'success']
           }
@@ -102,76 +125,64 @@ export async function POST(request: NextRequest) {
       const newLevel = calculateLevel(totalPoints);
 
       await prisma.user.update({
-        where: { id: donation.userId },
+        where: { id: event.data.customer.id },
         data: { level: newLevel }
       });
 
-      await prisma.donation.update({
-        where: { id: donation.id },
-        data: {
-          status: 'Paid',
-          payment: { connect: { id: payment.id } }
-        }
-      });
-
-      const requestCreator = donation.Request.User;
-      if (!requestCreator) {
-        throw new Error('Request creator not found');
-      }
-
-
+      // Update receiver's wallet
       const wallet = await prisma.wallet.findUnique({
-        where: { userId: requestCreator.id }
+        where: { userId: request.userId }
       });
 
       const newBalance = (wallet?.balance || 0) + (event.data.amount / 100);
 
       await prisma.wallet.upsert({
-        where: { userId: requestCreator.id },
+        where: { userId: request.userId },
         update: { balance: newBalance },
         create: {
-          userId: requestCreator.id,
+          userId: request.userId,
           balance: newBalance
         }
       });
 
-
+      // Create transaction record
       await prisma.transaction.create({
         data: {
-          giver: { connect: { id: donation.userId } },
-          receiver: { connect: { id: requestCreator.id } },
+          giverId: event.data.customer.id,
+          receiverId: request.userId,
           amount: event.data.amount / 100
         }
       });
 
+      // Create notification
       await prisma.notification.create({
         data: {
-          recipient: { connect: { id: requestCreator.id } },
+          recipientId: request.userId,
           title: 'Donation Received',
           content: `You have received a donation of KES ${event.data.amount / 100}.`,
-          
-          issuer: { connect: { id: donation.userId } },
-          request: { connect: { id: donation.requestId } },
+          issuerId: event.data.customer.id,
+          requestId: requestId,
           type: 'DONATION',
-          read: false,
-          
+          read: false
         }
       });
 
+      // Update request status if fully funded
       const updatedRequest = await prisma.request.findUnique({
-        where: { id: donation.requestId }
+        where: { id: requestId }
       });
 
       if (updatedRequest && updatedRequest.amount >= updatedRequest.pointsUsed) {
         await prisma.request.update({
-          where: { id: donation.requestId },
+          where: { id: requestId },
           data: { status: 'FUNDED' }
         });
       }
 
-      if (donation.Request.communityName) {
+      // Update community stats if applicable
+      if (request.communityName && request.Community) {
         await prisma.community.update({
-          where: { name: donation.Request.communityName },
+          where: { name: request.communityName },
           data: {
             totalDonations: {
               increment: event.data.amount / 100
@@ -181,14 +192,13 @@ export async function POST(request: NextRequest) {
             }
           }
         });
-      }
 
-      if (donation.Request.communityName && donation.Request.Community) {
+        // Update community member stats
         await prisma.communityMember.upsert({
           where: {
             userId_communityId: {
-              userId: donation.userId,
-              communityId: donation.Request.Community.id
+              userId: event.data.customer.id,
+              communityId: request.Community.id
             }
           },
           update: {
@@ -197,22 +207,25 @@ export async function POST(request: NextRequest) {
             }
           },
           create: {
-            userId: donation.userId,
-            communityId: donation.Request.Community.id,
+            userId: event.data.customer.id,
+            communityId: request.Community.id,
             totalDonated: event.data.amount / 100
           }
         });
       }
+
+      // Create vote
       await prisma.vote.create({
         data: {
-          User: { connect: { id: donation.userId } },
-          Request: { connect: { id: donation.requestId } },
+          userId: event.data.customer.id,
+          requestId: requestId,
           voteType: 'LOVE'
         }
       });
 
+      // Update user donation stats
       await prisma.user.update({
-        where: { id: donation.userId },
+        where: { id: event.data.customer.id },
         data: {
           totalDonated: {
             increment: event.data.amount / 100
@@ -223,19 +236,20 @@ export async function POST(request: NextRequest) {
         }
       });
 
-      if (donation.Request.communityName) {
+      // Notify community admin if applicable
+      if (request.communityName) {
         const communityAdmin = await prisma.user.findFirst({
-          where: { createdCommunities: { some: { name: donation.Request.communityName } } }
+          where: { createdCommunities: { some: { name: request.communityName } } }
         });
 
         if (communityAdmin) {
           await prisma.notification.create({
             data: {
-              recipient: { connect: { id: communityAdmin.id } },
-              title: `New donation from ${donation.Request.title}`,
-              content: `New donation from ${donation.Request.title}`,
-              issuer: { connect: { id: donation.userId } },
-              request: { connect: { id: donation.requestId } },
+              recipientId: communityAdmin.id,
+              title: `New donation for ${request.title}`,
+              content: `New donation received for ${request.title}`,
+              issuerId: event.data.customer.id,
+              requestId: requestId,
               type: 'DONATION',
               read: false
             }
@@ -243,13 +257,13 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // Trigger revalidation with user ID
+      // Trigger revalidation
       await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/revalidate-donation`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ userId: donation.userId }),
+        body: JSON.stringify({ userId: event.data.customer.id }),
       });
 
     } catch (error) {
@@ -258,10 +272,8 @@ export async function POST(request: NextRequest) {
     }
   } else if (event.event === 'charge.failed') {
     console.log('Payment failed:', event.data);
-    // You might want to update the donation status to 'Failed' here
   } else if (event.event === 'charge.pending') {
     console.log('Payment is pending:', event.data);
-    // You might want to update the donation status to 'Pending' here
   } else {
     console.log('Unhandled event:', event.event);
   }
