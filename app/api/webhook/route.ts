@@ -67,6 +67,23 @@ export async function POST(req: Request) {
       }
 
       try {
+        // Find the pending donation first
+        const pendingDonation = await prisma.donation.findFirst({
+          where: {
+            requestId: requestId,
+            status: PaymentStatus.PENDING
+          },
+          include: {
+            User: true
+          }
+        });
+
+        if (!pendingDonation) {
+          throw new Error(`No pending donation found for requestId: ${requestId}`);
+        }
+
+        console.log(`[${webhookId}] Found pending donation:`, pendingDonation.id);
+
         // First create the payment record
         const payment = await prisma.payment.create({
           data: {
@@ -78,11 +95,9 @@ export async function POST(req: Request) {
             resultCode: event.data.status,
             resultDesc: "Success",
             currency: event.data.currency,
-            sender: {
-              connect: {
-                email: event.data.customer.email
-              }
-            },
+            userId: pendingDonation.userId,
+            requestId: requestId,
+            donationId: pendingDonation.id,
             userts: new Date(event.data.paid_at),
             transactionDate: new Date()
           }
@@ -90,11 +105,11 @@ export async function POST(req: Request) {
 
         console.log(`[${webhookId}] Created payment record: ${payment.id}`);
 
-        // Then update the donation status
+        // Then update the donation status using the payment reference
         const result = await updateDonationStatus(
           reference,
           PaymentStatus.COMPLETED,
-          event.data.reference // Using Paystack reference as receipt number
+          event.data.reference
         );
 
         if (result.success) {
