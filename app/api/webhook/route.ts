@@ -80,7 +80,7 @@ export async function POST(req: Request) {
         console.log(`[${webhookId}] Starting payment processing in transaction`);
 
         const email = event.data.customer.email?.toLowerCase().trim();
-        const amount = event.data.amount / 100; // Convert from cents to KES
+        const amount = event.data.amount; // Convert from kobo to NGN/KES
         const currency = event.data.currency;
         const requestId = event.data.metadata?.custom_fields?.find(
           (field: { variable_name: string; value: string }) =>
@@ -153,7 +153,7 @@ export async function POST(req: Request) {
         });
         console.log(`Donation recorded successfully: ${donation.id}`);
 
-        // Update user points
+        // Update user points and total donated
         const pointsEarned = Math.floor(amount / 50);
         await prisma.points.create({
           data: { userId: giver.id, amount: pointsEarned, paymentId: payment.id },
@@ -164,9 +164,15 @@ export async function POST(req: Request) {
           _sum: { amount: true },
         });
         const newLevel = calculateLevel(totalPoints._sum.amount || 0);
+        
+        // Update user's level and total donated amount
         await prisma.user.update({
           where: { id: giver.id },
-          data: { level: newLevel },
+          data: { 
+            level: newLevel,
+            totalDonated: { increment: amount },  // Increment total donated
+            donationCount: { increment: 1 }       // Increment donation count
+          },
         });
 
         // Create a transaction record

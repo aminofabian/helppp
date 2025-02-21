@@ -31,7 +31,7 @@ const PaystackButton = ({ email, amount, requestId, onSuccess, onError }: Paysta
         },
         body: JSON.stringify({
           email,
-          amount: Math.round(amount * 100), // Convert to lowest currency unit (cents)
+          amount: amount, // Pass exact amount without multiplication
           reference: `${requestId}_${Date.now()}`,
           callback_url: `${window.location.origin}/api/paystack-callback`,
           metadata: {
