@@ -11,14 +11,16 @@ export async function GET() {
   }
 
   try {
-    const notifications = await prisma.notification.findMany({
-      where: { recipientId: user.id },
-      orderBy: { createdAt: 'desc' },
+    const count = await prisma.notification.count({
+      where: { 
+        recipientId: user.id,
+        read: false
+      }
     });
 
-    return NextResponse.json(notifications);
+    return NextResponse.json({ count });
   } catch (error) {
-    console.error("Error fetching notifications:", error);
-    return NextResponse.json({ error: 'Failed to fetch notifications' }, { status: 500 });
+    console.error("Error fetching notifications count:", error);
+    return NextResponse.json({ error: 'Failed to fetch notifications count' }, { status: 500 });
   }
 }

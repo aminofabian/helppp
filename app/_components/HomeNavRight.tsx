@@ -11,6 +11,7 @@ import { Progress } from "@/components/ui/progress";
 import DonationCount from './DonationCount';
 import { calculateLevel } from '@/app/lib/levelCalculator';
 import dynamic from 'next/dynamic';
+import NotificationList from './NotificationList';
 
 // Dynamically import Dialog components with no SSR
 const Dialog = dynamic(() => import("@/components/ui/dialog").then(mod => mod.Dialog), { ssr: false });
@@ -133,6 +134,8 @@ export default function HomeNavRight({
 }) {
   const [stats, setStats] = useState<UserStats>(initialStats);
   const [wallet, setWallet] = useState<WalletData>(initialWallet);
+  const [isWalletOpen, setIsWalletOpen] = useState(false);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
   
   // Calculate points based on total donations
   const calculatedPoints = Math.floor((stats?.calculatedTotalDonated || stats?.totalDonated || 0) / 50);
@@ -470,6 +473,48 @@ export default function HomeNavRight({
                 Create a Community
               </Link>
             </Button>
+          </div>
+          <div className="flex items-center space-x-4">
+            <Dialog>
+              <DialogTrigger asChild>
+                <div className="cursor-pointer">
+                </div>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle>Notifications</DialogTitle>
+                  <DialogDescription>
+                    Stay updated with your latest activities
+                  </DialogDescription>
+                </DialogHeader>
+                <NotificationList className="max-h-[60vh] overflow-y-auto" />
+              </DialogContent>
+            </Dialog>
+            
+            <Dialog open={isWalletOpen} onOpenChange={setIsWalletOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" 
+                        className="w-full lowercase text-xs text-primary
+                                 dark:text-gray-300 dark:border-gray-700
+                                 dark:hover:bg-gray-700/50
+                                 transition-all duration-300">
+                  Wallet
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Wallet</DialogTitle>
+                  <DialogDescription>
+                    Manage your wallet
+                  </DialogDescription>
+                </DialogHeader>
+                <WalletDepositForm 
+                  onSuccess={(newBalance) => {
+                    setWallet(prev => ({ ...prev, balance: newBalance }));
+                  }} 
+                />
+              </DialogContent>
+            </Dialog>
           </div>
         </div>
       </Card>
