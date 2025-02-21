@@ -513,8 +513,8 @@ export default function HomeNavRight({
                   const currentPoints = stats.points.reduce((acc, point) => acc + point.amount, 0);
                   const currentLevelPoints = LEVEL_THRESHOLDS.find((t: { level: number }) => t.level === stats.level)?.points || 0;
                   const nextLevelPoints = LEVEL_THRESHOLDS.find((t: { level: number }) => t.level === stats.level + 1)?.points || LEVEL_THRESHOLDS[0].points;
-                  const percentage = Math.round(((currentPoints - currentLevelPoints) / (nextLevelPoints - currentLevelPoints)) * 100);
-                  return <span>{percentage}%</span>;
+                  const percentage = ((currentPoints - currentLevelPoints) / (nextLevelPoints - currentLevelPoints)) * 100;
+                  return <span>{percentage.toFixed(2)}%</span>;
                 })()}
               </div>
               <Progress 
@@ -529,8 +529,15 @@ export default function HomeNavRight({
               <div className="text-xs text-gray-500 dark:text-gray-400">
                 {(() => {
                   const currentPoints = stats.points.reduce((acc, point) => acc + point.amount, 0);
+                  const currentLevelPoints = LEVEL_THRESHOLDS.find((t: { level: number }) => t.level === stats.level)?.points || 0;
                   const nextLevelPoints = LEVEL_THRESHOLDS.find((t: { level: number }) => t.level === stats.level + 1)?.points || LEVEL_THRESHOLDS[0].points;
-                  return `${nextLevelPoints - currentPoints} points needed`;
+                  return (
+                    <div className="flex flex-col gap-1">
+                      <span>Current: {currentPoints} points</span>
+                      <span>Next Level: {nextLevelPoints} points</span>
+                      <span>Remaining: {nextLevelPoints - currentPoints} points</span>
+                    </div>
+                  );
                 })()}
               </div>
             </div>
