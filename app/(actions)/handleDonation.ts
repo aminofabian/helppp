@@ -45,22 +45,13 @@ export async function updateDonationStatus(
   mpesaReceiptNumber?: string
 ) {
   try {
-    // Extract requestId - handle both Paystack and Till payment formats
-    let requestId = transactionId;
-    if (transactionId.includes('_')) {
-      // For Paystack payments, requestId is before the underscore
-      requestId = transactionId.split('_')[0];
-    } else if (mpesaReceiptNumber) {
-      // For Till payments, use the transactionId directly as it's already the requestId
-      requestId = transactionId;
-    }
-
-    console.log('Looking for donation with requestId:', requestId);
-
-    // Find the donation by requestId and pending status
+    // Find the donation by invoice or requestId and pending status
     const donation = await prisma.donation.findFirst({
       where: {
-        requestId: requestId,
+        OR: [
+          { invoice: transactionId },
+          { requestId: transactionId }
+        ],
         status: PaymentStatus.PENDING
       },
       orderBy: {
@@ -77,10 +68,12 @@ export async function updateDonationStatus(
     });
 
     if (!donation) {
-      throw new Error(`Donation not found for requestId: ${requestId}`);
+      console.error(`Donation not found for transactionId: ${transactionId}`);
+      throw new Error(`Donation not found for transactionId: ${transactionId}`);
     }
 
     if (!donation.Request) {
+      console.error('Request not found for donation');
       throw new Error('Request not found for donation');
     }
 
@@ -90,7 +83,6 @@ export async function updateDonationStatus(
       data: {
         status,
         mpesaReceiptNumber,
-        invoice: transactionId,
         transactionDate: status === PaymentStatus.COMPLETED ? new Date() : undefined
       }
     });
