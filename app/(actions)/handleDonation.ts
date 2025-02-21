@@ -12,7 +12,6 @@ interface DonationData {
   transactionId: string;
   email?: string;
   phoneNumber?: string;
-  metadata?: any;
 }
 
 export async function createDonationRequest(data: DonationData) {
@@ -38,6 +37,12 @@ export async function createDonationRequest(data: DonationData) {
     console.error('Error creating donation request:', error);
     return { success: false, error };
   }
+}
+
+interface DonationStats {
+  points: number;
+  level: number;
+  streak: number;
 }
 
 export async function updateDonationStatus(
@@ -87,15 +92,10 @@ export async function updateDonationStatus(
         userId: donation.userId,
         amount: points,
         type: 'DONATION',
-        description: `Points earned for donating KES ${donation.amount}`,
-        metadata: {
-          donationId: donation.id,
-          requestId: donation.requestId,
-          amount: donation.amount
-        }
+        description: `Points earned for donating KES ${donation.amount}`
       });
 
-      // Update request's amount and stats
+      // Update request's amount
       await prisma.request.update({
         where: { id: donation.requestId },
         data: {
@@ -106,7 +106,7 @@ export async function updateDonationStatus(
       });
 
       // Get donor's updated stats
-      const donorStats = await getUserDonationStats(donation.userId);
+      const donorStats = await getUserDonationStats(donation.userId) as DonationStats;
 
       // Create notification for the request owner
       await prisma.notification.create({

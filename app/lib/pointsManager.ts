@@ -1,12 +1,12 @@
-import { db } from "@/lib/db";
-import { calculateLevel } from "./levelCalculator";
+import { calculateLevel } from './levelCalculator';
+import { prisma } from '@/app/lib/db';
+import { NotificationType, PaymentStatus } from '@prisma/client';
 
 export interface PointsTransaction {
   userId: string;
   amount: number;
-  type: 'DONATION' | 'BONUS' | 'REFERRAL' | 'STREAK';
-  description: string;
-  metadata?: any;
+  paymentId: string;
+  description?: string;
 }
 
 export interface DonationStats {
@@ -38,7 +38,7 @@ export async function calculateDonationPoints(amount: number, userId: string): P
   let totalPoints = Math.floor(amount / 50); // Base points calculation
 
   // Get user's donation history
-  const user = await db.user.findUnique({
+  const user = await prisma.user.findUnique({
     where: { id: userId },
     include: {
       donations: {
@@ -49,7 +49,7 @@ export async function calculateDonationPoints(amount: number, userId: string): P
   });
 
   // First-time donor bonus
-  if (!user?.donations.length) {
+  if (!user?.donations?.length) {
     totalPoints += POINTS_MULTIPLIERS.FIRST_TIME_BONUS;
   }
 
@@ -57,19 +57,15 @@ export async function calculateDonationPoints(amount: number, userId: string): P
   for (const [threshold, bonus] of Object.entries(POINTS_MULTIPLIERS.LARGE_DONATION_BONUS)) {
     if (amount >= parseInt(threshold)) {
       totalPoints += bonus;
-      break; // Only apply the highest applicable bonus
     }
   }
 
-  // Check donation streak
+  // Streak bonus
   const streak = await calculateDonationStreak(userId);
-  if (streak) {
-    // Apply streak multiplier
-    for (const [days, multiplier] of Object.entries(POINTS_MULTIPLIERS.STREAK)) {
-      if (streak >= parseInt(days)) {
-        totalPoints = Math.floor(totalPoints * multiplier);
-        break; // Only apply the highest applicable multiplier
-      }
+  for (const [days, multiplier] of Object.entries(POINTS_MULTIPLIERS.STREAK)) {
+    if (streak >= parseInt(days)) {
+      totalPoints = Math.floor(totalPoints * multiplier);
+      break; // Only apply the highest streak multiplier
     }
   }
 
@@ -77,35 +73,28 @@ export async function calculateDonationPoints(amount: number, userId: string): P
 }
 
 async function calculateDonationStreak(userId: string): Promise<number> {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  const lastDonations = await db.donation.findMany({
-    where: {
+  const donations = await prisma.donation.findMany({
+    where: { 
       userId,
-      status: 'COMPLETED',
-      createdAt: {
-        gte: new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000), // Last 30 days
-      },
+      status: PaymentStatus.COMPLETED
     },
     orderBy: { createdAt: 'desc' },
+    select: { createdAt: true }
   });
 
-  if (!lastDonations.length) return 0;
+  if (!donations.length) return 0;
 
   let streak = 1;
-  let currentDate = new Date(lastDonations[0].createdAt);
-  currentDate.setHours(0, 0, 0, 0);
+  const oneDayMs = 24 * 60 * 60 * 1000;
+  const threeDaysMs = 3 * oneDayMs;
 
-  for (let i = 1; i < lastDonations.length; i++) {
-    const donationDate = new Date(lastDonations[i].createdAt);
-    donationDate.setHours(0, 0, 0, 0);
+  for (let i = 0; i < donations.length - 1; i++) {
+    const currentDonation = donations[i].createdAt;
+    const nextDonation = donations[i + 1].createdAt;
+    const timeDiff = currentDonation.getTime() - nextDonation.getTime();
 
-    const daysDifference = Math.floor((currentDate.getTime() - donationDate.getTime()) / (24 * 60 * 60 * 1000));
-
-    if (daysDifference === 1) {
+    if (timeDiff <= threeDaysMs) {
       streak++;
-      currentDate = donationDate;
     } else {
       break;
     }
@@ -115,99 +104,81 @@ async function calculateDonationStreak(userId: string): Promise<number> {
 }
 
 export async function processPointsTransaction(transaction: PointsTransaction) {
-  const { userId, amount, type, description, metadata } = transaction;
+  const { userId, amount, paymentId } = transaction;
 
-  try {
-    // Create points transaction record
-    const pointsTransaction = await db.pointsTransaction.create({
-      data: {
-        userId,
-        amount,
-        type,
-        description,
-        metadata,
-      },
-    });
-
-    // Update user's total points
-    const user = await db.user.findUnique({
-      where: { id: userId },
-      select: { points: true },
-    });
-
-    const newTotalPoints = (user?.points || 0) + amount;
-    const newLevel = calculateLevel(newTotalPoints);
-
-    // Update user's points and level
-    await db.user.update({
-      where: { id: userId },
-      data: {
-        points: newTotalPoints,
-        level: newLevel,
-      },
-    });
-
-    // If it's a level up, create a notification
-    const currentLevel = calculateLevel(user?.points || 0);
-    if (newLevel > currentLevel) {
-      await db.notification.create({
-        data: {
-          userId,
-          type: 'LEVEL_UP',
-          title: '🎉 Level Up!',
-          message: `Congratulations! You've reached Level ${newLevel}!`,
-          metadata: {
-            oldLevel: currentLevel,
-            newLevel,
-            pointsNeeded: calculatePointsToNextLevel(newTotalPoints),
-          },
-        },
-      });
+  // Create points record
+  await prisma.points.create({
+    data: {
+      userId,
+      amount,
+      paymentId
     }
+  });
 
-    return { success: true, points: amount, newTotal: newTotalPoints, newLevel };
-  } catch (error) {
-    console.error('Error processing points transaction:', error);
-    return { success: false, error };
-  }
-}
-
-export async function getUserDonationStats(userId: string): Promise<DonationStats> {
-  const user = await db.user.findUnique({
+  // Update user's total points and level
+  const user = await prisma.user.findUnique({
     where: { id: userId },
     include: {
-      _count: {
-        select: { donations: true },
-      },
-      donations: {
-        where: { status: 'COMPLETED' },
-        select: { amount: true },
-      },
-    },
+      points: true
+    }
   });
 
   if (!user) {
     throw new Error('User not found');
   }
 
-  const totalDonated = user.donations.reduce((sum, donation) => sum + donation.amount, 0);
+  const totalPoints = user.points.reduce((sum, p) => sum + p.amount, 0) + amount;
+  const newLevel = calculateLevel(totalPoints);
+
+  // Update user level if changed
+  if (newLevel !== user.level) {
+    await prisma.user.update({
+      where: { id: userId },
+      data: { level: newLevel }
+    });
+
+    // Create level up notification
+    await prisma.notification.create({
+      data: {
+        recipientId: userId,
+        issuerId: userId,
+        type: NotificationType.PAYMENT_COMPLETED,
+        title: 'Level Up! 🎉',
+        content: `Congratulations! You've reached Level ${newLevel}!`
+      }
+    });
+  }
+}
+
+export async function getUserDonationStats(userId: string): Promise<DonationStats> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: {
+      donations: {
+        where: { status: PaymentStatus.COMPLETED }
+      },
+      points: true
+    }
+  });
+
+  if (!user) {
+    throw new Error('User not found');
+  }
+
+  const totalPoints = user.points.reduce((sum, p) => sum + p.amount, 0);
   const streak = await calculateDonationStreak(userId);
 
   return {
-    totalDonated,
-    donationCount: user._count.donations,
-    points: user.points || 0,
-    level: user.level || 1,
-    streak,
+    totalDonated: user.totalDonated || 0,
+    donationCount: user.donationCount || 0,
+    points: totalPoints,
+    level: user.level,
+    streak
   };
 }
 
-function calculatePointsToNextLevel(currentPoints: number): number {
-  for (let i = 0; i < LEVEL_THRESHOLDS.length - 1; i++) {
-    if (currentPoints >= LEVEL_THRESHOLDS[i + 1].points && 
-        currentPoints < LEVEL_THRESHOLDS[i].points) {
-      return LEVEL_THRESHOLDS[i].points - currentPoints;
-    }
-  }
-  return 0; // Already at max level
+export function calculatePointsToNextLevel(currentPoints: number): number {
+  const currentLevel = calculateLevel(currentPoints);
+  const nextLevelPoints = currentLevel * 1000;
+  return nextLevelPoints - currentPoints;
 }
