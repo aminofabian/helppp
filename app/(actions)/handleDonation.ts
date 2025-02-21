@@ -83,7 +83,7 @@ export async function updateDonationStatus(
       data: {
         status,
         mpesaReceiptNumber,
-        transactionDate: status === PaymentStatus.COMPLETED ? new Date() : undefined
+        transactionDate: new Date()
       }
     });
 
@@ -157,6 +157,19 @@ export async function updateDonationStatus(
           }
         });
       }
+    } else if (status === PaymentStatus.FAILED) {
+      // Create notification for failed payment
+      await prisma.notification.create({
+        data: {
+          recipientId: donation.userId,
+          issuerId: donation.userId,
+          type: NotificationType.PAYMENT_COMPLETED,
+          title: '❌ Payment Failed',
+          content: `Your donation of KES ${donation.amount} was not successful. The error was: "The balance is insufficient for the transaction." Please try again with a different amount or payment method.`,
+          donationId: donation.id,
+          requestId: donation.requestId
+        }
+      });
     }
 
     return { success: true, donation: updatedDonation };

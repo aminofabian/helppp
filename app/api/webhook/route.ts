@@ -127,16 +127,20 @@ async function handleKopokopoWebhook(data: any, webhookId: string) {
       }, { status: 404 });
     }
 
-    // Create payment record first
+    // Determine payment status based on Kopokopo response
+    const paymentStatus = status === 'Failed' ? PaymentStatus.FAILED : PaymentStatus.COMPLETED;
+    const resultDesc = event?.errors || event?.type || 'Kopokopo Payment';
+
+    // Create payment record
     const payment = await prisma.payment.create({
       data: {
         amount: pendingDonation.amount,
         paymentMethod: PaymentMethod.MPESA,
-        status: PaymentStatus.COMPLETED,
+        status: paymentStatus,
         checkoutRequestId: id,
         merchantRequestId: metadata.customerId,
         resultCode: status,
-        resultDesc: event?.type || 'Kopokopo Payment',
+        resultDesc: resultDesc,
         currency: 'KES',
         userId: pendingDonation.userId,
         requestId: metadata.requestId,
@@ -146,21 +150,28 @@ async function handleKopokopoWebhook(data: any, webhookId: string) {
       }
     });
 
-    console.log(`[${webhookId}] Created payment record: ${payment.id}`);
+    console.log(`[${webhookId}] Created payment record: ${payment.id} with status: ${paymentStatus}`);
 
-    // Process the donation update through the handler for points and notifications
+    // Update donation status
     const result = await updateDonationStatus(
       id,
-      PaymentStatus.COMPLETED,
+      paymentStatus,
       id
     );
 
     if (result.success) {
-      console.log(`[${webhookId}] Payment fully processed: ${id}`);
-      return NextResponse.json({ status: "success", message: "Payment processed" });
+      console.log(`[${webhookId}] Payment processed: ${id} with status: ${paymentStatus}`);
+      return NextResponse.json({ 
+        status: "success", 
+        message: `Payment processed with status: ${paymentStatus}` 
+      });
     } else {
-      console.warn(`[${webhookId}] Payment processed but points/notifications failed:`, result.error);
-      return NextResponse.json({ status: "partial", message: "Payment processed but some updates failed" });
+      console.warn(`[${webhookId}] Payment status update failed:`, result.error);
+      return NextResponse.json({ 
+        status: "error", 
+        message: "Failed to update payment status",
+        error: result.error
+      });
     }
 
   } catch (error) {
