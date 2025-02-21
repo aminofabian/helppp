@@ -45,9 +45,13 @@ export async function updateDonationStatus(
   mpesaReceiptNumber?: string
 ) {
   try {
-    // First find the donation by invoice or most recent pending
+    // Extract requestId from transactionId if it's a Paystack reference
+    const requestId = transactionId.split('_')[0];
+
+    // Find the donation by requestId and pending status
     const donation = await prisma.donation.findFirst({
       where: {
+        requestId: requestId,
         status: PaymentStatus.PENDING
       },
       orderBy: {
@@ -64,7 +68,7 @@ export async function updateDonationStatus(
     });
 
     if (!donation) {
-      throw new Error('Donation not found');
+      throw new Error(`Donation not found for requestId: ${requestId}`);
     }
 
     if (!donation.Request) {

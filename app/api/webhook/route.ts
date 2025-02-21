@@ -9,7 +9,9 @@ const processedReferences = new Set<string>();
 
 async function handlePaystackWebhook(event: any, webhookId: string) {
   const reference = event.data.reference;
-  console.log(`[${webhookId}] Processing Paystack charge.success for reference: ${reference}`);
+  const requestId = event.data.metadata?.request_id;
+  
+  console.log(`[${webhookId}] Processing Paystack charge.success for reference: ${reference}, requestId: ${requestId}`);
 
   // Check in-memory cache first
   if (processedReferences.has(reference)) {
@@ -18,9 +20,10 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
   }
 
   try {
-    // Find the pending donation by metadata in the payment
+    // Find the pending donation by requestId
     const pendingDonation = await prisma.donation.findFirst({
       where: {
+        requestId: requestId,
         status: PaymentStatus.PENDING
       },
       orderBy: {
@@ -33,11 +36,11 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
     });
 
     if (!pendingDonation) {
-      console.error(`[${webhookId}] No pending donation found for reference: ${reference}`);
+      console.error(`[${webhookId}] No pending donation found for requestId: ${requestId}`);
       return NextResponse.json({ 
         status: "error", 
         message: "No pending donation found",
-        details: `Reference: ${reference}`
+        details: `Reference: ${reference}, RequestId: ${requestId}`
       }, { status: 404 });
     }
 
@@ -55,7 +58,7 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
         resultDesc: "Success",
         currency: event.data.currency,
         userId: pendingDonation.userId,
-        requestId: pendingDonation.requestId,
+        requestId: requestId,
         donationId: pendingDonation.id,
         userts: new Date(event.data.paid_at),
         transactionDate: new Date()
