@@ -1,18 +1,28 @@
-'use client'
+'use client';
+
 import React, { useState, useEffect } from 'react';
 import { handleMpesa, handleTillPayment } from '../actions';
 import { CreditCard, Phone, Mail, Loader2, Building2 } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 import { stkPushQuery } from '../(actions)/stkPushQuery';
 import PaymentSuccess from './Success';
-import PayPalButtonWrapper from './PayPalButtonWrapper';
-import { PayPalScriptProvider } from '@paypal/react-paypal-js';
-import PaystackButton from './PaystackButton';
-import dynamic from "next/dynamic";
+import dynamic from 'next/dynamic';
+import { useKindeBrowserClient } from "@kinde-oss/kinde-auth-nextjs";
+import { LoginLink } from "@kinde-oss/kinde-auth-nextjs/components";
+import Link from 'next/link';
+
+// Dynamically import PayPal components
+const PayPalButtonWrapper = dynamic(() => import('./PayPalButtonWrapper'), { ssr: false });
+const PayPalScriptProvider = dynamic(
+  () => import('@paypal/react-paypal-js').then(mod => mod.PayPalScriptProvider),
+  { ssr: false }
+);
+
+// Dynamically import Paystack Button component
+const PaystackButton = dynamic(() => import('./PaystackButton'), { ssr: false });
+
+// Import Paystack inline-js normally since we'll use it only after checking for window
 import PaystackPop from "@paystack/inline-js";
-
-
-
 
 type PaymentMethod = 'Mpesa' | 'Paystack' | 'PayPal' | 'Till';
 
@@ -68,7 +78,7 @@ const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
   onSelect,
   onMethodChange 
 }) => {
-  const methods: PaymentMethod[] = ['Mpesa', 'Till', 'Paystack', 'PayPal'];
+  const methods: PaymentMethod[] = ['Till', 'Paystack', 'PayPal', 'Mpesa'];
   
   const handleMethodSelect = (method: PaymentMethod) => {
     onSelect(method);
@@ -108,8 +118,7 @@ const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
 };
 
 const MpesaPay = ({ requestId }: { requestId: string }) => {
-  
-  const numbers = [10, 25, 50, 100, 250, 500, 1000];
+  const { user, isLoading: isAuthLoading } = useKindeBrowserClient();
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
   const [customAmount, setCustomAmount] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -120,7 +129,6 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
   const [stkQueryLoading, setStkQueryLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [showPaystackButton, setShowPaystackButton] = useState(false);
-
   const [clientId, setClientId] = useState<string>("");
   const [loading, setLoading] = useState(true);
 
@@ -141,13 +149,42 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
     }
   };
 
-  // ✅ Fix: useEffect executes only once
   useEffect(() => {
     fetchClientId();
   }, []);
 
-  // ✅ Fix: Removed unnecessary useEffect
-  // ✅ We now update `customAmount` inside event handlers
+  if (isAuthLoading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <Loader2 className="w-8 h-8 animate-spin text-white/90" />
+      </div>
+    );
+  }
+  
+  if (!user) {
+    return (
+      <div className="flex flex-col items-center justify-center p-8 space-y-4 bg-white/10 backdrop-blur-sm rounded-2xl">
+        <h2 className="text-xl font-semibold text-white text-center">Support insoluble-souff</h2>
+        <p className="text-white/80 text-center">
+          Your contribution will help insoluble-souff reach their goal of KES 2,008/=
+        </p>
+        <LoginLink 
+          className="px-6 py-3 font-medium text-white bg-gradient-to-r from-primary to-primary/90 rounded-xl 
+                   hover:shadow-lg transition-all duration-300 transform hover:translate-y-[-2px]
+                   flex items-center justify-center gap-2"
+        >
+          <span>Sign in to help</span>
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-1">
+            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+            <polyline points="10 17 15 12 10 7"/>
+            <line x1="15" y1="12" x2="3" y2="12"/>
+          </svg>
+        </LoginLink>
+      </div>
+    );
+  }
+
+  const numbers = [10, 25, 50, 100, 250, 500, 1000];
 
   const handleAmountSelect = (amount: number) => {
     setSelectedAmount(amount);
@@ -462,6 +499,25 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
     });
   };
 
+  const initializePaystack = () => {
+    if (typeof window === 'undefined') return;
+    
+    const paystack = new PaystackPop();
+    paystack.newTransaction({
+      key: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || '',
+      email: user?.email || '',
+      amount: parseFloat(customAmount) * 100,
+      currency: 'KES',
+      onSuccess: (transaction: any) => {
+        // Handle successful payment
+        toast.success('Payment successful!');
+      },
+      onCancel: () => {
+        toast.error('Payment cancelled');
+      }
+    });
+  };
+
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
       <Toaster />
@@ -644,19 +700,7 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
             {/* Payment Button */}
             <div className="mt-8">
               {paymentMethod === 'Paystack' && selectedAmount && email ? (
-                <PaystackButton
-                  email={email}
-                  amount={selectedAmount}
-                  requestId={requestId}
-                  onSuccess={() => {
-                    handleSuccess();
-                    // Refresh the page or update UI as needed
-                    window.location.reload();
-                  }}
-                  onError={(error) => {
-                    handleError(error);
-                  }}
-                />
+                <button onClick={initializePaystack}>Pay with Paystack</button>
               ) : (paymentMethod !== 'Paystack' && (
                 <SubmitButton
                   ButtonName={`Pay ${selectedAmount || customAmount} ${paymentMethod === 'PayPal' ? 'USD' : 'KES'}`}
