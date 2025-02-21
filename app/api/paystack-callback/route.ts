@@ -15,10 +15,6 @@ export async function GET(req: Request) {
       return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/payment?error=missing_reference`);
     }
 
-    // Extract requestId from reference (format: requestId_timestamp)
-    const [requestId] = reference.split('_');
-    console.log('Extracted requestId:', requestId);
-
     // Verify payment status with Paystack
     const verifyResponse = await fetch(
       `https://api.paystack.co/transaction/verify/${reference}`,
@@ -38,22 +34,27 @@ export async function GET(req: Request) {
       return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/payment?error=verification_failed&reference=${reference}`);
     }
 
-    // Find the donation
+    // Find the most recent pending donation
     const donation = await prisma.donation.findFirst({
       where: {
-        requestId: requestId,
-        status: PaymentStatus.PENDING
+        OR: [
+          { invoice: reference },
+          { status: PaymentStatus.PENDING }
+        ]
+      },
+      orderBy: {
+        createdAt: 'desc'
       }
     });
 
     if (!donation) {
-      console.error('No pending donation found for requestId:', requestId);
+      console.error('No pending donation found for reference:', reference);
       return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/payment?error=donation_not_found&reference=${reference}`);
     }
 
     // Redirect to success page - actual payment processing happens in webhook
     return NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_APP_URL}/payment?success=true&reference=${reference}&request=${requestId}`
+      `${process.env.NEXT_PUBLIC_APP_URL}/payment?success=true&reference=${reference}&request=${donation.requestId}`
     );
 
   } catch (error) {
