@@ -66,9 +66,9 @@ interface Stats {
 
 // Add currency formatter
 const formatCurrency = (amount: number) => {
-  return new Intl.NumberFormat('en-NG', {
+  return new Intl.NumberFormat('en-KE', {
     style: 'currency',
-    currency: 'NGN',
+    currency: 'KES',
   }).format(amount);
 };
 
