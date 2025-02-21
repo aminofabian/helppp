@@ -164,7 +164,7 @@ export default function AdminPage() {
         setStats({
           totalUsers: usersData.length,
           totalDonations: pagination.total,
-          totalAmount: donationsData.reduce((sum: number, d: DonationData) => sum + d.amount, 0),
+          totalAmount: usersData.reduce((sum: number, user: UserData) => sum + user.totalDonated, 0),  // Sum up total donated by each user
           activeRequests: requestsData.filter((r: RequestData) => !r.isFullyFunded).length,
         });
       } catch (error) {
@@ -175,6 +175,12 @@ export default function AdminPage() {
     };
 
     fetchData();
+
+    // Set up polling interval for real-time updates
+    const pollInterval = setInterval(fetchData, 5000); // Poll every 5 seconds
+
+    // Cleanup interval on component unmount
+    return () => clearInterval(pollInterval);
   }, [currentPage, searchTerm]);
 
   const filteredUsers = users.filter(user =>

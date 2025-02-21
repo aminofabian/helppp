@@ -60,8 +60,14 @@ export async function GET(request: Request) {
       take: limit,
     });
 
+    // Transform the donations to ensure amounts are numbers
+    const transformedDonations = donations.map(donation => ({
+      ...donation,
+      amount: Number(donation.amount)  // Keep as cents, frontend will handle conversion
+    }));
+
     return NextResponse.json({
-      donations,
+      donations: transformedDonations,
       pagination: {
         total,
         pages: Math.ceil(total / limit),
