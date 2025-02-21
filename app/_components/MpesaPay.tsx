@@ -68,7 +68,7 @@ const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
   onSelect,
   onMethodChange 
 }) => {
-  const methods: PaymentMethod[] = ['Mpesa', 'Till', 'Paystack', 'PayPal'];
+  const methods: PaymentMethod[] = ['Till', 'Paystack', 'PayPal', 'Mpesa'];
   
   const handleMethodSelect = (method: PaymentMethod) => {
     onSelect(method);
@@ -115,7 +115,7 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [email, setEmail] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('Mpesa');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('Till');
   const [isLoading, setIsLoading] = useState(false);
   const [stkQueryLoading, setStkQueryLoading] = useState(false);
   const [success, setSuccess] = useState(false);
