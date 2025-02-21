@@ -45,19 +45,14 @@ export async function updateDonationStatus(
   mpesaReceiptNumber?: string
 ) {
   try {
-    // First find the donation by invoice
-    const donationByInvoice = await prisma.donation.findFirst({
-      where: { invoice: transactionId },
-      select: { id: true }
-    });
-
-    if (!donationByInvoice) {
-      throw new Error('Donation not found');
-    }
-
-    // Then use the id to get full donation details
-    const donation = await prisma.donation.findUnique({
-      where: { id: donationByInvoice.id },
+    // First find the donation by invoice or most recent pending
+    const donation = await prisma.donation.findFirst({
+      where: {
+        status: PaymentStatus.PENDING
+      },
+      orderBy: {
+        createdAt: 'desc'
+      },
       include: {
         User: true,
         Request: {
@@ -82,6 +77,7 @@ export async function updateDonationStatus(
       data: {
         status,
         mpesaReceiptNumber,
+        invoice: transactionId,
         transactionDate: status === PaymentStatus.COMPLETED ? new Date() : undefined
       }
     });
@@ -91,32 +87,6 @@ export async function updateDonationStatus(
       // Calculate and award points
       const points = await calculateDonationPoints(donation.amount, donation.userId);
       
-      const now = new Date();
-      
-      // Create a payment record for points
-      const payment = await prisma.payment.create({
-        data: {
-          amount: donation.amount,
-          userId: donation.userId,
-          requestId: donation.requestId,
-          status: PaymentStatus.COMPLETED,
-          paymentMethod: PaymentMethod.MPESA,
-          transactionDate: now,
-          updatedAt: now,
-          userts: now,
-          mpesaReceiptNumber,
-          donationId: donation.id
-        }
-      });
-
-      // Process points transaction
-      await processPointsTransaction({
-        userId: donation.userId,
-        amount: points,
-        paymentId: payment.id,
-        description: `Points earned for donating KES ${donation.amount}`
-      });
-
       // Update request's amount
       await prisma.request.update({
         where: { id: donation.requestId },
@@ -125,6 +95,14 @@ export async function updateDonationStatus(
             increment: donation.amount
           }
         }
+      });
+
+      // Process points transaction
+      await processPointsTransaction({
+        userId: donation.userId,
+        amount: points,
+        paymentId: transactionId,
+        description: `Points earned for donating KES ${donation.amount}`
       });
 
       // Get donor's updated stats

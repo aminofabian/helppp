@@ -21,10 +21,7 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
     // Find the pending donation by metadata in the payment
     const pendingDonation = await prisma.donation.findFirst({
       where: {
-        OR: [
-          { invoice: reference },
-          { status: PaymentStatus.PENDING }
-        ]
+        status: PaymentStatus.PENDING
       },
       orderBy: {
         createdAt: 'desc'
@@ -46,19 +43,7 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
 
     console.log(`[${webhookId}] Found pending donation:`, pendingDonation.id);
 
-    // Update donation status first
-    const updatedDonation = await prisma.donation.update({
-      where: { id: pendingDonation.id },
-      data: {
-        status: PaymentStatus.COMPLETED,
-        transactionDate: new Date(),
-        invoice: reference
-      }
-    });
-
-    console.log(`[${webhookId}] Updated donation status:`, updatedDonation.id);
-
-    // Then create the payment record
+    // Create payment record first
     const payment = await prisma.payment.create({
       data: {
         amount: event.data.amount / 100,
@@ -79,20 +64,7 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
 
     console.log(`[${webhookId}] Created payment record: ${payment.id}`);
 
-    // Update request amount
-    if (pendingDonation.Request) {
-      await prisma.request.update({
-        where: { id: pendingDonation.Request.id },
-        data: {
-          amount: {
-            increment: event.data.amount / 100
-          }
-        }
-      });
-      console.log(`[${webhookId}] Updated request amount`);
-    }
-
-    // Process points and notifications
+    // Process the donation update through the handler for points and notifications
     const result = await updateDonationStatus(
       reference,
       PaymentStatus.COMPLETED,
@@ -152,33 +124,12 @@ async function handleKopokopoWebhook(data: any, webhookId: string) {
       }, { status: 404 });
     }
 
-    // Update donation status based on Kopokopo status
-    const paymentStatus = status === 'Success' ? PaymentStatus.COMPLETED : PaymentStatus.FAILED;
-    
-    const updatedDonation = await prisma.donation.update({
-      where: { id: pendingDonation.id },
-      data: {
-        status: paymentStatus,
-        transactionDate: new Date(),
-        invoice: id
-      }
-    });
-
-    if (paymentStatus === PaymentStatus.FAILED) {
-      console.log(`[${webhookId}] Payment failed:`, event?.errors || 'Unknown error');
-      return NextResponse.json({ 
-        status: "error", 
-        message: "Payment failed",
-        error: event?.errors 
-      });
-    }
-
-    // Create payment record for successful payments
+    // Create payment record first
     const payment = await prisma.payment.create({
       data: {
         amount: pendingDonation.amount,
         paymentMethod: PaymentMethod.MPESA,
-        status: paymentStatus,
+        status: PaymentStatus.COMPLETED,
         checkoutRequestId: id,
         merchantRequestId: metadata.customerId,
         resultCode: status,
@@ -192,18 +143,22 @@ async function handleKopokopoWebhook(data: any, webhookId: string) {
       }
     });
 
-    // Process points and notifications for successful payments
-    if (paymentStatus === PaymentStatus.COMPLETED) {
-      const result = await updateDonationStatus(id, paymentStatus, id);
-      if (!result.success) {
-        console.warn(`[${webhookId}] Payment processed but points/notifications failed:`, result.error);
-      }
-    }
+    console.log(`[${webhookId}] Created payment record: ${payment.id}`);
 
-    return NextResponse.json({ 
-      status: "success", 
-      message: `Payment ${paymentStatus.toLowerCase()}` 
-    });
+    // Process the donation update through the handler for points and notifications
+    const result = await updateDonationStatus(
+      id,
+      PaymentStatus.COMPLETED,
+      id
+    );
+
+    if (result.success) {
+      console.log(`[${webhookId}] Payment fully processed: ${id}`);
+      return NextResponse.json({ status: "success", message: "Payment processed" });
+    } else {
+      console.warn(`[${webhookId}] Payment processed but points/notifications failed:`, result.error);
+      return NextResponse.json({ status: "partial", message: "Payment processed but some updates failed" });
+    }
 
   } catch (error) {
     console.error(`[${webhookId}] Error processing Kopokopo payment:`, error);
