@@ -21,7 +21,7 @@ export async function POST(req: Request) {
       },
       body: JSON.stringify({
         email,
-        amount, // KES doesn't use cents, so no multiplication needed
+        amount: Math.round(amount * 100), // Convert KES to cents
         reference,
         callback_url,
         metadata,

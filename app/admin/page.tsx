@@ -66,10 +66,7 @@ interface Stats {
 
 // Add currency formatter
 const formatCurrency = (amount: number) => {
-  return new Intl.NumberFormat('en-KE', {
-    style: 'currency',
-    currency: 'KES',
-  }).format(amount);
+  return `KES ${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 };
 
 export default function AdminPage() {
@@ -167,8 +164,7 @@ export default function AdminPage() {
         setStats({
           totalUsers: usersData.length,
           totalDonations: pagination.total,
-          totalAmount: donationsData.reduce((sum: number, d: DonationData) => 
-            sum + (d.status === 'COMPLETED' ? d.amount : 0), 0),
+          totalAmount: donationsData.reduce((sum: number, d: DonationData) => sum + d.amount, 0),
           activeRequests: requestsData.filter((r: RequestData) => !r.isFullyFunded).length,
         });
       } catch (error) {

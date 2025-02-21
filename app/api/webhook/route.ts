@@ -80,7 +80,7 @@ export async function POST(req: Request) {
         console.log(`[${webhookId}] Starting payment processing in transaction`);
 
         const email = event.data.customer.email?.toLowerCase().trim();
-        const amount = event.data.amount; // KES amount (no division needed)
+        const amount = event.data.amount / 100; // Convert from cents to KES
         const currency = event.data.currency;
         const requestId = event.data.metadata?.custom_fields?.find(
           (field: { variable_name: string; value: string }) =>
