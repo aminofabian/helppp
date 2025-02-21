@@ -503,23 +503,42 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
     if (typeof window === 'undefined') return;
     
     try {
-      const PaystackPop = (await import('@paystack/inline-js')).default;
-      const paystack = new PaystackPop();
-      paystack.newTransaction({
-        key: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || '',
-        email: user?.email || '',
-        amount: parseFloat(customAmount) * 100,
-        currency: 'KES',
-        onSuccess: (transaction: any) => {
-          toast.success('Payment successful!');
+      setIsLoading(true);
+      const response = await fetch('/api/initialize-paystack', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
-        onCancel: () => {
-          toast.error('Payment cancelled');
-        }
+        body: JSON.stringify({
+          email: user?.email || '',
+          amount: parseFloat(customAmount),
+          reference: `${requestId}_${Date.now()}`,
+          callback_url: `${window.location.origin}/api/paystack-callback`,
+          metadata: {
+            request_id: requestId,
+            custom_fields: [
+              {
+                display_name: "Request ID",
+                variable_name: "request_id",
+                value: requestId
+              }
+            ]
+          }
+        }),
       });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to initialize payment');
+      }
+
+      // Redirect to Paystack checkout URL
+      window.location.href = data.authorization_url;
     } catch (error) {
       console.error('Failed to initialize Paystack:', error);
       toast.error('Failed to initialize payment');
+      setIsLoading(false);
     }
   };
 
@@ -705,7 +724,11 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
             {/* Payment Button */}
             <div className="mt-8">
               {paymentMethod === 'Paystack' && selectedAmount && email ? (
-                <button onClick={initializePaystack}>Pay with Paystack</button>
+                <SubmitButton
+                  ButtonName={`Pay ${selectedAmount || customAmount} KES with Paystack`}
+                  isLoading={isLoading}
+                  onClick={initializePaystack}
+                />
               ) : (paymentMethod !== 'Paystack' && (
                 <SubmitButton
                   ButtonName={`Pay ${selectedAmount || customAmount} ${paymentMethod === 'PayPal' ? 'USD' : 'KES'}`}
