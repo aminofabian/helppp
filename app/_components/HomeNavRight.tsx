@@ -560,9 +560,7 @@ export default function HomeNavRight({
                        border-t dark:border-gray-800 
                        bg-card dark:bg-gray-800 p-3
                        transition-colors'>
-          <MenuBar className='sticky flex bottom-0 w-full justify-evenly gap-2 
-                            border-t dark:border-gray-800 
-                            bg-card dark:bg-gray-800 p-3'/>
+          <MenuBar />
         </div>
       </Card>
     </div>

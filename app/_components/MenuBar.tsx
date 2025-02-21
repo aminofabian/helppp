@@ -50,41 +50,67 @@ export default function MenuBar({ className }: MenuBarProps) {
   };
 
   return (
-    <div className={className}>
+    <div className={`flex items-center justify-between w-full gap-1 ${className}`}>
       <Button
-        variant='secondary'
-        className='flex items-center justify-start gap-1'
+        variant='ghost'
+        className='flex-1 flex items-center justify-center p-3
+                  text-gray-600 hover:text-primary
+                  dark:text-gray-400 dark:hover:text-primary
+                  hover:bg-secondary/10
+                  rounded-xl
+                  transition-all duration-200 ease-in-out
+                  group'
         title='Home'
         asChild
       >
         <Link href=''>
-          <Home />
+          <Home className="w-5 h-5 transition-transform duration-200 group-hover:scale-110" />
         </Link>
       </Button>
       
       <Button
-        variant='secondary'
-        className='flex items-center justify-start gap-1'
+        variant='ghost'
+        className='flex-1 flex items-center justify-center p-3
+                  text-gray-600 hover:text-primary
+                  dark:text-gray-400 dark:hover:text-primary
+                  hover:bg-secondary/10
+                  rounded-xl
+                  transition-all duration-200 ease-in-out
+                  group'
         title='Messages'
         asChild
       >
         <Link href='/messages'>
-          <Mail />
+          <Mail className="w-5 h-5 transition-transform duration-200 group-hover:scale-110" />
         </Link>
       </Button>
       
       <Dialog open={isNotificationsOpen} onOpenChange={setIsNotificationsOpen}>
         <DialogTrigger asChild>
           <Button
-            variant='secondary'
-            className='flex items-center justify-start gap-1 relative'
+            variant='ghost'
+            className='flex-1 flex items-center justify-center p-3
+                      text-gray-600 hover:text-primary
+                      dark:text-gray-400 dark:hover:text-primary
+                      hover:bg-secondary/10
+                      rounded-xl
+                      transition-all duration-200 ease-in-out
+                      group'
             title='Notifications'
             onClick={handleNotificationClick}
           >
             <div className="relative">
-              <Bell className="w-6 h-6" />
+              <Bell className="w-5 h-5 transition-transform duration-200 group-hover:scale-110" />
               {notificationCount > 0 && (
-                <span className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full px-2 py-1 text-xs min-w-[20px] h-5 flex items-center justify-center">
+                <span className="absolute -top-2 -right-2 
+                               bg-primary text-white 
+                               rounded-full w-5 h-5 
+                               flex items-center justify-center
+                               text-xs font-medium
+                               shadow-lg
+                               animate-pulse
+                               scale-100 group-hover:scale-110
+                               transition-transform duration-200">
                   {notificationCount}
                 </span>
               )}
@@ -107,13 +133,19 @@ export default function MenuBar({ className }: MenuBarProps) {
       </Dialog>
       
       <Button
-        variant='secondary'
-        className='flex items-center justify-start gap-1'
+        variant='ghost'
+        className='flex-1 flex items-center justify-center p-3
+                  text-gray-600 hover:text-primary
+                  dark:text-gray-400 dark:hover:text-primary
+                  hover:bg-secondary/10
+                  rounded-xl
+                  transition-all duration-200 ease-in-out
+                  group'
         title='Bookmarks'
         asChild
       >
         <Link href=''>
-          <Bookmark />
+          <Bookmark className="w-5 h-5 transition-transform duration-200 group-hover:scale-110" />
         </Link>
       </Button>
     </div>

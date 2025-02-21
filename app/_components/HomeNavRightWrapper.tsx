@@ -1,7 +1,10 @@
 import { getKindeServerSession } from '@kinde-oss/kinde-auth-nextjs/server';
 import prisma from '@/app/lib/db';
 import HomeNavRight from './HomeNavRight';
-import { redirect } from 'next/navigation';
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import Link from 'next/link';
+import { HandHeart, Users, Trophy } from 'lucide-react';
 
 async function getWalletData(userId: string) {
   const wallet = await prisma.wallet.findUnique({
@@ -89,7 +92,33 @@ export default async function HomeNavRightWrapper() {
   const user = await getUser();
 
   if (!user) {
-    return redirect('/api/auth/login');
+    return (
+      <div className="p-4 space-y-4">
+        <Card className="p-4">
+          <h2 className="text-xl font-semibold mb-2">Welcome to Heelp!</h2>
+          <p className="text-gray-600 mb-4">Join our community to:</p>
+          <ul className="space-y-2">
+            <li className="flex items-center gap-2">
+              <HandHeart className="w-4 h-4 text-emerald-500" />
+              <span>Post and receive help requests</span>
+            </li>
+            <li className="flex items-center gap-2">
+              <Users className="w-4 h-4 text-blue-500" />
+              <span>Join supportive communities</span>
+            </li>
+            <li className="flex items-center gap-2">
+              <Trophy className="w-4 h-4 text-amber-500" />
+              <span>Track your giving impact</span>
+            </li>
+          </ul>
+          <div className="mt-4">
+            <Button asChild className="w-full">
+              <Link href="/api/auth/login">Sign In to Get Started</Link>
+            </Button>
+          </div>
+        </Card>
+      </div>
+    );
   }
 
   console.log('Current user:', user.id);
