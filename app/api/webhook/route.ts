@@ -4,76 +4,87 @@ import prisma from "@/app/lib/db";
 import { PaymentMethod, PaymentStatus } from "@prisma/client";
 import { calculateLevel } from "@/app/lib/levelCalculator";
 
+// Keep track of processed references in memory
+const processedReferences = new Set<string>();
+
 export async function POST(req: Request) {
+  const webhookId = crypto.randomBytes(16).toString("hex");
+  console.log(`[${webhookId}] Webhook received at ${new Date().toISOString()}`);
+
   try {
-    console.log("Webhook received - Starting processing");
+    const secretKey = process.env.PAYSTACK_SECRET_KEY;
+    const sig = req.headers.get("x-paystack-signature");
+
+    if (!secretKey || !sig) {
+      console.error(`[${webhookId}] Missing secret key or signature`);
+      return NextResponse.json({ status: "error", message: "Missing secret key or signature" }, { status: 400 });
+    }
+
     const rawBody = await req.text();
-    const signature = req.headers.get("x-paystack-signature");
-    console.log("Signature received:", signature);
+    console.log(`[${webhookId}] Raw webhook body:`, rawBody);
 
-    if (!signature) {
-      console.error("No Paystack signature found in request");
-      return NextResponse.json({ error: "No signature provided" }, { status: 401 });
-    }
-
-    if (!process.env.PAYSTACK_SECRET_KEY) {
-      console.error("PAYSTACK_SECRET_KEY not configured");
-      return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
-    }
-
-    // Verify Paystack webhook authenticity
-    const hash = crypto
-      .createHmac("sha512", process.env.PAYSTACK_SECRET_KEY)
+    const computedSignature = crypto
+      .createHmac("sha512", secretKey)
       .update(rawBody)
       .digest("hex");
 
-    console.log("Calculated hash:", hash);
-    console.log("Received signature:", signature);
-
-    if (hash !== signature) {
-      console.error("Signature verification failed");
-      return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
+    if (sig !== computedSignature) {
+      console.error(`[${webhookId}] Invalid signature`);
+      return NextResponse.json({ status: "error", message: "Invalid signature" }, { status: 400 });
     }
 
-    console.log("Signature verification successful");
-    const event = JSON.parse(rawBody);
-    console.log("Webhook Data Received:", JSON.stringify(event, null, 2));
+    let event: any;
+    try {
+      event = JSON.parse(rawBody);
+    } catch (error) {
+      console.error(`[${webhookId}] Error parsing JSON:`, error);
+      return NextResponse.json({ status: "error", message: "Invalid JSON" }, { status: 400 });
+    }
 
     if (event.event === "charge.success") {
-      console.log("Payment successful:", event.data);
-      try {
-        // Check for existing payment using both possible reference fields
-        const existingPayment = await prisma.payment.findFirst({
+      const reference = event.data.reference;
+      console.log(`[${webhookId}] Processing charge.success for reference: ${reference}`);
+
+      // Check in-memory cache first
+      if (processedReferences.has(reference)) {
+        console.log(`[${webhookId}] Payment already processed (in-memory): ${reference}`);
+        return NextResponse.json({ status: "success", message: "Payment already processed" });
+      }
+
+      // Check database for existing payment or donation
+      const [existingPayment, existingDonation] = await Promise.all([
+        prisma.payment.findFirst({
           where: {
             OR: [
-              { checkoutRequestId: event.data.reference },
-              { mpesaReceiptNumber: event.data.reference }
-            ]
-          }
-        });
+              { checkoutRequestId: reference },
+              { mpesaReceiptNumber: reference },
+            ],
+          },
+        }),
+        prisma.donation.findFirst({
+          where: { invoice: reference },
+        }),
+      ]);
 
-        if (existingPayment) {
-          console.log('Payment already processed:', event.data.reference);
-          return NextResponse.json({ status: 'success', message: 'Payment already processed' });
-        }
+      if (existingPayment || existingDonation) {
+        console.log(`[${webhookId}] Payment already processed (database): ${reference}`);
+        processedReferences.add(reference); // Add to memory cache
+        return NextResponse.json({ status: "success", message: "Payment already processed" });
+      }
 
-        // Also check for existing donation with this reference
-        const existingDonation = await prisma.donation.findFirst({
-          where: { invoice: event.data.reference }
-        });
+      // Add to memory cache before processing
+      processedReferences.add(reference);
 
-        if (existingDonation) {
-          console.log('Donation already processed:', event.data.reference);
-          return NextResponse.json({ status: 'success', message: 'Donation already processed' });
-        }
+      // Process the payment in a transaction to ensure atomicity
+      const result = await prisma.$transaction(async (prisma) => {
+        console.log(`[${webhookId}] Starting payment processing in transaction`);
 
         const email = event.data.customer.email?.toLowerCase().trim();
         const amount = event.data.amount / 100; // Convert from kobo to NGN
-        const reference = event.data.reference;
         const currency = event.data.currency;
         const requestId = event.data.metadata?.custom_fields?.find(
-          (field: { variable_name: string; value: string }) => 
-          field.variable_name === 'request_id'
+          (field: { variable_name: string; value: string }) =>
+            field.variable_name === "request_id"
         )?.value;
 
         console.log("Extracted data:", {
@@ -81,7 +92,7 @@ export async function POST(req: Request) {
           amount,
           reference,
           currency,
-          requestId
+          requestId,
         });
 
         if (!email || !requestId) {
@@ -98,9 +109,9 @@ export async function POST(req: Request) {
         console.log("Giver found:", giver.id);
 
         // Fetch receiver from the requestId
-        const request = await prisma.request.findUnique({ 
-          where: { id: requestId }, 
-          include: { User: true } 
+        const request = await prisma.request.findUnique({
+          where: { id: requestId },
+          include: { User: true },
         });
         if (!request) {
           console.error("Request not found for requestId:", requestId);
@@ -145,17 +156,17 @@ export async function POST(req: Request) {
         // Update user points
         const pointsEarned = Math.floor(amount / 50);
         await prisma.points.create({
-          data: { userId: giver.id, amount: pointsEarned, paymentId: payment.id }
+          data: { userId: giver.id, amount: pointsEarned, paymentId: payment.id },
         });
 
-        const totalPoints = await prisma.points.aggregate({ 
-          where: { userId: giver.id }, 
-          _sum: { amount: true } 
+        const totalPoints = await prisma.points.aggregate({
+          where: { userId: giver.id },
+          _sum: { amount: true },
         });
         const newLevel = calculateLevel(totalPoints._sum.amount || 0);
-        await prisma.user.update({ 
-          where: { id: giver.id }, 
-          data: { level: newLevel } 
+        await prisma.user.update({
+          where: { id: giver.id },
+          data: { level: newLevel },
         });
 
         // Create a transaction record
@@ -169,13 +180,13 @@ export async function POST(req: Request) {
         console.log(`Transaction recorded: Giver ${giver.id} -> Receiver ${receiver.id}`);
 
         // Update receiver's wallet
-        let receiverWallet = await prisma.wallet.findUnique({ 
-          where: { userId: receiver.id } 
+        let receiverWallet = await prisma.wallet.findUnique({
+          where: { userId: receiver.id },
         });
 
         if (!receiverWallet) {
           receiverWallet = await prisma.wallet.create({
-            data: { userId: receiver.id, balance: amount }
+            data: { userId: receiver.id, balance: amount },
           });
           console.log(`New wallet created for receiver with initial funding: ${receiver.id}`);
         } else {
@@ -186,17 +197,19 @@ export async function POST(req: Request) {
           console.log(`Receiver's wallet updated: ${receiver.id}, Amount added: ${amount}`);
         }
 
-        return NextResponse.json({ message: "Payment and transaction recorded successfully" }, { status: 200 });
-      } catch (error: any) {
-        console.error("Payment processing error:", error);
-        return NextResponse.json({ error: error.message || "Server error" }, { status: 500 });
-      }
+        console.log(`[${webhookId}] Transaction completed successfully`);
+        return { success: true };
+      });
+
+      console.log(`[${webhookId}] Webhook processing completed`);
+      return NextResponse.json({ status: "success", message: "Payment processed successfully" });
     }
 
-    console.log("Unhandled event type:", event.event);
-    return NextResponse.json({ message: "Webhook received" }, { status: 200 });
+    console.log(`[${webhookId}] Unhandled event type:`, event.event);
+    return NextResponse.json({ status: "success", message: "Unhandled event type" });
   } catch (error: any) {
-    console.error("Webhook processing error:", error);
-    return NextResponse.json({ error: error.message || "Server error" }, { status: 500 });
+    console.error(`[${webhookId}] Error processing webhook:`, error);
+    // Don't remove from processedReferences on error to prevent duplicate processing
+    return NextResponse.json({ status: "error", message: "Server error" }, { status: 500 });
   }
 }

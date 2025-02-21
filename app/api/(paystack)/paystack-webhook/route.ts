@@ -3,6 +3,12 @@ import crypto from 'crypto';
 import prisma from '@/app/lib/db';
 import { calculateLevel } from '@/app/lib/levelCalculator';
 
+// Deprecated endpoint
+export async function POSTDeprecated(request: NextRequest) {
+  const webhookId = crypto.randomBytes(16).toString('hex');
+  console.log(`[${webhookId}] Deprecated webhook endpoint called - request will be ignored`);
+  return new NextResponse(null, { status: 410 });
+}
 
 export async function POST(request: NextRequest) {
   const secretKey = process.env.PAYSTACK_SECRET_KEY;
