@@ -55,17 +55,6 @@ export async function POST(req: Request) {
         return NextResponse.json({ status: "success", message: "Payment already processed" });
       }
 
-      // Check if payment already exists in database
-      const existingPayment = await prisma.payment.findFirst({
-        where: { checkoutRequestId: reference }
-      });
-
-      if (existingPayment) {
-        console.log(`[${webhookId}] Payment already exists in database: ${reference}`);
-        processedReferences.add(reference);
-        return NextResponse.json({ status: "success", message: "Payment already processed" });
-      }
-
       try {
         // Find the pending donation first
         const pendingDonation = await prisma.donation.findFirst({
@@ -74,7 +63,8 @@ export async function POST(req: Request) {
             status: PaymentStatus.PENDING
           },
           include: {
-            User: true
+            User: true,
+            Request: true
           }
         });
 
@@ -84,7 +74,19 @@ export async function POST(req: Request) {
 
         console.log(`[${webhookId}] Found pending donation:`, pendingDonation.id);
 
-        // First create the payment record
+        // Update donation status first
+        const updatedDonation = await prisma.donation.update({
+          where: { id: pendingDonation.id },
+          data: {
+            status: PaymentStatus.COMPLETED,
+            transactionDate: new Date(),
+            invoice: reference // Set the Paystack reference as invoice
+          }
+        });
+
+        console.log(`[${webhookId}] Updated donation status:`, updatedDonation.id);
+
+        // Then create the payment record
         const payment = await prisma.payment.create({
           data: {
             amount: event.data.amount / 100, // Convert from kobo to KES
@@ -105,19 +107,33 @@ export async function POST(req: Request) {
 
         console.log(`[${webhookId}] Created payment record: ${payment.id}`);
 
-        // Then update the donation status using the payment reference
+        // Update request amount
+        if (pendingDonation.Request) {
+          await prisma.request.update({
+            where: { id: pendingDonation.Request.id },
+            data: {
+              amount: {
+                increment: event.data.amount / 100 // Convert from kobo to KES
+              }
+            }
+          });
+          console.log(`[${webhookId}] Updated request amount`);
+        }
+
+        // Process the donation update through the handler for points and notifications
         const result = await updateDonationStatus(
-          reference,
+          reference, // Use Paystack reference
           PaymentStatus.COMPLETED,
-          event.data.reference
+          event.data.reference // Use Paystack reference as receipt number
         );
 
         if (result.success) {
           processedReferences.add(reference);
-          console.log(`[${webhookId}] Payment processed successfully: ${reference}`);
+          console.log(`[${webhookId}] Payment fully processed: ${reference}`);
           return NextResponse.json({ status: "success", message: "Payment processed" });
         } else {
-          throw new Error(result.error ? String(result.error) : 'Failed to update donation status');
+          console.warn(`[${webhookId}] Payment processed but points/notifications failed:`, result.error);
+          return NextResponse.json({ status: "partial", message: "Payment processed but some updates failed" });
         }
       } catch (error) {
         console.error(`[${webhookId}] Error processing payment:`, error);
