@@ -1,8 +1,8 @@
 'use server'
 
-import { db } from "@/lib/db";
-import { PaymentMethod, PaymentStatus } from "@prisma/client";
-import { calculateDonationPoints, processPointsTransaction, getUserDonationStats } from "@/lib/pointsManager";
+import { prisma } from "@/app/lib/db";
+import { PaymentMethod, PaymentStatus, NotificationType } from "@prisma/client";
+import { calculateDonationPoints, processPointsTransaction, getUserDonationStats } from "@/app/lib/pointsManager";
 
 interface DonationData {
   amount: number;
@@ -21,18 +21,15 @@ export async function createDonationRequest(data: DonationData) {
     const potentialPoints = await calculateDonationPoints(data.amount, data.userId);
 
     // Create donation record
-    const donation = await db.donation.create({
+    const donation = await prisma.donation.create({
       data: {
         amount: data.amount,
         userId: data.userId,
         requestId: data.requestId,
-        paymentMethod: data.paymentMethod,
-        transactionId: data.transactionId,
-        status: PaymentStatus.PENDING,
-        potentialPoints: potentialPoints, // Store potential points
-        email: data.email,
+        invoice: data.transactionId,
+        status: PaymentStatus.PENDING.toString(),
         phoneNumber: data.phoneNumber,
-        metadata: data.metadata
+        createdAt: new Date(),
       }
     });
 
@@ -46,17 +43,17 @@ export async function createDonationRequest(data: DonationData) {
 export async function updateDonationStatus(
   transactionId: string,
   status: PaymentStatus,
-  callbackData?: any
+  mpesaReceiptNumber?: string
 ) {
   try {
     // Find the donation with user and request details
-    const donation = await db.donation.findUnique({
-      where: { transactionId },
+    const donation = await prisma.donation.findUnique({
+      where: { invoice: transactionId },
       include: {
-        user: true,
-        request: {
+        User: true,
+        Request: {
           include: {
-            User: true // Get request owner's details
+            User: true
           }
         }
       }
@@ -66,13 +63,17 @@ export async function updateDonationStatus(
       throw new Error('Donation not found');
     }
 
+    if (!donation.Request) {
+      throw new Error('Request not found for donation');
+    }
+
     // Update the donation status
-    const updatedDonation = await db.donation.update({
-      where: { transactionId },
+    const updatedDonation = await prisma.donation.update({
+      where: { invoice: transactionId },
       data: {
-        status,
-        callbackData,
-        completedAt: status === PaymentStatus.COMPLETED ? new Date() : undefined
+        status: status.toString(),
+        mpesaReceiptNumber,
+        transactionDate: status === PaymentStatus.COMPLETED ? new Date() : undefined
       }
     });
 
@@ -94,15 +95,12 @@ export async function updateDonationStatus(
         }
       });
 
-      // Update request's received amount and stats
-      await db.request.update({
+      // Update request's amount and stats
+      await prisma.request.update({
         where: { id: donation.requestId },
         data: {
-          receivedAmount: {
+          amount: {
             increment: donation.amount
-          },
-          donationsCount: {
-            increment: 1
           }
         }
       });
@@ -111,54 +109,44 @@ export async function updateDonationStatus(
       const donorStats = await getUserDonationStats(donation.userId);
 
       // Create notification for the request owner
-      await db.notification.create({
+      await prisma.notification.create({
         data: {
-          userId: donation.request.userId,
-          type: 'DONATION_RECEIVED',
+          recipientId: donation.Request.userId,
+          issuerId: donation.userId,
+          type: NotificationType.DONATION,
           title: 'New Donation Received! 🎉',
-          message: `${donation.user.name} donated KES ${donation.amount} to your request`,
-          metadata: {
-            requestId: donation.requestId,
-            donationId: donation.id,
-            amount: donation.amount,
-            donorId: donation.userId,
-            donorLevel: donorStats.level,
-            points: points
-          }
+          content: donation.User ? 
+            `${donation.User.firstName} donated KES ${donation.amount} to your request. They earned ${points} points and are now at Level ${donorStats.level}!` :
+            `Someone donated KES ${donation.amount} to your request`,
+          donationId: donation.id,
+          requestId: donation.requestId
         }
       });
 
       // Create notification for the donor about points earned
-      await db.notification.create({
+      await prisma.notification.create({
         data: {
-          userId: donation.userId,
-          type: 'POINTS_EARNED',
+          recipientId: donation.userId,
+          issuerId: donation.Request.userId,
+          type: NotificationType.PAYMENT_COMPLETED,
           title: 'Points Earned! 🌟',
-          message: `You earned ${points} points for your donation of KES ${donation.amount}`,
-          metadata: {
-            requestId: donation.requestId,
-            donationId: donation.id,
-            pointsEarned: points,
-            newTotal: donorStats.points,
-            level: donorStats.level,
-            streak: donorStats.streak
-          }
+          content: `You earned ${points} points for your donation of KES ${donation.amount}. Your total points are now ${donorStats.points} and you're at Level ${donorStats.level}. Keep up the great work with your ${donorStats.streak} donation streak!`,
+          donationId: donation.id,
+          requestId: donation.requestId
         }
       });
 
       // If this completes the request's goal, create a special notification
-      if (donation.request.receivedAmount + donation.amount >= donation.request.amount) {
-        await db.notification.create({
+      if (donation.Request.amount && donation.amount >= donation.Request.amount) {
+        await prisma.notification.create({
           data: {
-            userId: donation.request.userId,
-            type: 'GOAL_REACHED',
+            recipientId: donation.Request.userId,
+            issuerId: donation.userId,
+            type: NotificationType.PAYMENT_RECEIVED,
             title: 'Fundraising Goal Reached! 🎊',
-            message: `Your request has reached its fundraising goal of KES ${donation.request.amount}!`,
-            metadata: {
-              requestId: donation.requestId,
-              goalAmount: donation.request.amount,
-              totalRaised: donation.request.receivedAmount + donation.amount
-            }
+            content: `Congratulations! Your request has reached its fundraising goal of KES ${donation.Request.amount}. Total amount raised: KES ${donation.amount}`,
+            donationId: donation.id,
+            requestId: donation.requestId
           }
         });
       }
