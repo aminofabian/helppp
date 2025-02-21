@@ -16,14 +16,11 @@ export async function POST(req: Request) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
-    // Get existing user
+    // Get existing user with their points
     const existingUser = await prisma.user.findUnique({
       where: { id: userId },
-      select: {
-        totalDonated: true,
-        donationCount: true,
-        points: true,
-        level: true
+      include: {
+        points: true
       }
     });
 
@@ -31,39 +28,45 @@ export async function POST(req: Request) {
       return new NextResponse('User not found', { status: 404 });
     }
 
-    // Calculate new total points
-    const newPoints = {
-      amount: points,
-      createdAt: new Date(),
-      type: 'donation'
-    };
-
-    // Update user stats
-    const updatedUser = await prisma.user.update({
-      where: { id: userId },
-      data: {
-        totalDonated: (existingUser.totalDonated || 0) + amount,
-        donationCount: (existingUser.donationCount || 0) + 1,
-        points: {
-          create: {
-            amount: points,
-            payment: {
-              connect: {
-                id: donationType // assuming this is the payment ID
-              }
-            }
+    // Start a transaction to ensure data consistency
+    const updatedUser = await prisma.$transaction(async (tx) => {
+      // Create points entry connected to payment
+      const pointsEntry = await tx.points.create({
+        data: {
+          amount: points,
+          user: {
+            connect: { id: userId }
+          },
+          payment: {
+            connect: { id: donationType }
           }
         }
-      },
-      include: {
-        points: true
-      }
+      });
+
+      // Update user stats
+      const updatedUser = await tx.user.update({
+        where: { id: userId },
+        data: {
+          totalDonated: {
+            increment: amount
+          },
+          donationCount: {
+            increment: 1
+          }
+        },
+        include: {
+          points: true
+        }
+      });
+
+      return updatedUser;
     });
 
-    // Calculate total points and update level if needed
+    // Calculate total points and new level
     const totalPoints = updatedUser.points.reduce((acc, point) => acc + point.amount, 0);
     const newLevel = calculateLevel(totalPoints);
 
+    // Update level if changed
     if (newLevel !== updatedUser.level) {
       await prisma.user.update({
         where: { id: userId },
@@ -72,13 +75,17 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({
+      success: true,
       totalDonated: updatedUser.totalDonated,
       donationCount: updatedUser.donationCount,
       points: totalPoints,
       level: newLevel
     });
+
   } catch (error) {
     console.error('Error updating user stats:', error);
     return new NextResponse('Internal Error', { status: 500 });
+  } finally {
+    await prisma.$disconnect();
   }
 } 
