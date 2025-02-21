@@ -45,8 +45,17 @@ export async function updateDonationStatus(
   mpesaReceiptNumber?: string
 ) {
   try {
-    // Extract requestId from transactionId if it's a Paystack reference
-    const requestId = transactionId.split('_')[0];
+    // Extract requestId - handle both Paystack and Till payment formats
+    let requestId = transactionId;
+    if (transactionId.includes('_')) {
+      // For Paystack payments, requestId is before the underscore
+      requestId = transactionId.split('_')[0];
+    } else if (mpesaReceiptNumber) {
+      // For Till payments, use the transactionId directly as it's already the requestId
+      requestId = transactionId;
+    }
+
+    console.log('Looking for donation with requestId:', requestId);
 
     // Find the donation by requestId and pending status
     const donation = await prisma.donation.findFirst({
@@ -90,6 +99,7 @@ export async function updateDonationStatus(
     if (status === PaymentStatus.COMPLETED) {
       // Calculate and award points
       const points = await calculateDonationPoints(donation.amount, donation.userId);
+      console.log(`Calculated points for donation ${donation.id}: ${points}`);
       
       // Update request's amount
       await prisma.request.update({
@@ -111,6 +121,7 @@ export async function updateDonationStatus(
 
       // Get donor's updated stats
       const donorStats = await getUserDonationStats(donation.userId);
+      console.log(`Updated donor stats for ${donation.userId}:`, donorStats);
 
       // Create notification for the request owner
       await prisma.notification.create({
