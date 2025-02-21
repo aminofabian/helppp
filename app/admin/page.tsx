@@ -405,7 +405,7 @@ export default function AdminPage() {
                       <TableCell>KES {request.amount.toLocaleString()}</TableCell>
                       <TableCell>KES {request.totalDonated.toLocaleString()}</TableCell>
                       <TableCell>
-                        <Badge variant={request.isFullyFunded ? "success" : request.isExpired ? "destructive" : "secondary"}>
+                        <Badge variant={request.isFullyFunded ? "default" : request.isExpired ? "destructive" : "secondary"}>
                           {request.isFullyFunded ? 'Fully Funded' : request.isExpired ? 'Expired' : 'In Progress'}
                         </Badge>
                       </TableCell>
