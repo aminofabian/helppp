@@ -1,6 +1,11 @@
 // utils/levelCalculator.ts
 
-const LEVEL_THRESHOLDS = [
+interface LevelThreshold {
+  level: number;
+  points: number;
+}
+
+export const LEVEL_THRESHOLDS: LevelThreshold[] = [
   { level: 10, points: 10000 },
   { level: 9, points: 5000 },
   { level: 8, points: 2000 },

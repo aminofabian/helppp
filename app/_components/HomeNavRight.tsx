@@ -9,7 +9,7 @@ import Link from "next/link";
 import { CreditCard, Users, Trophy, HandHeart, Star, Activity } from 'lucide-react';
 import { Progress } from "@/components/ui/progress";
 import DonationCount from './DonationCount';
-import { calculateLevel } from '@/app/lib/levelCalculator';
+import { calculateLevel, LEVEL_THRESHOLDS } from '@/app/lib/levelCalculator';
 import dynamic from 'next/dynamic';
 import NotificationList from './NotificationList';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -288,7 +288,7 @@ export default function HomeNavRight({
                       <span className="font-semibold">Level {stats.level}</span>
                     </div>
                     <div className="text-sm text-gray-600 dark:text-gray-400">
-                      {stats.points.reduce((acc, point) => acc + point.amount, 0)} / {stats.level * 1000} XP
+                      {stats.points.reduce((acc, point) => acc + point.amount, 0)} / {LEVEL_THRESHOLDS.find((t: { level: number }) => t.level === stats.level + 1)?.points || LEVEL_THRESHOLDS[0].points} XP
                     </div>
                   </div>
                 </DialogTrigger>
@@ -305,9 +305,15 @@ export default function HomeNavRight({
                             <span>Current Level: {stats.level}</span>
                             <span>Points: {stats.points.reduce((acc, point) => acc + point.amount, 0)}</span>
                           </div>
-                          <Progress value={(stats.points.reduce((acc, point) => acc + point.amount, 0) / (stats.level * 1000)) * 100} className="h-2 dark:bg-gray-800" />
+                          <Progress 
+                            value={((stats.points.reduce((acc, point) => acc + point.amount, 0) - (LEVEL_THRESHOLDS.find((t: { level: number }) => t.level === stats.level)?.points || 0)) / 
+                                  ((LEVEL_THRESHOLDS.find((t: { level: number }) => t.level === stats.level + 1)?.points || LEVEL_THRESHOLDS[0].points) - 
+                                  (LEVEL_THRESHOLDS.find((t: { level: number }) => t.level === stats.level)?.points || 0)) * 100)} 
+                            className="h-2 dark:bg-gray-800" 
+                          />
                           <p className="text-sm text-muted-foreground mt-1">
-                            {(stats.level * 1000) - stats.points.reduce((acc, point) => acc + point.amount, 0)} points needed for Level {stats.level + 1}
+                            {(LEVEL_THRESHOLDS.find((t: { level: number }) => t.level === stats.level + 1)?.points || LEVEL_THRESHOLDS[0].points) - 
+                             stats.points.reduce((acc, point) => acc + point.amount, 0)} points needed for Level {stats.level + 1}
                           </p>
                           {LEVEL_PERKS[stats.level as LevelNumber] && (
                             <p className="text-xs text-muted-foreground mt-1">
@@ -412,14 +418,23 @@ export default function HomeNavRight({
             <div className="space-y-2">
               <div className="flex justify-between text-xs text-gray-600 dark:text-gray-400">
                 <span>Progress to Level {stats.level + 1}</span>
-                <span>{Math.round((stats.points.reduce((acc, point) => acc + point.amount, 0) / (stats.level * 1000)) * 100)}%</span>
+                {(() => {
+                  const currentPoints = stats.points.reduce((acc, point) => acc + point.amount, 0);
+                  const currentLevelPoints = LEVEL_THRESHOLDS.find((t: { level: number }) => t.level === stats.level)?.points || 0;
+                  const nextLevelPoints = LEVEL_THRESHOLDS.find((t: { level: number }) => t.level === stats.level + 1)?.points || LEVEL_THRESHOLDS[0].points;
+                  const percentage = Math.round(((currentPoints - currentLevelPoints) / (nextLevelPoints - currentLevelPoints)) * 100);
+                  return <span>{percentage}%</span>;
+                })()}
               </div>
               <Progress 
-                value={(stats.points.reduce((acc, point) => acc + point.amount, 0) / (stats.level * 1000)) * 100} 
+                value={((stats.points.reduce((acc, point) => acc + point.amount, 0) - (LEVEL_THRESHOLDS.find((t: { level: number }) => t.level === stats.level)?.points || 0)) / 
+                      ((LEVEL_THRESHOLDS.find((t: { level: number }) => t.level === stats.level + 1)?.points || LEVEL_THRESHOLDS[0].points) - 
+                      (LEVEL_THRESHOLDS.find((t: { level: number }) => t.level === stats.level)?.points || 0)) * 100)} 
                 className="h-2 dark:bg-gray-800" 
               />
               <div className="text-xs text-gray-500 dark:text-gray-400">
-                {(stats.level * 1000) - stats.points.reduce((acc, point) => acc + point.amount, 0)} points needed
+                {(LEVEL_THRESHOLDS.find((t: { level: number }) => t.level === stats.level + 1)?.points || LEVEL_THRESHOLDS[0].points) - 
+                 stats.points.reduce((acc, point) => acc + point.amount, 0)} points needed,
               </div>
             </div>
 
