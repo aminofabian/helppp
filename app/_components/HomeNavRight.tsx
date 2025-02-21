@@ -12,6 +12,7 @@ import DonationCount from './DonationCount';
 import { calculateLevel } from '@/app/lib/levelCalculator';
 import dynamic from 'next/dynamic';
 import NotificationList from './NotificationList';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 // Dynamically import Dialog components with no SSR
 const Dialog = dynamic(() => import("@/components/ui/dialog").then(mod => mod.Dialog), { ssr: false });
@@ -38,7 +39,20 @@ interface WalletData {
   balance: number;
 }
 
-const LEVEL_PERKS = {
+type LevelNumber = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+
+type Perk = {
+  icon: React.ReactElement;
+  text: string;
+};
+
+type LevelPerk = {
+  perks: Perk[];
+  limit: string;
+  maxAmount: number;
+};
+
+const LEVEL_PERKS: Record<LevelNumber, LevelPerk> = {
   1: {
     perks: [
       { icon: <Users className="w-4 h-4 text-blue-500" />, text: "Can browse and view help requests" }
@@ -136,33 +150,7 @@ export default function HomeNavRight({
   const [wallet, setWallet] = useState<WalletData>(initialWallet);
   const [isWalletOpen, setIsWalletOpen] = useState(false);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
-  
-  // Calculate points based on total donations
-  const calculatedPoints = Math.floor((stats?.calculatedTotalDonated || stats?.totalDonated || 0) / 50);
-  const currentLevel = calculateLevel(calculatedPoints);
-  
-  // Get the next level threshold from the level calculator
-  const LEVEL_THRESHOLDS = [
-    { level: 10, points: 10000 },
-    { level: 9, points: 5000 },
-    { level: 8, points: 2000 },
-    { level: 7, points: 1200 },
-    { level: 6, points: 500 },
-    { level: 5, points: 120 },
-    { level: 4, points: 30 },
-    { level: 3, points: 70 },
-    { level: 2, points: 12 },
-    { level: 1, points: 0 }
-  ];
-  
-  const currentThreshold = LEVEL_THRESHOLDS.find(t => t.level === currentLevel);
-  const nextThreshold = LEVEL_THRESHOLDS.find(t => t.level === currentLevel + 1);
-  const pointsNeeded = nextThreshold ? nextThreshold.points - calculatedPoints : 0;
-  const progress = nextThreshold ? ((calculatedPoints - (currentThreshold?.points || 0)) / (nextThreshold.points - (currentThreshold?.points || 0))) * 100 : 100;
-
-  const nextLevel = currentLevel + 1;
-  const currentPerks = LEVEL_PERKS[currentLevel as keyof typeof LEVEL_PERKS];
-  const nextPerks = LEVEL_PERKS[nextLevel as keyof typeof LEVEL_PERKS];
+  const [hasRunningRequest, setHasRunningRequest] = useState(false);
 
   useEffect(() => {
     // Function to fetch updated stats
@@ -196,6 +184,26 @@ export default function HomeNavRight({
     const interval = setInterval(fetchUpdatedStats, 10000);
 
     // Clean up interval on unmount
+    return () => clearInterval(interval);
+  }, [initialUser.id]);
+
+  useEffect(() => {
+    // Check for running requests
+    const checkRunningRequests = async () => {
+      try {
+        const response = await fetch(`/api/user-requests/running?userId=${initialUser.id}`);
+        if (response.ok) {
+          const data = await response.json();
+          setHasRunningRequest(data.hasRunningRequest);
+        }
+      } catch (error) {
+        console.error('Error checking running requests:', error);
+      }
+    };
+
+    checkRunningRequests();
+    const interval = setInterval(checkRunningRequests, 30000); // Check every 30 seconds
+
     return () => clearInterval(interval);
   }, [initialUser.id]);
 
@@ -280,10 +288,10 @@ export default function HomeNavRight({
                               dark:text-gray-200">
                     <div className="flex items-center gap-2">
                       <Trophy className="w-5 h-5 text-amber-500 dark:text-amber-400" />
-                      <span className="font-semibold">Level {currentLevel}</span>
+                      <span className="font-semibold">Level {stats.level}</span>
                     </div>
                     <div className="text-sm text-muted-foreground dark:text-gray-400">
-                      {calculatedPoints} / {nextThreshold?.points || calculatedPoints} XP
+                      {stats.points.reduce((acc, point) => acc + point.amount, 0)} / {stats.level * 1000} XP
                     </div>
                   </div>
                 </DialogTrigger>
@@ -297,16 +305,16 @@ export default function HomeNavRight({
                       <div className="space-y-4 mt-2">
                         <div>
                           <div className="flex justify-between mb-2">
-                            <span>Current Level: {currentLevel}</span>
-                            <span>Points: {calculatedPoints}</span>
+                            <span>Current Level: {stats.level}</span>
+                            <span>Points: {stats.points.reduce((acc, point) => acc + point.amount, 0)}</span>
                           </div>
-                          <Progress value={progress} className="h-2" />
+                          <Progress value={(stats.points.reduce((acc, point) => acc + point.amount, 0) / (stats.level * 1000)) * 100} className="h-2" />
                           <p className="text-sm text-muted-foreground mt-1">
-                            {pointsNeeded} points needed for Level {currentLevel + 1}
+                            {(stats.level * 1000) - stats.points.reduce((acc, point) => acc + point.amount, 0)} points needed for Level {stats.level + 1}
                           </p>
-                          {currentPerks && (
+                          {LEVEL_PERKS[stats.level as LevelNumber] && (
                             <p className="text-xs text-muted-foreground mt-1">
-                              Current limit: {currentPerks.limit}
+                              Current limit: {LEVEL_PERKS[stats.level as LevelNumber].limit}
                             </p>
                           )}
                         </div>
@@ -314,7 +322,7 @@ export default function HomeNavRight({
                         <div className="border-t pt-4">
                           <h4 className="font-medium mb-2">Current Level Perks</h4>
                           <ul className="space-y-2">
-                            {currentPerks?.perks.map((perk, index) => (
+                            {LEVEL_PERKS[stats.level as LevelNumber]?.perks.map((perk, index) => (
                               <li key={index} className="flex items-center gap-2 text-sm">
                                 {perk.icon}
                                 {perk.text}
@@ -323,11 +331,11 @@ export default function HomeNavRight({
                           </ul>
                         </div>
 
-                        {nextPerks && (
+                        {LEVEL_PERKS[(stats.level + 1) as LevelNumber] && (
                           <div className="border-t pt-4">
                             <h4 className="font-medium mb-2">Next Level Perks</h4>
                             <ul className="space-y-2">
-                              {nextPerks.perks.map((perk, index) => (
+                              {LEVEL_PERKS[(stats.level + 1) as LevelNumber].perks.map((perk, index) => (
                                 <li key={index} className="flex items-center gap-2 text-sm">
                                   {perk.icon}
                                   {perk.text}
@@ -335,7 +343,7 @@ export default function HomeNavRight({
                               ))}
                             </ul>
                             <p className="text-xs text-muted-foreground mt-2">
-                              Next level limit: {nextPerks.limit}
+                              Next level limit: {LEVEL_PERKS[(stats.level + 1) as LevelNumber].limit}
                             </p>
                           </div>
                         )}
@@ -354,7 +362,7 @@ export default function HomeNavRight({
                 </DialogContent>
               </Dialog>
             </Suspense>
-            <Progress value={progress} className="h-2 dark:bg-gray-800/50" />
+            <Progress value={(stats.points.reduce((acc, point) => acc + point.amount, 0) / (stats.level * 1000)) * 100} className="h-2 dark:bg-gray-800/50" />
           </div>
           
           <div className="grid grid-cols-2 gap-4">
@@ -367,11 +375,11 @@ export default function HomeNavRight({
                 <span className="text-sm text-gray-600 dark:text-gray-300">Total Given</span>
               </div>
               <p className="text-lg font-semibold text-emerald-600 dark:text-emerald-400">
-                KES {(stats?.calculatedTotalDonated || stats?.totalDonated || 0).toLocaleString()}
+                KES {(stats.calculatedTotalDonated || stats.totalDonated || 0).toLocaleString()}
               </p>
             </div>
             <DonationCount 
-              initialCount={stats?.calculatedDonationCount || stats?.donationCount || 0} 
+              initialCount={stats.calculatedDonationCount || stats.donationCount || 0} 
               userId={initialUser.id} 
             />
           </div>
@@ -384,28 +392,41 @@ export default function HomeNavRight({
               <div className="text-xs uppercase mb-1 opacity-90">Account balance</div>
               <div className="text-2xl font-bold dark:text-gray-100">{wallet ? `${wallet.balance} KES` : '0 KES'}</div>
               <Suspense fallback={<div>Loading...</div>}>
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button className="w-full mt-3 bg-green-500/90 hover:bg-green-600 
-                                   dark:bg-green-600/80 dark:hover:bg-green-700
-                                   text-white shadow-md hover:shadow-lg
-                                   transition-all duration-300">
-                      Add funds
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Add Funds to Wallet</DialogTitle>
-                      <DialogDescription>
-                        <WalletDepositForm 
-                          onSuccess={(newBalance) => {
-                            setWallet(prev => ({ ...prev, balance: newBalance }));
-                          }} 
-                        />
-                      </DialogDescription>
-                    </DialogHeader>
-                  </DialogContent>
-                </Dialog>
+                <TooltipProvider>
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div>
+                            <Button 
+                              variant="outline" 
+                              className="w-full lowercase text-xs text-primary
+                                       dark:text-gray-300 dark:border-gray-700
+                                       dark:hover:bg-gray-700/50
+                                       transition-all duration-300"
+                              disabled={hasRunningRequest}
+                            >
+                              Withdraw
+                            </Button>
+                          </div>
+                        </TooltipTrigger>
+                        {hasRunningRequest && (
+                          <TooltipContent>
+                            <p>Funds will be available once your request is completed</p>
+                          </TooltipContent>
+                        )}
+                      </Tooltip>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Withdraw Funds</DialogTitle>
+                        <DialogDescription>
+                          <B2CPaymentForm amountValue={wallet ? wallet.balance : 0} />
+                        </DialogDescription>
+                      </DialogHeader>
+                    </DialogContent>
+                  </Dialog>
+                </TooltipProvider>
               </Suspense>
             </div>
             
@@ -419,25 +440,41 @@ export default function HomeNavRight({
               </div>
               <div className="mt-3 grid grid-cols-2 gap-2">
                 <Suspense fallback={<div>Loading...</div>}>
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button variant="outline" 
-                              className="w-full lowercase text-xs text-primary
-                                     dark:text-gray-300 dark:border-gray-700
-                                     dark:hover:bg-gray-700/50
-                                     transition-all duration-300">
-                        Withdraw
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Withdraw Funds</DialogTitle>
-                        <DialogDescription>
-                          <B2CPaymentForm amountValue={wallet ? wallet.balance : 0} />
-                        </DialogDescription>
-                      </DialogHeader>
-                    </DialogContent>
-                  </Dialog>
+                  <TooltipProvider>
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div>
+                              <Button 
+                                variant="outline" 
+                                className="w-full lowercase text-xs text-primary
+                                         dark:text-gray-300 dark:border-gray-700
+                                         dark:hover:bg-gray-700/50
+                                         transition-all duration-300"
+                                disabled={hasRunningRequest}
+                              >
+                                Withdraw
+                              </Button>
+                            </div>
+                          </TooltipTrigger>
+                          {hasRunningRequest && (
+                            <TooltipContent>
+                              <p>Funds will be available once your request is completed</p>
+                            </TooltipContent>
+                          )}
+                        </Tooltip>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Withdraw Funds</DialogTitle>
+                          <DialogDescription>
+                            <B2CPaymentForm amountValue={wallet ? wallet.balance : 0} />
+                          </DialogDescription>
+                        </DialogHeader>
+                      </DialogContent>
+                    </Dialog>
+                  </TooltipProvider>
                 </Suspense>
                 <Button variant="outline" 
                         className="w-full lowercase text-xs text-primary
