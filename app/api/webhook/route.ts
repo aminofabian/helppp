@@ -42,16 +42,29 @@ export async function POST(req: Request) {
     if (event.event === "charge.success") {
       console.log("Payment successful:", event.data);
       try {
-        // Check if payment was already processed
+        // Check for existing payment using both possible reference fields
         const existingPayment = await prisma.payment.findFirst({
-          where: { 
-            mpesaReceiptNumber: event.data.reference
+          where: {
+            OR: [
+              { checkoutRequestId: event.data.reference },
+              { mpesaReceiptNumber: event.data.reference }
+            ]
           }
         });
 
         if (existingPayment) {
           console.log('Payment already processed:', event.data.reference);
           return NextResponse.json({ status: 'success', message: 'Payment already processed' });
+        }
+
+        // Also check for existing donation with this reference
+        const existingDonation = await prisma.donation.findFirst({
+          where: { invoice: event.data.reference }
+        });
+
+        if (existingDonation) {
+          console.log('Donation already processed:', event.data.reference);
+          return NextResponse.json({ status: 'success', message: 'Donation already processed' });
         }
 
         const email = event.data.customer.email?.toLowerCase().trim();
