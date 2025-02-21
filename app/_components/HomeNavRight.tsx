@@ -250,17 +250,15 @@ export default function HomeNavRight({
   
   return (
     <div className="max-w-md mx-auto">
-      <Card className="overflow-hidden bg-white/95 backdrop-blur-sm 
-                      dark:bg-gray-900/30 dark:backdrop-blur-md
-                      shadow-lg hover:shadow-xl transition-all duration-300
-                      dark:shadow-[0_4px_20px_rgba(0,0,0,0.2)]
-                      dark:border-gray-800/30 rounded-lg">
+      <Card className="overflow-hidden bg-white dark:bg-gray-900
+                      shadow-md hover:shadow-lg transition-all duration-300
+                      dark:border-gray-800 rounded-lg">
         <div className="p-6 space-y-6">
-          <h1 className='text-sm font-medium text-green-600 
-                        bg-green-100/80 backdrop-blur-sm
-                        dark:bg-green-900/20 dark:text-green-400
-                        p-3 rounded-lg shadow-inner text-center
-                        transition-all duration-300'>
+          <h1 className='text-sm font-medium text-primary 
+                        bg-secondary/30
+                        dark:bg-gray-800 dark:text-primary
+                        p-3 rounded-lg text-center
+                        transition-colors'>
             Welcome aboard{' '}
             {initialUser.given_name || initialUser.family_name ? (
               <>
@@ -276,21 +274,20 @@ export default function HomeNavRight({
             )}...
           </h1>
 
-          <div className="bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 
-                          dark:from-gray-800/40 dark:via-gray-800/60 dark:to-gray-800/40 
-                          p-4 rounded-lg space-y-2 shadow-inner
-                          transition-all duration-300">
+          <div className="bg-secondary/20 dark:bg-gray-800 
+                          p-4 rounded-lg space-y-2
+                          transition-colors">
             <Suspense fallback={<div>Loading...</div>}>
               <Dialog>
                 <DialogTrigger asChild>
                   <div className="flex items-center justify-between cursor-pointer 
-                              hover:opacity-80 transition-opacity duration-200
+                              hover:opacity-80 transition-opacity
                               dark:text-gray-200">
                     <div className="flex items-center gap-2">
-                      <Trophy className="w-5 h-5 text-amber-500 dark:text-amber-400" />
+                      <Trophy className="w-5 h-5 text-primary" />
                       <span className="font-semibold">Level {stats.level}</span>
                     </div>
-                    <div className="text-sm text-muted-foreground dark:text-gray-400">
+                    <div className="text-sm text-gray-600 dark:text-gray-400">
                       {stats.points.reduce((acc, point) => acc + point.amount, 0)} / {stats.level * 1000} XP
                     </div>
                   </div>
@@ -298,7 +295,7 @@ export default function HomeNavRight({
                 <DialogContent>
                   <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
-                      <Trophy className="w-5 h-5 text-amber-500" />
+                      <Trophy className="w-5 h-5 text-primary" />
                       Level Progress
                     </DialogTitle>
                     <DialogDescription>
@@ -308,7 +305,7 @@ export default function HomeNavRight({
                             <span>Current Level: {stats.level}</span>
                             <span>Points: {stats.points.reduce((acc, point) => acc + point.amount, 0)}</span>
                           </div>
-                          <Progress value={(stats.points.reduce((acc, point) => acc + point.amount, 0) / (stats.level * 1000)) * 100} className="h-2" />
+                          <Progress value={(stats.points.reduce((acc, point) => acc + point.amount, 0) / (stats.level * 1000)) * 100} className="h-2 dark:bg-gray-800" />
                           <p className="text-sm text-muted-foreground mt-1">
                             {(stats.level * 1000) - stats.points.reduce((acc, point) => acc + point.amount, 0)} points needed for Level {stats.level + 1}
                           </p>
@@ -362,19 +359,19 @@ export default function HomeNavRight({
                 </DialogContent>
               </Dialog>
             </Suspense>
-            <Progress value={(stats.points.reduce((acc, point) => acc + point.amount, 0) / (stats.level * 1000)) * 100} className="h-2 dark:bg-gray-800/50" />
+            <Progress value={(stats.points.reduce((acc, point) => acc + point.amount, 0) / (stats.level * 1000)) * 100} className="h-2 dark:bg-gray-800" />
           </div>
           
           <div className="grid grid-cols-2 gap-4">
-            <div className="bg-emerald-50/80 backdrop-blur-sm
-                          dark:bg-gray-800/30 dark:backdrop-blur-md
-                          p-3 rounded-lg shadow-sm hover:shadow-md
-                          transition-all duration-300">
+            <div className="bg-secondary/20
+                          dark:bg-gray-800
+                          p-3 rounded-lg shadow-sm hover:shadow
+                          transition-colors">
               <div className="flex items-center gap-2 mb-1">
-                <HandHeart className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
+                <HandHeart className="w-4 h-4 text-primary" />
                 <span className="text-sm text-gray-600 dark:text-gray-300">Total Given</span>
               </div>
-              <p className="text-lg font-semibold text-emerald-600 dark:text-emerald-400">
+              <p className="text-lg font-semibold text-primary">
                 KES {(stats.calculatedTotalDonated || stats.totalDonated || 0).toLocaleString()}
               </p>
             </div>
@@ -385,10 +382,10 @@ export default function HomeNavRight({
           </div>
           
           <div className="space-y-4">
-            <div className="bg-primary/95 backdrop-blur-sm text-white 
-                          dark:bg-gray-800/60 dark:backdrop-blur-md
-                          p-4 rounded-lg shadow-lg
-                          transition-all duration-300">
+            <div className="bg-primary text-white 
+                          dark:bg-gray-800
+                          p-4 rounded-lg shadow-md
+                          transition-colors">
               <div className="text-xs uppercase mb-1 opacity-90">Account balance</div>
               <div className="text-2xl font-bold dark:text-gray-100">{wallet ? `${wallet.balance} KES` : '0 KES'}</div>
               <Suspense fallback={<div>Loading...</div>}>
@@ -400,10 +397,10 @@ export default function HomeNavRight({
                           <div>
                             <Button 
                               variant="outline" 
-                              className="w-full lowercase text-xs text-primary
+                              className="w-full lowercase text-xs text-white
                                        dark:text-gray-300 dark:border-gray-700
-                                       dark:hover:bg-gray-700/50
-                                       transition-all duration-300"
+                                       dark:hover:bg-gray-700
+                                       transition-colors"
                               disabled={hasRunningRequest}
                             >
                               Withdraw
@@ -430,10 +427,10 @@ export default function HomeNavRight({
               </Suspense>
             </div>
             
-            <div className="bg-green-50/80 backdrop-blur-sm
-                          dark:bg-gray-800/40 dark:backdrop-blur-md
+            <div className="bg-secondary/20
+                          dark:bg-gray-800
                           p-4 rounded-lg shadow-md
-                          transition-all duration-300">
+                          transition-colors">
               <div className="text-xs text-primary dark:text-gray-300 uppercase mb-1">Current balance</div>
               <div className="text-2xl font-bold text-primary dark:text-gray-200">
                 {wallet ? `${wallet.balance} KES` : '0 KES'}
@@ -450,8 +447,8 @@ export default function HomeNavRight({
                                 variant="outline" 
                                 className="w-full lowercase text-xs text-primary
                                          dark:text-gray-300 dark:border-gray-700
-                                         dark:hover:bg-gray-700/50
-                                         transition-all duration-300"
+                                         dark:hover:bg-gray-700
+                                         transition-colors"
                                 disabled={hasRunningRequest}
                               >
                                 Withdraw
@@ -479,32 +476,32 @@ export default function HomeNavRight({
                 <Button variant="outline" 
                         className="w-full lowercase text-xs text-primary
                                  dark:text-gray-300 dark:border-gray-700
-                                 dark:hover:bg-gray-700/50
-                                 transition-all duration-300">
+                                 dark:hover:bg-gray-700
+                                 transition-colors">
                   Deposit
                 </Button>
               </div>
             </div>
           </div>
           
-          <Separator className='my-6 dark:bg-gray-700/30' />
+          <Separator className='my-6 dark:bg-gray-700' />
           
           <div className='space-y-4'>
-            <Button className="w-full bg-primary/90 hover:bg-green-600/90 
-                             dark:bg-gray-800/80 dark:hover:bg-gray-700
+            <Button className="w-full bg-primary hover:bg-primary/90 
+                             dark:bg-gray-800 dark:hover:bg-gray-700
                              text-white shadow-md hover:shadow-lg
-                             transition-all duration-300" asChild>
+                             transition-colors" asChild>
               <Link href='/c/eldoret/create'>
                 <CreditCard className="w-4 h-4 mr-2" />
                 Create a Help Request
               </Link>
             </Button>
             <Button variant='outline' 
-                    className="w-full border-green-50 shadow-md 
-                             text-primary hover:bg-green-100/50
+                    className="w-full border-secondary shadow-md 
+                             text-primary hover:bg-secondary/20
                              dark:border-gray-700 dark:text-gray-300
-                             dark:hover:bg-gray-700/50
-                             transition-all duration-300" asChild>
+                             dark:hover:bg-gray-700
+                             transition-colors" asChild>
               <Link href='/c/create'>
                 <Users className="w-4 h-4 mr-2 text-xs" />
                 Create a Community
@@ -533,8 +530,8 @@ export default function HomeNavRight({
                 <Button variant="outline" 
                         className="w-full lowercase text-xs text-primary
                                  dark:text-gray-300 dark:border-gray-700
-                                 dark:hover:bg-gray-700/50
-                                 transition-all duration-300">
+                                 dark:hover:bg-gray-700
+                                 transition-colors">
                   Wallet
                 </Button>
               </DialogTrigger>
@@ -556,18 +553,16 @@ export default function HomeNavRight({
         </div>
       </Card>
       <Card className='hidden sm:block w-full mt-4 
-                      bg-white/95 dark:bg-gray-900/30 
-                      backdrop-blur-sm dark:backdrop-blur-md
-                      shadow-lg dark:shadow-[0_4px_20px_rgba(0,0,0,0.2)]
-                      dark:border-gray-800/30
-                      transition-all duration-300'>      
+                      bg-white dark:bg-gray-900 
+                      shadow-md dark:border-gray-800
+                      transition-colors'>      
         <div className='sticky flex bottom-0 w-full justify-evenly gap-2 
-                       border-t dark:border-gray-800/30 
-                       bg-card dark:bg-gray-800/40 p-3
-                       transition-all duration-300'>
+                       border-t dark:border-gray-800 
+                       bg-card dark:bg-gray-800 p-3
+                       transition-colors'>
           <MenuBar className='sticky flex bottom-0 w-full justify-evenly gap-2 
-                            border-t dark:border-gray-800/30 
-                            bg-card dark:bg-gray-800/40 p-3'/>
+                            border-t dark:border-gray-800 
+                            bg-card dark:bg-gray-800 p-3'/>
         </div>
       </Card>
     </div>
