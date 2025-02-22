@@ -375,457 +375,12 @@ async function createNotification(type: NotificationType, recipientId: string, i
   }
 }
 
-
-
-
-export async function handlePayPalWebhook(paymentData: {
-  id: string;
-  amount: string;
-  create_time: string;
-  payer_email: string;
-  payer_name: string;
-  requestId: string;
-}) {
-  const paymentId = paymentData.id;
-  const amountUSD = Number(paymentData.amount); // Amount in USD
-  const createTime = paymentData.create_time;
-  const payerEmail = paymentData.payer_email;
-  const payerName = paymentData.payer_name;
-  const requestId = paymentData.requestId;
-
-  const exchangeRate = 120; // 1 USD = 120 KES
-  const amountKES = amountUSD * exchangeRate; // Convert to KES
-
-  console.log('Processing PayPal payment:', { paymentId, amountKES, requestId });
-
-  try {
-    // Find the request and associated user (receiver)
-    const request = await prisma.request.findUnique({
-      where: { id: requestId },
-      include: {
-        User: true,
-        Community: true,
-      },
-    });
-
-    if (!request) {
-      console.error('Request not found for requestId:', requestId);
-      return { status: 'error', message: 'Request not found' };
-    }
-
-    // Find or create the giver (payer)
-    let giver = await prisma.user.findFirst({
-      where: { email: payerEmail },
-    });
-
-    if (!giver) {
-      const [firstName, lastName] = payerName.split(' ');
-      giver = await prisma.user.create({
-        data: {
-          email: payerEmail,
-          firstName: firstName || '',
-          lastName: lastName || '',
-          userName: `user_${Date.now()}`,
-          level: 1,
-          totalDonated: amountKES, // Use KES
-          donationCount: 1,
-        },
-      });
-      console.log('Created new user:', giver.id);
-    }
-
-    // Create payment record
-    const payment = await prisma.payment.create({
-      data: {
-        userId: giver.id,
-        amount: amountKES, // Use KES
-        paymentMethod: PaymentMethod.PAYPAL,
-        status: PaymentStatus.COMPLETED,
-        checkoutRequestId: paymentId,
-        merchantRequestId: paymentId,
-        resultCode: '0',
-        resultDesc: 'Success',
-        currency: 'KES', // Change to KES
-        requestId,
-        userts: new Date(createTime),
-        transactionDate: new Date(),
-      },
-    });
-
-    console.log('Created payment record:', payment.id);
-
-    // Create donation record
-    const donation = await prisma.donation.create({
-      data: {
-        userId: giver.id,
-        requestId,
-        amount: amountKES, // Use KES
-        payment: { connect: { id: payment.id } },
-        status: PaymentStatus.COMPLETED,
-        invoice: paymentId,
-      },
-    });
-
-    console.log('Created donation record:', donation.id);
-
-    // Calculate points (1 point per 50 KES, minimum 1 point)
-    const pointsEarned = Math.max(1, Math.floor(amountKES / 50));
-    console.log('Points calculation:', {
-      amountKES,
-      pointsEarned,
-      calculationDetails: `${amountKES} KES / 50 = ${pointsEarned} points (minimum 1 point)`,
-    });
-
-    // Create points record
-    const points = await prisma.points.create({
-      data: {
-        userId: giver.id,
-        amount: pointsEarned,
-        paymentId: payment.id,
-      },
-    });
-
-    console.log('Created points record:', points.id);
-
-    // Calculate new level based on total points
-    const userPoints = await prisma.points.findMany({
-      where: { userId: giver.id },
-    });
-    const totalPoints = userPoints.reduce((sum, p) => sum + p.amount, 0);
-    const newLevel = calculateLevel(totalPoints);
-
-    // Update user profile with new stats
-    await prisma.user.update({
-      where: { id: giver.id },
-      data: {
-        level: newLevel,
-        totalDonated: { increment: amountKES }, // Use KES
-        donationCount: { increment: 1 },
-      },
-    });
-
-    // Create notification for request creator
-    await prisma.notification.create({
-      data: {
-        recipientId: request.userId,
-        issuerId: giver.id,
-        title: 'New Donation Received! ',
-        content: `${giver.firstName || 'Someone'} donated KES ${amountKES} to your request. They earned ${pointsEarned} points and are now at Level ${newLevel}!`,
-        type: 'DONATION',
-        requestId,
-        donationId: donation.id,
-      },
-    });
-
-    // Create notification for the donor
-    await prisma.notification.create({
-      data: {
-        recipientId: giver.id,
-        issuerId: request.userId,
-        title: 'Thank You for Your Donation!',
-        content: `Your donation of KES ${amountKES} was successful. You earned ${pointsEarned} points and are now at Level ${newLevel}. Keep making a difference!`,
-        type: 'PAYMENT_COMPLETED',
-        requestId,
-        donationId: donation.id,
-      },
-    });
-
-    // Check if request is fully funded
-    const totalDonations = await prisma.donation.aggregate({
-      where: {
-        requestId,
-        status: PaymentStatus.COMPLETED,
-      },
-      _sum: {
-        amount: true,
-      },
-    });
-
-    if (request.amount && totalDonations._sum.amount && totalDonations._sum.amount >= request.amount) {
-      await prisma.request.update({
-        where: { id: requestId },
-        data: { status: 'FUNDED' },
-      });
-
-      // Create notification for request completion
-      await prisma.notification.create({
-        data: {
-          recipientId: request.userId,
-          issuerId: giver.id,
-          title: 'Fundraising Goal Reached! ',
-          content: `Congratulations! Your request has reached its fundraising goal of KES ${request.amount}. Total amount raised: KES ${totalDonations._sum.amount}`,
-          type: 'PAYMENT_RECEIVED',
-          requestId,
-          donationId: donation.id,
-        },
-      });
-    }
-
-    // Update community statistics if applicable
-    if (request.Community?.id) {
-      await prisma.community.update({
-        where: { id: request.Community.id },
-        data: {
-          totalDonations: { increment: amountKES }, // Use KES
-        },
-      });
-    }
-
-    return { status: 'COMPLETE', message: 'Payment processed successfully' };
-  } catch (error) {
-    console.error('Error processing PayPal payment:', error);
-    return { status: 'error', message: 'Error processing payment', error: error instanceof Error ? error.message : 'Unknown error' };
-  }
-}
-
-// export async function handlePayPalWebhook(formData: FormData) {
-//   const paymentId = formData.get('id') as string;
-//   const amountUSD = Number(formData.get('amount')); // Amount in USD
-//   const createTime = formData.get('create_time') as string;
-//   const payerEmail = formData.get('payer_email') as string;
-//   const payerName = formData.get('payer_name') as string;
-//   const requestId = formData.get('requestId') as string;
-
-//   const exchangeRate = 120; // 1 USD = 120 KES
-//   const amountKES = amountUSD * exchangeRate; // Convert to KES
-
-//   console.log('Processing PayPal payment:', { paymentId, amountKES, requestId });
-
-//   try {
-//     // Find the request and associated user (receiver)
-//     const request = await prisma.request.findUnique({
-//       where: { id: requestId },
-//       include: {
-//         User: true,
-//         Community: true,
-//       },
-//     });
-
-//     if (!request) {
-//       console.error('Request not found for requestId:', requestId);
-//       return NextResponse.json(
-//         { status: 'error', message: 'Request not found' },
-//         { status: 404 }
-//       );
-//     }
-
-//     // Find or create the giver (payer)
-//     let giver = await prisma.user.findFirst({
-//       where: { email: payerEmail },
-//     });
-
-//     if (!giver) {
-//       const [firstName, lastName] = payerName.split(' ');
-//       giver = await prisma.user.create({
-//         data: {
-//           email: payerEmail,
-//           firstName: firstName || '',
-//           lastName: lastName || '',
-//           userName: `user_${Date.now()}`,
-//           level: 1,
-//           totalDonated: amountKES, // Use KES
-//           donationCount: 1,
-//         },
-//       });
-//       console.log('Created new user:', giver.id);
-//     }
-
-//     // Create payment record
-//     const payment = await prisma.payment.create({
-//       data: {
-//         userId: giver.id,
-//         amount: amountKES, // Use KES
-//         paymentMethod: PaymentMethod.PAYPAL,
-//         status: PaymentStatus.COMPLETED,
-//         checkoutRequestId: paymentId,
-//         merchantRequestId: paymentId,
-//         resultCode: '0',
-//         resultDesc: 'Success',
-//         currency: 'KES', // Change to KES
-//         requestId,
-//         userts: new Date(createTime),
-//         transactionDate: new Date(),
-//       },
-//     });
-
-//     console.log('Created payment record:', payment.id);
-
-//     // Create donation record
-//     const donation = await prisma.donation.create({
-//       data: {
-//         userId: giver.id,
-//         requestId,
-//         amount: amountKES, // Use KES
-//         payment: { connect: { id: payment.id } },
-//         status: PaymentStatus.COMPLETED,
-//         invoice: paymentId,
-//       },
-//     });
-
-//     console.log('Created donation record:', donation.id);
-
-//     // Calculate points (1 point per 50 KES, minimum 1 point)
-//     const pointsEarned = Math.max(1, Math.floor(amountKES / 50));
-//     console.log('Points calculation:', {
-//       amountKES,
-//       pointsEarned,
-//       calculationDetails: `${amountKES} KES / 50 = ${pointsEarned} points (minimum 1 point)`,
-//     });
-
-//     // Create points record
-//     const points = await prisma.points.create({
-//       data: {
-//         userId: giver.id,
-//         amount: pointsEarned,
-//         paymentId: payment.id,
-//       },
-//     });
-
-//     console.log('Created points record:', points.id);
-
-//     // Calculate new level based on total points
-//     const userPoints = await prisma.points.findMany({
-//       where: { userId: giver.id },
-//     });
-//     const totalPoints = userPoints.reduce((sum, p) => sum + p.amount, 0);
-//     const newLevel = calculateLevel(totalPoints);
-
-//     // Update user profile with new stats
-//     await prisma.user.update({
-//       where: { id: giver.id },
-//       data: {
-//         level: newLevel,
-//         totalDonated: { increment: amountKES }, // Use KES
-//         donationCount: { increment: 1 },
-//       },
-//     });
-
-//     // Create notification for request creator
-//     await prisma.notification.create({
-//       data: {
-//         recipientId: request.userId,
-//         issuerId: giver.id,
-//         title: 'New Donation Received! ',
-//         content: `${giver.firstName || 'Someone'} donated KES ${amountKES} to your request. They earned ${pointsEarned} points and are now at Level ${newLevel}!`,
-//         type: 'DONATION',
-//         requestId,
-//         donationId: donation.id,
-//       },
-//     });
-
-//     // Create notification for the donor
-//     await prisma.notification.create({
-//       data: {
-//         recipientId: giver.id,
-//         issuerId: request.userId,
-//         title: 'Thank You for Your Donation!',
-//         content: `Your donation of KES ${amountKES} was successful. You earned ${pointsEarned} points and are now at Level ${newLevel}. Keep making a difference!`,
-//         type: 'PAYMENT_COMPLETED',
-//         requestId,
-//         donationId: donation.id,
-//       },
-//     });
-
-//     // Check if request is fully funded
-//     const totalDonations = await prisma.donation.aggregate({
-//       where: {
-//         requestId,
-//         status: PaymentStatus.COMPLETED,
-//       },
-//       _sum: {
-//         amount: true,
-//       },
-//     });
-
-//     if (request.amount && totalDonations._sum.amount && totalDonations._sum.amount >= request.amount) {
-//       await prisma.request.update({
-//         where: { id: requestId },
-//         data: { status: 'FUNDED' },
-//       });
-
-//       // Create notification for request completion
-//       await prisma.notification.create({
-//         data: {
-//           recipientId: request.userId,
-//           issuerId: giver.id,
-//           title: 'Fundraising Goal Reached!',
-//           content: `Congratulations! Your request has reached its fundraising goal of KES ${request.amount}. Total amount raised: KES ${totalDonations._sum.amount}`,
-//           type: 'PAYMENT_RECEIVED',
-//           requestId,
-//           donationId: donation.id,
-//         },
-//       });
-//     }
-
-//     // Update community statistics if applicable
-//     if (request.Community?.id) {
-//       await prisma.community.update({
-//         where: { id: request.Community.id },
-//         data: {
-//           totalDonations: { increment: amountKES }, // Use KES
-//         },
-//       });
-//     }
-
-//     return NextResponse.json({
-//       status: 'success',
-//       message: 'Payment processed successfully',
-//       data: {
-//         paymentId: payment.id,
-//         donationId: donation.id,
-//         pointsEarned,
-//         newLevel,
-//       },
-//     });
-//   } catch (error) {
-//     console.error('Error processing PayPal payment:', error);
-//     return NextResponse.json(
-//       { status: 'error', message: 'Error processing payment', error: error instanceof Error ? error.message : 'Unknown error' },
-//       { status: 500 }
-//     );
-//   }
-// }
-
-// export async function handlePayPalPayment(formData: FormData) {
-//   const { getUser } = getKindeServerSession();
-//   const user = await getUser();
-
-//   if (!user) {
-//     return redirect('/api/auth/login');
-//   }
-
-//   const amount = Number(formData.get('amount'));
-//   const requestId = formData.get('requestId') as string;
-//   console.log(amount, requestId, 'whats aupp]........./////////////////////////////////////////////////////////////////////')
-
-//   try {
-//     const payment = await prisma.payment.create({
-//       data: {
-//         amount,
-//         paymentMethod: PaymentMethod.PAYPAL,
-//         status: PaymentStatus.PENDING,
-//         userId: user.id,
-//         requestId,
-//         userts: new Date(),
-//       },
-//     });
-
-//     return payment;
-//   } catch (error) {
-//     console.error("Error in handlePayPalPayment:", error);
-//     throw error;
-//   }
-// }
-
-
-
 interface PaymentResponse {
   success: boolean;
   message: string;
   transactionId?: string;
   paymentId?: string;
   status?: string;
-
 }
 
 /**
@@ -920,7 +475,6 @@ async function createPaymentRecord(
  * @returns The payment provider's response
  * @throws AxiosError if the API call fails
  */
-
 async function initiatePayment(requestId: string, amount: number, phoneNumber: string, userId: string) {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://fitrii.com';
 
@@ -973,4 +527,218 @@ function handlePaymentError(error: unknown): never {
   }
 
   throw new Error('Unexpected error while processing the payment.');
+}
+
+export async function handlePayPalWebhook(paymentData: {
+  id: string;
+  amount: string;
+  create_time: string;
+  payer_email: string;
+  payer_name: string;
+  requestId: string;
+}) {
+  const paymentId = paymentData.id;
+  const amountUSD = Number(paymentData.amount); // Amount in USD
+  const createTime = paymentData.create_time;
+  const payerEmail = paymentData.payer_email;
+  const payerName = paymentData.payer_name;
+  const requestId = paymentData.requestId;
+
+  const exchangeRate = 120; // 1 USD = 120 KES
+  const amountKES = amountUSD * exchangeRate; // Convert to KES
+
+  console.log('Processing PayPal payment:', { paymentId, amountKES, requestId });
+
+  try {
+    // Find the request and associated user (receiver)
+    const request = await prisma.request.findUnique({
+      where: { id: requestId },
+      include: {
+        User: true,
+        Community: true
+      }
+    });
+
+    if (!request) {
+      console.error('Request not found for requestId:', requestId);
+      throw new Error('Request not found');
+    }
+
+    // Find or create giver using email
+    let giver = await prisma.user.findFirst({
+      where: { email: payerEmail.toLowerCase() }
+    });
+
+    if (!giver) {
+      // Create new user if not found
+      const [firstName, ...lastNameParts] = payerName.split(' ');
+      giver = await prisma.user.create({
+        data: {
+          id: crypto.randomUUID(),
+          email: payerEmail.toLowerCase(),
+          firstName: firstName || '',
+          lastName: lastNameParts.join(' ') || '',
+          userName: `user_${Date.now()}`,
+          level: 1,
+          totalDonated: amountKES,
+          donationCount: 1
+        }
+      });
+    }
+
+    // Create payment record
+    const payment = await prisma.payment.create({
+      data: {
+        userId: giver.id,
+        amount: amountKES,
+        paymentMethod: PaymentMethod.PAYPAL,
+        status: PaymentStatus.COMPLETED,
+        checkoutRequestId: paymentId,
+        merchantRequestId: paymentId,
+        resultCode: "SUCCESS",
+        resultDesc: "PayPal payment successful",
+        currency: "USD",
+        requestId: requestId,
+        userts: new Date(createTime),
+        transactionDate: new Date()
+      }
+    });
+
+    // Create donation record
+    const donation = await prisma.donation.create({
+      data: {
+        userId: giver.id,
+        requestId: requestId,
+        amount: amountKES,
+        payment: { connect: { id: payment.id } },
+        status: PaymentStatus.COMPLETED,
+        invoice: paymentId
+      }
+    });
+
+    // Calculate points (1 point per 50 KES, minimum 1 point)
+    const pointsEarned = Math.max(1, Math.floor(amountKES / 50));
+    console.log('Points calculation:', {
+      amountKES,
+      pointsEarned,
+      calculationDetails: `${amountKES} KES / 50 = ${pointsEarned} points (minimum 1 point)`,
+      userId: giver.id
+    });
+    
+    // Create points record for giver
+    const points = await prisma.points.create({
+      data: { 
+        userId: giver.id, 
+        amount: pointsEarned,
+        paymentId: payment.id 
+      }
+    });
+
+    // Calculate new level based on total points for giver
+    const giverPoints = await prisma.points.findMany({
+      where: { userId: giver.id }
+    });
+    const giverTotalPoints = giverPoints.reduce((sum, p) => sum + p.amount, 0);
+    const giverNewLevel = calculateLevel(giverTotalPoints);
+
+    // Update giver profile with new stats
+    await prisma.user.update({
+      where: { id: giver.id },
+      data: {
+        level: giverNewLevel,
+        totalDonated: { increment: amountKES },
+        donationCount: { increment: 1 }
+      }
+    });
+
+    // Create notification for request creator
+    await prisma.notification.create({
+      data: {
+        recipientId: request.userId,
+        issuerId: giver.id,
+        title: 'New Donation Received! 🎉',
+        content: `${giver.firstName || 'Someone'} donated KES ${amountKES} to your request. They earned ${pointsEarned} points and are now at Level ${giverNewLevel}!`,
+        type: 'DONATION',
+        requestId: requestId,
+        donationId: donation.id
+      }
+    });
+
+    // Create notification for the donor
+    await prisma.notification.create({
+      data: {
+        recipientId: giver.id,
+        issuerId: request.userId,
+        title: 'Thank You for Your Donation! 🌟',
+        content: `Your donation of KES ${amountKES} was successful. You earned ${pointsEarned} points and are now at Level ${giverNewLevel}. Keep making a difference!`,
+        type: 'PAYMENT_COMPLETED',
+        requestId: requestId,
+        donationId: donation.id
+      }
+    });
+
+    // Check if request is fully funded
+    const totalDonations = await prisma.donation.aggregate({
+      where: {
+        requestId: requestId,
+        status: PaymentStatus.COMPLETED
+      },
+      _sum: {
+        amount: true
+      }
+    });
+
+    if (request.amount && totalDonations._sum.amount && totalDonations._sum.amount >= request.amount) {
+      await prisma.request.update({
+        where: { id: requestId },
+        data: { status: 'FUNDED' }
+      });
+      
+      // Create notification for request completion
+      await prisma.notification.create({
+        data: {
+          recipientId: request.userId,
+          issuerId: giver.id,
+          title: 'Fundraising Goal Reached! 🎊',
+          content: `Congratulations! Your request has reached its fundraising goal of KES ${request.amount}. Total amount raised: KES ${totalDonations._sum.amount}`,
+          type: 'PAYMENT_RECEIVED',
+          requestId: requestId,
+          donationId: donation.id
+        }
+      });
+    }
+
+    // Update community statistics if applicable
+    if (request.Community?.id) {
+      await prisma.community.update({
+        where: { id: request.Community.id },
+        data: {
+          totalDonations: { increment: amountKES }
+        }
+      });
+    }
+
+    // Trigger revalidation to update UI
+    await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/revalidate-donation`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ userId: giver.id }),
+    });
+
+    return {
+      status: 'COMPLETE',
+      data: {
+        paymentId: payment.id,
+        donationId: donation.id,
+        pointsEarned,
+        newLevel: giverNewLevel
+      }
+    };
+
+  } catch (error) {
+    console.error('Error processing PayPal payment:', error);
+    throw error;
+  }
 }
