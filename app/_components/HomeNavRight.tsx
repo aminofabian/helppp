@@ -146,9 +146,17 @@ export default function HomeNavRight({
   initialStats: UserStats;
   initialWallet: WalletData;
 }) {
-  const [stats, setStats] = useState<UserStats>(initialStats);
+  const [stats, setStats] = useState<UserStats>({
+    ...initialStats,
+    points: initialStats.points || [],
+    level: initialStats.level || 1,
+    totalDonated: initialStats.totalDonated || 0,
+    donationCount: initialStats.donationCount || 0,
+    calculatedTotalDonated: initialStats.calculatedTotalDonated || 0,
+    calculatedDonationCount: initialStats.calculatedDonationCount || 0
+  });
   const [hasRunningRequest, setHasRunningRequest] = useState(false);
-  const [wallet, setWallet] = useState<WalletData>(initialWallet);
+  const [wallet, setWallet] = useState<WalletData>(initialWallet || { balance: 0 });
   const [isClient, setIsClient] = useState(false);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [isWalletOpen, setIsWalletOpen] = useState(false);
@@ -223,12 +231,12 @@ export default function HomeNavRight({
     return () => clearInterval(interval);
   }, [initialUser.id, isClient]);
 
-  // Calculate total points
-  const totalPoints = stats.points.reduce((acc, point) => acc + point.amount, 0);
-  const currentLevelPoints = LEVEL_THRESHOLDS.find((t: { level: number }) => t.level === stats.level)?.points || 0;
-  const nextLevelPoints = LEVEL_THRESHOLDS.find((t: { level: number }) => t.level === stats.level + 1)?.points || LEVEL_THRESHOLDS[0].points;
-  const pointsToNextLevel = nextLevelPoints - totalPoints;
-  const progressPercentage = ((totalPoints - currentLevelPoints) / (nextLevelPoints - currentLevelPoints)) * 100;
+  // Calculate total points with safety checks
+  const totalPoints = stats.points?.reduce((acc, point) => acc + (point?.amount || 0), 0) || 0;
+  const currentLevelPoints = LEVEL_THRESHOLDS.find((t: { level: number }) => t.level === (stats.level || 1))?.points || 0;
+  const nextLevelPoints = LEVEL_THRESHOLDS.find((t: { level: number }) => t.level === (stats.level || 1) + 1)?.points || LEVEL_THRESHOLDS[0].points;
+  const pointsToNextLevel = Math.max(0, nextLevelPoints - totalPoints);
+  const progressPercentage = Math.min(100, Math.max(0, ((totalPoints - currentLevelPoints) / (nextLevelPoints - currentLevelPoints)) * 100));
 
   if (!initialUser) {
     return <div>
