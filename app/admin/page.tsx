@@ -19,10 +19,21 @@ import {
   DollarSign,
   Activity,
   Search,
+  Ban,
+  ShieldX,
+  Trash2,
 } from 'lucide-react';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { toast } from "@/components/ui/use-toast";
 
 interface UserData {
   id: string;
@@ -127,7 +138,7 @@ export default function AdminPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ requestId, extensionDays }),
+        body: JSON.stringify({ requestId, extensionDays, action: 'extend' }),
       });
 
       if (!response.ok) throw new Error('Failed to extend request expiry');
@@ -139,6 +150,48 @@ export default function AdminPage() {
       setExtendingRequest(null);
     } catch (error) {
       console.error('Error extending request expiry:', error);
+    }
+  };
+
+  const handleRequestAction = async (requestId: string, action: 'close' | 'block' | 'delete') => {
+    if (!confirm(`Are you sure you want to ${action} this request?`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/admin/requests', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ requestId, action }),
+      });
+
+      if (!response.ok) throw new Error(`Failed to ${action} request`);
+
+      if (action === 'delete') {
+        setRequests(requests.filter(request => request.id !== requestId));
+        toast({
+          title: "Success",
+          description: "Request deleted successfully",
+        });
+      } else {
+        const updatedRequest = await response.json();
+        setRequests(requests.map(request => 
+          request.id === updatedRequest.id ? updatedRequest : request
+        ));
+        toast({
+          title: "Success",
+          description: `Request ${action}d successfully`,
+        });
+      }
+    } catch (error) {
+      console.error(`Error ${action}ing request:`, error);
+      toast({
+        title: "Error",
+        description: `Failed to ${action} request. Please try again.`,
+        variant: "destructive",
+      });
     }
   };
 
@@ -477,41 +530,77 @@ export default function AdminPage() {
                         )}
                       </TableCell>
                       <TableCell>
-                        {extendingRequest === request.id ? (
-                          <div className="flex items-center gap-2">
-                            <Input
-                              type="number"
-                              min="1"
-                              value={extensionDays}
-                              onChange={(e) => setExtensionDays(parseInt(e.target.value))}
-                              className="w-20"
-                            />
-                            <Button 
-                              size="sm"
-                              onClick={() => handleExtendExpiry(request.id)}
-                            >
-                              Extend
-                            </Button>
-                            <Button 
-                              size="sm" 
-                              variant="outline"
-                              onClick={() => setExtendingRequest(null)}
-                            >
-                              Cancel
-                            </Button>
-                          </div>
-                        ) : (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => {
-                              setExtendingRequest(request.id);
-                              setExtensionDays(7);
-                            }}
-                          >
-                            Extend Time
-                          </Button>
-                        )}
+                        <div className="flex items-center gap-2">
+                          {extendingRequest === request.id ? (
+                            <div className="flex items-center gap-2">
+                              <Input
+                                type="number"
+                                min="1"
+                                value={extensionDays}
+                                onChange={(e) => setExtensionDays(parseInt(e.target.value))}
+                                className="w-20"
+                              />
+                              <Button 
+                                size="sm"
+                                onClick={() => handleExtendExpiry(request.id)}
+                              >
+                                Extend
+                              </Button>
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={() => setExtendingRequest(null)}
+                              >
+                                Cancel
+                              </Button>
+                            </div>
+                          ) : (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  setExtendingRequest(request.id);
+                                  setExtensionDays(7);
+                                }}
+                              >
+                                Extend Time
+                              </Button>
+                              
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button size="sm" variant="outline">
+                                    Actions
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent>
+                                  <DropdownMenuItem 
+                                    onClick={() => handleRequestAction(request.id, 'close')}
+                                    className="text-yellow-600"
+                                  >
+                                    <Ban className="w-4 h-4 mr-2" />
+                                    Close Request
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem 
+                                    onClick={() => handleRequestAction(request.id, 'block')}
+                                    className="text-red-600"
+                                  >
+                                    <ShieldX className="w-4 h-4 mr-2" />
+                                    Block Request
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem 
+                                    onClick={() => handleRequestAction(request.id, 'delete')}
+                                    className="text-red-700"
+                                  >
+                                    <Trash2 className="w-4 h-4 mr-2" />
+                                    Delete Request
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </>
+                          )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
