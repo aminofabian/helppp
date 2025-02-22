@@ -38,37 +38,41 @@ export async function calculateDonationPoints(amount: number, userId: string): P
   let totalPoints = Math.floor(amount / 50); // Base points calculation
 
   // Get user's donation history
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    include: {
-      donations: {
-        orderBy: { createdAt: 'desc' },
-        take: 1,
-      },
-    },
+  const completedDonations = await prisma.donation.count({
+    where: {
+      userId,
+      status: PaymentStatus.COMPLETED
+    }
   });
 
   // First-time donor bonus
-  if (!user?.donations?.length) {
+  if (completedDonations === 0) {
+    console.log(`First-time donor bonus of ${POINTS_MULTIPLIERS.FIRST_TIME_BONUS} points awarded`);
     totalPoints += POINTS_MULTIPLIERS.FIRST_TIME_BONUS;
   }
 
   // Large donation bonus
   for (const [threshold, bonus] of Object.entries(POINTS_MULTIPLIERS.LARGE_DONATION_BONUS)) {
     if (amount >= parseInt(threshold)) {
+      console.log(`Large donation bonus of ${bonus} points awarded for amount >= ${threshold}`);
       totalPoints += bonus;
     }
   }
 
   // Streak bonus
   const streak = await calculateDonationStreak(userId);
+  console.log(`Current donation streak: ${streak} days`);
+  
   for (const [days, multiplier] of Object.entries(POINTS_MULTIPLIERS.STREAK)) {
     if (streak >= parseInt(days)) {
+      const oldPoints = totalPoints;
       totalPoints = Math.floor(totalPoints * multiplier);
+      console.log(`Streak bonus: ${days} days streak (${multiplier}x) increased points from ${oldPoints} to ${totalPoints}`);
       break; // Only apply the highest streak multiplier
     }
   }
 
+  console.log(`Final points calculation: ${totalPoints} points for ${amount} KES donation`);
   return totalPoints;
 }
 
@@ -104,49 +108,95 @@ async function calculateDonationStreak(userId: string): Promise<number> {
 }
 
 export async function processPointsTransaction(transaction: PointsTransaction) {
-  const { userId, amount, paymentId } = transaction;
+  const { userId, amount, paymentId, description } = transaction;
 
-  // Create points record
-  await prisma.points.create({
-    data: {
-      userId,
-      amount,
-      paymentId
-    }
+  console.log(`Processing points transaction:`, {
+    userId,
+    amount,
+    paymentId,
+    description
   });
 
-  // Update user's total points and level
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    include: {
-      points: true
-    }
-  });
-
-  if (!user) {
-    throw new Error('User not found');
-  }
-
-  const totalPoints = user.points.reduce((sum, p) => sum + p.amount, 0) + amount;
-  const newLevel = calculateLevel(totalPoints);
-
-  // Update user level if changed
-  if (newLevel !== user.level) {
-    await prisma.user.update({
-      where: { id: userId },
-      data: { level: newLevel }
+  try {
+    // Check if points were already awarded for this payment
+    const existingPoints = await prisma.points.findFirst({
+      where: { paymentId }
     });
 
-    // Create level up notification
-    await prisma.notification.create({
+    if (existingPoints) {
+      console.log(`Points already awarded for payment ${paymentId}:`, existingPoints);
+      return;
+    }
+
+    // Create points record
+    const points = await prisma.points.create({
       data: {
-        recipientId: userId,
-        issuerId: userId,
-        type: NotificationType.PAYMENT_COMPLETED,
-        title: 'Level Up! 🎉',
-        content: `Congratulations! You've reached Level ${newLevel}!`
+        userId,
+        amount,
+        paymentId
       }
     });
+
+    console.log(`Created points record:`, points);
+
+    // Update user's total points and level
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        points: true
+      }
+    });
+
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    const totalPoints = user.points.reduce((sum, p) => sum + p.amount, 0);
+    const newLevel = calculateLevel(totalPoints);
+
+    console.log(`User stats:`, {
+      userId,
+      currentLevel: user.level,
+      newLevel,
+      totalPoints
+    });
+
+    // Update user level if changed
+    if (newLevel !== user.level) {
+      await prisma.user.update({
+        where: { id: userId },
+        data: { 
+          level: newLevel,
+          totalDonated: user.totalDonated + amount,
+          donationCount: user.donationCount + 1
+        }
+      });
+
+      // Create level up notification
+      await prisma.notification.create({
+        data: {
+          recipientId: userId,
+          issuerId: userId,
+          type: NotificationType.PAYMENT_COMPLETED,
+          title: 'Level Up! 🎉',
+          content: `Congratulations! You've reached Level ${newLevel}! You now have ${totalPoints} total points.`
+        }
+      });
+
+      console.log(`User leveled up from ${user.level} to ${newLevel}`);
+    } else {
+      // Update donation stats even if level didn't change
+      await prisma.user.update({
+        where: { id: userId },
+        data: { 
+          totalDonated: user.totalDonated + amount,
+          donationCount: user.donationCount + 1
+        }
+      });
+    }
+  } catch (error) {
+    console.error('Error processing points transaction:', error);
+    throw error;
   }
 }
 
