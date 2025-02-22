@@ -49,6 +49,7 @@ export default async function CreateRequestPage({
       createRequest={createRequest}
       communityGuidelines={communityGuidelines}
       params={params} 
+      userLevel={userLevel}
     />
   );
 }

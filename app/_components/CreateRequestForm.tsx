@@ -27,6 +27,7 @@ interface CreateRequestFormProps {
   params: {
     id: string;
   };
+  userLevel: number;
 }
 
 interface Interval {
@@ -35,7 +36,20 @@ interface Interval {
   days: number;
 }
 
-export function CreateRequestForm({ createRequest, communityGuidelines, params }: CreateRequestFormProps) {
+const LEVEL_LIMITS = {
+  1: 0,
+  2: 1000,
+  3: 3000,
+  4: 5000,
+  5: 10000,
+  6: 20000,
+  7: 50000,
+  8: 100000,
+  9: 1000000,
+  10: 100000000,
+} as const;
+
+export function CreateRequestForm({ createRequest, communityGuidelines, params, userLevel }: CreateRequestFormProps) {
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
   const [selectedButtonIndex, setSelectedButtonIndex] = useState<number | null>(null);
   const [editMode, setEditMode] = useState<boolean>(false);
@@ -49,6 +63,7 @@ export function CreateRequestForm({ createRequest, communityGuidelines, params }
   const [currentTab, setCurrentTab] = useState<number>(0);
   const [file, setFile] = useState<File | null>(null);
   const [uploadProgress, setUploadProgress] = useState<number>(0);
+  const [showLevelError, setShowLevelError] = useState(false);
   
   const { toast } = useToast();
   
@@ -66,9 +81,34 @@ export function CreateRequestForm({ createRequest, communityGuidelines, params }
     { label: 'Custom Time', value: 'custom', days: 0 },
   ];
   
+  // Ensure userLevel is a number and within valid range
+  const validUserLevel = typeof userLevel === 'number' && userLevel >= 1 && userLevel <= 10 ? userLevel : 1;
+  const maxAmount = LEVEL_LIMITS[validUserLevel as keyof typeof LEVEL_LIMITS];
+  
+  console.log('User Level Type:', typeof userLevel);
+  console.log('User Level Value:', userLevel);
+  console.log('Valid User Level:', validUserLevel);
+  console.log('Max Amount:', maxAmount);
+  
+  // Filter available amounts based on the user's level limit
+  const availableAmounts = maxAmount > 0 ? numbers.filter(amount => amount <= maxAmount) : [];
+  console.log('Available Amounts:', availableAmounts);
+
   const handleAmountSelect = (amount: number, index: number) => {
+    if (validUserLevel === 1) {
+      toast({
+        title: "Level 1 Restriction",
+        description: "You need to reach Level 2 to post help requests.",
+        variant: "destructive",
+      });
+      setShowLevelError(true);
+      return;
+    }
+
     setSelectedAmount(amount);
     setSelectedButtonIndex(index);
+    setShowLevelError(false);
+    setEditMode(false);
   };
   
   const handleEditClick = () => {
@@ -76,7 +116,35 @@ export function CreateRequestForm({ createRequest, communityGuidelines, params }
   };
   
   const handleInputChange = (event: ChangeEvent<HTMLInputElement>) => {
-    setSelectedAmount(parseInt(event.target.value));
+    const amount = parseInt(event.target.value);
+
+    if (validUserLevel === 1) {
+      toast({
+        title: "Level 1 Restriction",
+        description: "You need to reach Level 2 to post help requests.",
+        variant: "destructive",
+      });
+      setShowLevelError(true);
+      return;
+    }
+
+    if (isNaN(amount) || amount <= 0) {
+      setSelectedAmount(null);
+      return;
+    }
+
+    if (amount > maxAmount) {
+      toast({
+        title: "Amount Limit Exceeded",
+        description: `Your current level (${validUserLevel}) has a maximum request limit of ${maxAmount.toLocaleString()}`,
+        variant: "destructive",
+      });
+      setShowLevelError(true);
+      return;
+    }
+
+    setSelectedAmount(amount);
+    setShowLevelError(false);
   };
   
   const handleIntervalSelect = (interval: string) => {
@@ -182,6 +250,34 @@ export function CreateRequestForm({ createRequest, communityGuidelines, params }
 
   return (    
     <div className="my-8 max-w-7xl mx-auto px-4">
+      {validUserLevel === 1 && (
+        <div className="mb-8 p-4 bg-orange-100 border border-orange-200 rounded-xl text-orange-800">
+          <div className="flex items-center gap-3">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+            </svg>
+            <div>
+              <h3 className="font-semibold">Level 1 Restriction</h3>
+              <p className="text-sm">You need to reach Level 2 to post help requests. Continue helping others to level up!</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {validUserLevel > 1 && (
+        <div className="mb-8 p-4 bg-blue-50 border border-blue-100 rounded-xl text-blue-800">
+          <div className="flex items-center gap-3">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
+            </svg>
+            <div>
+              <h3 className="font-semibold">Level {validUserLevel} Limit</h3>
+              <p className="text-sm">Your maximum request amount is {maxAmount.toLocaleString()} based on your current level.</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
         <div className="h-fit rounded-2xl bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl lg:col-span-2 p-8 shadow-lg border border-slate-100 dark:border-slate-800">
           <div className="flex items-center gap-3 mb-8">
@@ -318,26 +414,41 @@ export function CreateRequestForm({ createRequest, communityGuidelines, params }
                         <p className="text-slate-500 dark:text-slate-400">Choose how much help you need</p>
                       </div>
                       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                        {numbers.map((number, index) => (
+                        {availableAmounts.length > 0 ? (
+                          availableAmounts.map((number, index) => (
+                            <button
+                              key={index}
+                              type="button"
+                              onClick={() => handleAmountSelect(number, index)}
+                              className={`px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 ${
+                                selectedButtonIndex === index 
+                                  ? 'bg-primary/10 text-primary ring-2 ring-primary/20' 
+                                  : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-900 dark:text-slate-100'
+                              }`}
+                            >
+                              {number.toLocaleString()}
+                            </button>
+                          ))
+                        ) : (
+                          <div className="col-span-full text-center text-slate-500 dark:text-slate-400 py-4">
+                            No amounts available for your current level
+                          </div>
+                        )}
+                        {validUserLevel > 1 && (
                           <button
-                            key={index}
-                            onClick={() => handleAmountSelect(number, index)}
-                            className={`px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 ${
-                              selectedButtonIndex === index 
-                                ? 'bg-primary/10 text-primary ring-2 ring-primary/20' 
-                                : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-900 dark:text-slate-100'
-                            }`}
+                            type="button"
+                            onClick={handleEditClick}
+                            className="px-4 py-3 bg-orange-500/10 text-orange-600 rounded-xl hover:bg-orange-500/20 transition-colors font-medium"
                           >
-                            {number}
+                            Custom
                           </button>
-                        ))}
-                        <button
-                          onClick={handleEditClick}
-                          className="px-4 py-3 bg-orange-500/10 text-orange-600 rounded-xl hover:bg-orange-500/20 transition-colors font-medium"
-                        >
-                          Custom
-                        </button>
+                        )}
                       </div>
+                      {showLevelError && (
+                        <div className="text-center text-red-500 text-sm">
+                          Please select an amount within your level's limit.
+                        </div>
+                      )}
                       <div className="flex justify-center">
                         {editMode ? (
                           <div className="bg-slate-100 dark:bg-slate-800 p-6 rounded-xl">
@@ -351,13 +462,13 @@ export function CreateRequestForm({ createRequest, communityGuidelines, params }
                             />
                           </div>
                         ) : (
-                          selectedAmount && (
+                          selectedAmount !== null && (
                             <div className="text-center space-y-3 bg-slate-100 dark:bg-slate-800 px-8 py-6 rounded-xl">
                               <div className="text-3xl font-bold text-primary">
-                                {selectedAmount}/=
+                                {selectedAmount.toLocaleString()}/=
                               </div>
                               <div className="text-sm text-slate-500 dark:text-slate-400 font-medium">
-                                ({selectedAmount / 40} points)
+                                ({Math.floor(selectedAmount / 40)} points)
                               </div>
                             </div>
                           )
