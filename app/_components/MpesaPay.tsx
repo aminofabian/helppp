@@ -133,12 +133,11 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
   const [clientId, setClientId] = useState<string>("");
   const [loading, setLoading] = useState(true);
 
-  window
+  
   const fetchClientId = async () => {
     try {
       const response = await fetch("/api/paypal");
       const data = await response.json();
-      console.log(data, 'rsa librann')
       if (data.clientId) {
         setClientId(data.clientId);
       } else {
