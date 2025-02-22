@@ -108,13 +108,11 @@ async function calculateDonationStreak(userId: string): Promise<number> {
 }
 
 export async function processPointsTransaction(transaction: PointsTransaction) {
-  const { userId, amount, paymentId, description } = transaction;
+  const { userId, amount, paymentId } = transaction;
 
-  console.log(`Processing points transaction:`, {
-    userId,
+  console.log(`Processing points transaction for user ${userId}:`, {
     amount,
-    paymentId,
-    description
+    paymentId
   });
 
   try {
@@ -139,61 +137,47 @@ export async function processPointsTransaction(transaction: PointsTransaction) {
 
     console.log(`Created points record:`, points);
 
-    // Update user's total points and level
-    const user = await prisma.user.findUnique({
+    // Get user's current stats
+    const userStats = await getUserDonationStats(userId);
+    const newTotalPoints = userStats.points + amount;
+    const newLevel = calculateLevel(newTotalPoints);
+
+    // Update user in a single transaction
+    await prisma.user.update({
       where: { id: userId },
-      include: {
-        points: true
+      data: { 
+        level: newLevel,
+        totalDonated: {
+          increment: amount
+        },
+        donationCount: {
+          increment: 1
+        }
       }
     });
 
-    if (!user) {
-      throw new Error('User not found');
-    }
-
-    const totalPoints = user.points.reduce((sum, p) => sum + p.amount, 0);
-    const newLevel = calculateLevel(totalPoints);
-
-    console.log(`User stats:`, {
+    console.log(`Updated user stats:`, {
       userId,
-      currentLevel: user.level,
       newLevel,
-      totalPoints
+      newTotalPoints
     });
 
-    // Update user level if changed
-    if (newLevel !== user.level) {
-      await prisma.user.update({
-        where: { id: userId },
-        data: { 
-          level: newLevel,
-          totalDonated: user.totalDonated + amount,
-          donationCount: user.donationCount + 1
-        }
-      });
-
-      // Create level up notification
+    // Create level up notification if level changed
+    if (newLevel > userStats.level) {
       await prisma.notification.create({
         data: {
           recipientId: userId,
           issuerId: userId,
           type: NotificationType.PAYMENT_COMPLETED,
           title: 'Level Up! 🎉',
-          content: `Congratulations! You've reached Level ${newLevel}! You now have ${totalPoints} total points.`
+          content: `Congratulations! You've reached Level ${newLevel}! You now have ${newTotalPoints} total points.`
         }
       });
 
-      console.log(`User leveled up from ${user.level} to ${newLevel}`);
-    } else {
-      // Update donation stats even if level didn't change
-      await prisma.user.update({
-        where: { id: userId },
-        data: { 
-          totalDonated: user.totalDonated + amount,
-          donationCount: user.donationCount + 1
-        }
-      });
+      console.log(`User leveled up from ${userStats.level} to ${newLevel}`);
     }
+
+    return points;
   } catch (error) {
     console.error('Error processing points transaction:', error);
     throw error;
