@@ -28,6 +28,9 @@ interface CreateRequestFormProps {
     id: string;
   };
   userLevel: number;
+  totalReceivedDonations: number;
+  remainingLimit: number;
+  levelLimit: number;
 }
 
 interface Interval {
@@ -49,7 +52,7 @@ const LEVEL_LIMITS = {
   10: 100000000,
 } as const;
 
-export function CreateRequestForm({ createRequest, communityGuidelines, params, userLevel }: CreateRequestFormProps) {
+export function CreateRequestForm({ createRequest, communityGuidelines, params, userLevel, totalReceivedDonations, remainingLimit, levelLimit }: CreateRequestFormProps) {
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
   const [selectedButtonIndex, setSelectedButtonIndex] = useState<number | null>(null);
   const [editMode, setEditMode] = useState<boolean>(false);
@@ -90,8 +93,15 @@ export function CreateRequestForm({ createRequest, communityGuidelines, params, 
   console.log('Valid User Level:', validUserLevel);
   console.log('Max Amount:', maxAmount);
   
-  // Filter available amounts based on the user's level limit
-  const availableAmounts = maxAmount > 0 ? numbers.filter(amount => amount <= maxAmount) : [];
+  console.log('Form Debug:', {
+    validUserLevel,
+    remainingLimit,
+    levelLimit,
+    numbers,
+  });
+  
+  // Filter available amounts based on remaining limit
+  const availableAmounts = numbers.filter(amount => amount <= remainingLimit);
   console.log('Available Amounts:', availableAmounts);
 
   const handleAmountSelect = (amount: number, index: number) => {
@@ -99,6 +109,16 @@ export function CreateRequestForm({ createRequest, communityGuidelines, params, 
       toast({
         title: "Level 1 Restriction",
         description: "You need to reach Level 2 to post help requests.",
+        variant: "destructive",
+      });
+      setShowLevelError(true);
+      return;
+    }
+
+    if (amount > remainingLimit) {
+      toast({
+        title: "Amount Limit Exceeded",
+        description: `You can only request up to ${remainingLimit.toLocaleString()} more based on your level limit of ${levelLimit.toLocaleString()}`,
         variant: "destructive",
       });
       setShowLevelError(true);
@@ -133,10 +153,10 @@ export function CreateRequestForm({ createRequest, communityGuidelines, params, 
       return;
     }
 
-    if (amount > maxAmount) {
+    if (amount > remainingLimit) {
       toast({
         title: "Amount Limit Exceeded",
-        description: `Your current level (${validUserLevel}) has a maximum request limit of ${maxAmount.toLocaleString()}`,
+        description: `You can only request up to ${remainingLimit.toLocaleString()} more based on your level limit of ${levelLimit.toLocaleString()}`,
         variant: "destructive",
       });
       setShowLevelError(true);
@@ -265,14 +285,27 @@ export function CreateRequestForm({ createRequest, communityGuidelines, params, 
       )}
 
       {validUserLevel > 1 && (
-        <div className="mb-8 p-4 bg-blue-50 border border-blue-100 rounded-xl text-blue-800">
-          <div className="flex items-center gap-3">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
-            </svg>
-            <div>
-              <h3 className="font-semibold">Level {validUserLevel} Limit</h3>
-              <p className="text-sm">Your maximum request amount is {maxAmount.toLocaleString()} based on your current level.</p>
+        <div className="mb-8 space-y-4">
+          <div className="p-4 bg-blue-50 border border-blue-100 rounded-xl text-blue-800">
+            <div className="flex items-center gap-3">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
+              </svg>
+              <div>
+                <h3 className="font-semibold">Level {validUserLevel} Limit</h3>
+                <p className="text-sm">Your remaining request limit is {remainingLimit.toLocaleString()} out of {levelLimit.toLocaleString()}</p>
+              </div>
+            </div>
+          </div>
+          <div className="p-4 bg-green-50 border border-green-100 rounded-xl text-green-800">
+            <div className="flex items-center gap-3">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+              </svg>
+              <div>
+                <h3 className="font-semibold">Total Received Donations</h3>
+                <p className="text-sm">You have received {totalReceivedDonations.toLocaleString()} in total donations</p>
+              </div>
             </div>
           </div>
         </div>
@@ -430,8 +463,14 @@ export function CreateRequestForm({ createRequest, communityGuidelines, params, 
                             </button>
                           ))
                         ) : (
-                          <div className="col-span-full text-center text-slate-500 dark:text-slate-400 py-4">
-                            No amounts available for your current level
+                          <div className="col-span-full text-center space-y-2 text-slate-500 dark:text-slate-400 py-4">
+                            <p>No amounts available for your current level</p>
+                            {remainingLimit === 0 && (
+                              <p className="text-sm text-orange-600">
+                                You have reached your level limit with active requests. 
+                                Wait for your current requests to be funded or closed before creating new ones.
+                              </p>
+                            )}
                           </div>
                         )}
                         {validUserLevel > 1 && (

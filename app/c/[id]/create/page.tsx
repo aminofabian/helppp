@@ -4,13 +4,74 @@ import prisma from '@/app/lib/db';
 import { CreateRequestForm } from '@/app/_components/CreateRequestForm';
 import { createRequest } from '@/app/actions';
 
-async function getUserLevel(userId: string) {
+async function getUserData(userId: string) {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { level: true },
+    select: { 
+      level: true,
+      requests: {
+        where: {
+          OR: [
+            { status: null },
+            { 
+              NOT: {
+                status: {
+                  in: ['FUNDED', 'CLOSED']
+                }
+              }
+            }
+          ]
+        },
+        select: {
+          amount: true,
+          status: true,
+          createdAt: true
+        }
+      }
+    },
   });
 
-  return user?.level ?? 1;
+  const userLevel = user?.level ?? 1;
+  const LEVEL_LIMITS = {
+    1: 0,
+    2: 1000,
+    3: 3000,
+    4: 5000,
+    5: 10000,
+    6: 20000,
+    7: 50000,
+    8: 100000,
+    9: 1000000,
+    10: 100000000,
+  } as const;
+
+  // Calculate total amount of active requests
+  const totalActiveRequests = user?.requests.reduce((total, request) => total + request.amount, 0) ?? 0;
+
+  // Calculate the level limit
+  const levelLimit = LEVEL_LIMITS[userLevel as keyof typeof LEVEL_LIMITS];
+
+  // Calculate remaining available limit
+  const remainingLimit = Math.max(0, levelLimit - totalActiveRequests);
+
+  console.log('Debug User Data:', {
+    userLevel,
+    levelLimit,
+    totalActiveRequests,
+    remainingLimit,
+    activeRequests: user?.requests.map(req => ({
+      amount: req.amount,
+      status: req.status,
+      createdAt: req.createdAt
+    }))
+  });
+
+  return {
+    level: userLevel,
+    totalReceivedDonations: 0, // We'll handle this separately
+    remainingLimit,
+    levelLimit
+  };
 }
 
 export default async function CreateRequestPage({
@@ -25,9 +86,9 @@ export default async function CreateRequestPage({
     redirect('/api/auth/login');
   }
 
-  const userLevel = await getUserLevel(user.id);
+  const userData = await getUserData(user.id);
 
-  if (userLevel < 2) {
+  if (userData.level < 2) {
     return redirect('/access-denied');
   }
 
@@ -49,7 +110,10 @@ export default async function CreateRequestPage({
       createRequest={createRequest}
       communityGuidelines={communityGuidelines}
       params={params} 
-      userLevel={userLevel}
+      userLevel={userData.level}
+      totalReceivedDonations={userData.totalReceivedDonations}
+      remainingLimit={userData.remainingLimit}
+      levelLimit={userData.levelLimit}
     />
   );
 }
