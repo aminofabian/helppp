@@ -282,13 +282,15 @@ async function handleBuyGoodsTransaction(event: any) {
     console.log('Points calculation:', {
       amount,
       pointsEarned,
-      calculationDetails: `${amount} KES / 50 = ${pointsEarned} points (minimum 1 point)`
+      calculationDetails: `${amount} KES / 50 = ${pointsEarned} points (minimum 1 point)`,
+      userId: giver.id
     });
 
+    // Create points record
     const points = await prisma.points.create({
       data: { 
         userId: giver.id, 
-        amount: pointsEarned, 
+        amount: pointsEarned,
         paymentId: payment.id 
       }
     });
@@ -296,7 +298,8 @@ async function handleBuyGoodsTransaction(event: any) {
     console.log('Created points record:', {
       userId: giver.id,
       pointsEarned,
-      paymentId: payment.id
+      paymentId: payment.id,
+      pointsRecordId: points.id
     });
 
     // Calculate new level based on total points
