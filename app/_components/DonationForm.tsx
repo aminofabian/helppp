@@ -8,6 +8,41 @@ interface DonationFormProps {
   requestId: string;
 }
 
+const emitDonationEvent = (amount: number, points: number, updatedStats: any) => {
+  if (typeof window !== 'undefined') {
+    const donationEvent = new CustomEvent('donation-made', {
+      detail: {
+        amount: Number(amount),
+        points,
+        totalPoints: updatedStats.points,
+        level: updatedStats.level,
+        timestamp: new Date().toISOString()
+      }
+    });
+    window.dispatchEvent(donationEvent);
+  }
+};
+
+async function processPayment(amount: string, userId: string, requestId: string) {
+  const paymentResponse = await fetch('/api/payments/donate', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      amount: Number(amount),
+      requestId,
+      userId
+    }),
+  });
+
+  if (!paymentResponse.ok) {
+    throw new Error('Payment failed');
+  }
+
+  return paymentResponse.json();
+}
+
 export default function DonationForm({ requestId }: DonationFormProps) {
   const [amount, setAmount] = useState('');
   const [loading, setLoading] = useState(false);
@@ -15,33 +50,13 @@ export default function DonationForm({ requestId }: DonationFormProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!user?.id) {
-      toast.error('Please sign in to donate');
-      return;
-    }
+    if (!amount || loading || !user) return;
 
     setLoading(true);
 
     try {
       // Process payment
-      const paymentResponse = await fetch('/api/payments/donate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          amount: Number(amount),
-          requestId,
-          userId: user.id
-        }),
-      });
-
-      if (!paymentResponse.ok) {
-        throw new Error('Payment failed');
-      }
-
-      const paymentData = await paymentResponse.json();
+      const paymentData = await processPayment(amount, user.id, requestId);
 
       // If payment successful, update user stats
       if (paymentData.success) {
@@ -70,16 +85,7 @@ export default function DonationForm({ requestId }: DonationFormProps) {
           toast.success(`Donation successful! You earned ${points} points`);
           
           // Emit donation event for real-time updates
-          const donationEvent = new CustomEvent('donation-made', {
-            detail: {
-              amount: Number(amount),
-              points,
-              totalPoints: updatedStats.points,
-              level: updatedStats.level,
-              timestamp: new Date().toISOString()
-            }
-          });
-          window.dispatchEvent(donationEvent);
+          emitDonationEvent(Number(amount), points, updatedStats);
         }
 
         // Clear form

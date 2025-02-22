@@ -159,17 +159,10 @@ export default function HomeNavRight({
         const response = await fetch(`/api/user-stats?userId=${initialUser.id}`);
         if (response.ok) {
           const data = await response.json();
-          console.log('Fetched updated stats:', data);
-          
-          // Update stats with new values
           setStats(prevStats => ({
             ...prevStats,
-            level: data.level || prevStats.level,
-            totalDonated: data.totalDonated || prevStats.totalDonated,
-            donationCount: data.donationCount || prevStats.donationCount,
-            points: data.points || prevStats.points,
-            calculatedDonationCount: data.calculatedDonationCount,
-            calculatedTotalDonated: data.calculatedTotalDonated
+            ...data,
+            points: data.points || prevStats.points
           }));
         }
       } catch (error) {
@@ -177,35 +170,37 @@ export default function HomeNavRight({
       }
     };
 
-    // Set up event listener for donation events
-    const handleDonationEvent = (event: CustomEvent) => {
-      const { amount, points } = event.detail;
-      setStats(prevStats => ({
-        ...prevStats,
-        totalDonated: (prevStats.totalDonated || 0) + amount,
-        donationCount: (prevStats.donationCount || 0) + 1,
-        calculatedTotalDonated: (prevStats.calculatedTotalDonated || 0) + amount,
-        calculatedDonationCount: (prevStats.calculatedDonationCount || 0) + 1,
-        points: [...(prevStats.points || []), { amount: points }]
-      }));
-      
-      // Fetch latest stats to ensure consistency
+    if (typeof window !== 'undefined') {
+      // Set up event listener for donation events
+      const handleDonationEvent = (event: CustomEvent) => {
+        const { amount, points } = event.detail;
+        setStats(prevStats => ({
+          ...prevStats,
+          totalDonated: (prevStats.totalDonated || 0) + amount,
+          donationCount: (prevStats.donationCount || 0) + 1,
+          calculatedTotalDonated: (prevStats.calculatedTotalDonated || 0) + amount,
+          calculatedDonationCount: (prevStats.calculatedDonationCount || 0) + 1,
+          points: [...(prevStats.points || []), { amount: points }]
+        }));
+        
+        // Fetch latest stats to ensure consistency
+        fetchUpdatedStats();
+      };
+
+      window.addEventListener('donation-made', handleDonationEvent as EventListener);
+
+      // Fetch immediately when component mounts
       fetchUpdatedStats();
-    };
 
-    window.addEventListener('donation-made', handleDonationEvent as EventListener);
+      // Then poll for updates every 10 seconds
+      const interval = setInterval(fetchUpdatedStats, 10000);
 
-    // Fetch immediately when component mounts
-    fetchUpdatedStats();
-
-    // Then poll for updates every 10 seconds
-    const interval = setInterval(fetchUpdatedStats, 10000);
-
-    // Clean up
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener('donation-made', handleDonationEvent as EventListener);
-    };
+      // Clean up
+      return () => {
+        clearInterval(interval);
+        window.removeEventListener('donation-made', handleDonationEvent as EventListener);
+      };
+    }
   }, [initialUser.id]);
 
   useEffect(() => {
