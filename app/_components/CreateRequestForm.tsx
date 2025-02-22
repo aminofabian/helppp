@@ -328,9 +328,9 @@ export function CreateRequestForm({
   }
 
   return (    
-    <div className="my-8 max-w-7xl mx-auto px-4">
+    <div className="my-4 sm:my-8 max-w-7xl mx-auto px-2 sm:px-4">
       {validUserLevel === 1 && (
-        <div className="mb-8 p-4 bg-orange-100 border border-orange-200 rounded-xl text-orange-800">
+        <div className="mb-4 sm:mb-8 p-3 sm:p-4 bg-orange-100 border border-orange-200 rounded-xl text-orange-800">
           <div className="flex items-center gap-3">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
@@ -446,9 +446,9 @@ export function CreateRequestForm({
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-        <div className="h-fit rounded-2xl bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl lg:col-span-2 p-8 shadow-lg border border-slate-100 dark:border-slate-800">
-          <div className="flex items-center gap-3 mb-8">
+      <div className="grid grid-cols-1 gap-4 sm:gap-8 lg:grid-cols-3">
+        <div className="h-fit rounded-2xl bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl lg:col-span-2 p-4 sm:p-8 shadow-lg border border-slate-100 dark:border-slate-800">
+          <div className="flex items-center gap-3 mb-4 sm:mb-8">
             <div className="h-10 w-1 bg-primary rounded-full" />
             <h1 className='text-xl font-semibold'> 
               Creating Request in <Link href={`/c/${params.id}`} className='text-primary hover:text-primary/80 transition-colors'>
@@ -458,7 +458,7 @@ export function CreateRequestForm({
           </div>
           
           <Tabs value={currentTab} defaultValue="request" className="w-full" onValueChange={setCurrentTab}>
-            <TabsList className='grid w-full grid-cols-4 p-1.5 bg-slate-100 dark:bg-slate-800/50 rounded-2xl gap-1'>
+            <TabsList className='grid w-full grid-cols-2 sm:grid-cols-4 p-1.5 bg-slate-100 dark:bg-slate-800/50 rounded-2xl gap-1'>
               <TabsTrigger value='request' className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-950 data-[state=active]:text-primary data-[state=active]:shadow-md rounded-xl transition-all duration-200">
                 <div className='flex items-center gap-2 py-1'>
                   <TextIcon className='h-4 w-4' />
@@ -530,12 +530,12 @@ export function CreateRequestForm({
                         <h1 className='text-2xl font-semibold'>Request Duration</h1>
                         <p className="text-slate-500 dark:text-slate-400">How long should your request remain active?</p>
                       </div>
-                      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+                      <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-3">
                         {intervals.map((interval, index) => (
                           <button
                             key={index}
                             onClick={() => handleIntervalSelect(interval.value)}
-                            className={`px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 ${
+                            className={`px-2 sm:px-4 py-2.5 sm:py-3 text-sm font-medium rounded-xl transition-all duration-200 ${
                               selectedInterval === interval.value 
                                 ? 'bg-primary/10 text-primary ring-2 ring-primary/20' 
                                 : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-900 dark:text-slate-100'
@@ -546,17 +546,17 @@ export function CreateRequestForm({
                         ))}
                       </div>
                       {selectedInterval === 'custom' && (
-                        <div className="flex gap-3 items-center p-6 rounded-xl bg-slate-100 dark:bg-slate-800">
+                        <div className="flex flex-col sm:flex-row gap-3 items-center p-4 sm:p-6 rounded-xl bg-slate-100 dark:bg-slate-800">
                           <Input
                             type="number"
                             value={customTime}
                             onChange={handleCustomTimeChange}
                             placeholder="Enter days"
-                            className="text-center rounded-xl"
+                            className="text-center rounded-xl w-full sm:w-auto"
                           />
                           <button
                             onClick={handleCustomTimeSubmit}
-                            className="px-6 py-2.5 bg-primary text-white rounded-xl hover:bg-primary/90 transition-colors"
+                            className="px-6 py-2.5 bg-primary text-white rounded-xl hover:bg-primary/90 transition-colors w-full sm:w-auto"
                           >
                             Set
                           </button>
@@ -572,6 +572,15 @@ export function CreateRequestForm({
                       )}
                     </div>
                   </CardHeader>
+                  <CardFooter className="pt-4">
+                    <div className='ml-auto'>
+                      <SubmitButton 
+                        ButtonName='Next'
+                        onClick={() => setCurrentTab('requestAmount')}
+                        type="button"
+                      />
+                    </div>
+                  </CardFooter>
                 </Card>
               </TabsContent>
               
@@ -583,14 +592,14 @@ export function CreateRequestForm({
                         <h2 className='text-2xl font-semibold'>Request Amount</h2>
                         <p className="text-slate-500 dark:text-slate-400">Choose how much help you need</p>
                       </div>
-                      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                      <div className="grid grid-cols-2 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-3">
                         {availableAmounts.length > 0 ? (
                           availableAmounts.map((number, index) => (
                             <button
                               key={index}
                               type="button"
                               onClick={() => handleAmountSelect(number, index)}
-                              className={`px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 ${
+                              className={`px-3 sm:px-4 py-2.5 sm:py-3 text-sm font-medium rounded-xl transition-all duration-200 ${
                                 selectedButtonIndex === index 
                                   ? 'bg-primary/10 text-primary ring-2 ring-primary/20' 
                                   : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-900 dark:text-slate-100'
@@ -652,6 +661,15 @@ export function CreateRequestForm({
                       </div>
                     </div>
                   </CardHeader>
+                  <CardFooter className="pt-4">
+                    <div className='ml-auto'>
+                      <SubmitButton 
+                        ButtonName='Next'
+                        onClick={() => setCurrentTab('image')}
+                        type="button"
+                      />
+                    </div>
+                  </CardFooter>
                 </Card>
               </TabsContent>
               
@@ -671,13 +689,13 @@ export function CreateRequestForm({
                           <h2 className='text-2xl font-semibold'>Request Image</h2>
                           <p className="text-slate-500 dark:text-slate-400">Add an image to support your request</p>
                         </div>
-                        <div className="bg-slate-100 dark:bg-slate-800 p-8 rounded-2xl">
+                        <div className="bg-slate-100 dark:bg-slate-800 p-4 sm:p-8 rounded-2xl">
                           {imageUrl === null ? (
-                            <div className="space-y-6">
+                            <div className="space-y-4 sm:space-y-6">
                               <div className="flex justify-center">
-                                <label className="group flex flex-col items-center gap-4 cursor-pointer">
-                                  <div className="p-6 rounded-2xl bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <label className="group flex flex-col items-center gap-3 sm:gap-4 cursor-pointer">
+                                  <div className="p-4 sm:p-6 rounded-2xl bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-8 sm:h-12 w-8 sm:w-12 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                     </svg>
                                   </div>
@@ -715,7 +733,7 @@ export function CreateRequestForm({
                                   alt="Uploaded Image"
                                   width={400}
                                   height={300}
-                                  className="w-full h-auto max-h-[400px] object-cover"
+                                  className="w-full h-[200px] sm:h-[300px] md:h-[400px] object-cover"
                                 />
                                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                   <button
@@ -744,9 +762,9 @@ export function CreateRequestForm({
           </Tabs>
         </div>
         
-        <div className="rounded-2xl bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl p-8 shadow-lg border border-slate-100 dark:border-slate-800 h-fit">
-          <div className='flex items-center gap-4 mb-8'>
-            <div className="relative w-16 h-16 rounded-2xl overflow-hidden shadow-lg">
+        <div className="rounded-2xl bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl p-4 sm:p-8 shadow-lg border border-slate-100 dark:border-slate-800 h-fit">
+          <div className='flex items-center gap-3 sm:gap-4 mb-6 sm:mb-8'>
+            <div className="relative w-12 sm:w-16 h-12 sm:h-16 rounded-2xl overflow-hidden shadow-lg">
               <Image
                 src={'/help.png'}
                 fill

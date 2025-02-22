@@ -75,7 +75,7 @@ export  function Menubar({ editor }: { editor: Editor | null }) {
         extensions: [
           StarterKit,
         ],
-        content: json ?? '<p> Share Your Help Request</p>',
+        content: json ?? '<p> </p>',
         editorProps: {
           attributes: {
             class: 'prose',
