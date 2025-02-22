@@ -1,66 +1,57 @@
-import { NextResponse } from 'next/server';
-import prisma from '@/app/lib/db';
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/app/lib/db";
+import { calculateLevel } from "@/app/lib/levelCalculator";
+import { unstable_noStore as noStore } from "next/cache";
 
-export async function GET(request: Request) {
+export async function GET(req: NextRequest) {
+  noStore();
   try {
-    const { searchParams } = new URL(request.url);
-    const kindeId = searchParams.get('userId');
+    const { searchParams } = new URL(req.url);
+    const userId = searchParams.get('userId');
 
-    if (!kindeId) {
+    if (!userId) {
       return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
     }
 
-    console.log('API: Fetching stats for Kinde user:', kindeId);
+    console.log(`Fetching stats for user: ${userId}`);
 
-    // Get base user stats using Kinde ID
-    const stats = await prisma.user.findUnique({
-      where: { id: kindeId },
-      select: {
-        id: true,
-        level: true,
-        totalDonated: true,
-        donationCount: true,
-        points: {
-          select: {
-            amount: true,
-          }
+    // Get user with their points and donations
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        points: true,
+        donations: {
+          where: { status: 'COMPLETED' }
         }
       }
     });
 
-    if (!stats) {
+    if (!user) {
+      console.log(`User not found: ${userId}`);
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // Calculate actual totals from donations
-    const donations = await prisma.donation.aggregate({
-      where: {
-        userId: stats.id,
-        status: {
-          in: ['Paid', 'PAID', 'paid', 'COMPLETED', 'Completed', 'completed', 'SUCCESS', 'success']
-        }
-      },
-      _count: {
-        _all: true
-      },
-      _sum: {
-        amount: true
-      }
-    });
+    // Calculate total points
+    const totalPoints = user.points.reduce((sum, point) => sum + point.amount, 0);
 
-    console.log('API: Donation aggregates:', donations);
-
-    // Only include calculated values if they are greater than 0
-    const response = {
-      ...stats,
-      ...(donations._count._all > 0 && { calculatedDonationCount: donations._count._all }),
-      ...((donations._sum.amount ?? 0) > 0 && { calculatedTotalDonated: donations._sum.amount })
+    // Calculate donation stats
+    const donationStats = {
+      totalDonated: user.totalDonated || 0,
+      donationCount: user.donationCount || 0,
+      calculatedTotalDonated: user.donations.reduce((sum, d) => sum + d.amount, 0),
+      calculatedDonationCount: user.donations.length,
+      points: user.points,
+      level: user.level || calculateLevel(totalPoints)
     };
 
-    console.log('API: Returning stats:', response);
-    return NextResponse.json(response);
+    console.log(`Stats for user ${userId}:`, donationStats);
+
+    return NextResponse.json(donationStats);
   } catch (error) {
-    console.error('API: Error fetching user stats:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error('Error fetching user stats:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch user stats' },
+      { status: 500 }
+    );
   }
 }

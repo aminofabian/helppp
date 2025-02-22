@@ -27,7 +27,20 @@ export async function GET(req: NextRequest) {
         lastName: user.family_name ?? "",
         imageUrl: user.picture,
         userName: generateUsername("-", 3, 15),
+        level: 1,
+        totalDonated: 0,
+        donationCount: 0,
+        points: {
+          create: []
+        }
       },
+    });
+
+    console.log('Created new user with stats:', {
+      userId: dbUser.id,
+      level: dbUser.level,
+      totalDonated: dbUser.totalDonated,
+      donationCount: dbUser.donationCount
     });
   }
 
