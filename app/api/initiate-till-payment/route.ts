@@ -34,30 +34,6 @@ async function getAccessToken(retryCount = 0): Promise<string> {
   }
 };
 
-
-
-// import K2 from "k2-connect-node";
-
-// const options = {
-//   clientId: process.env.KOPOKOPO_CLIENT_ID!,
-//   clientSecret: process.env.KOPOKOPO_CLIENT_SECRET!,
-//   apiKey: process.env.KOPOKOPO_API_KEY!,
-//   baseUrl: process.env.KOPOKOPO_BASE_URL! || "https://sandbox.kopokopo.com",
-// };
-
-// const TokenService = K2(options).TokenService;
-
-// export async function getAccessToken(): Promise<string> {
-//   try {
-//     const response = await TokenService.getToken();
-//     console.log("Access Token Response:", response);
-//     return response.access_token;
-//   } catch (error) {
-//     console.error("Error obtaining access token:", error);
-//     throw new Error("Failed to obtain Kopo Kopo access token");
-//   }
-// }
-
 // Function to initiate payment with retry logic
 async function initiatePayment(paymentData: any, accessToken: string, retryCount = 0) {
   try {
@@ -82,54 +58,11 @@ async function initiatePayment(paymentData: any, accessToken: string, retryCount
   }
 }
 
-
-
-// export async function POST(request: Request) {
-//   try {
-//     const { phoneNumber, amount } = await request.json();
-//     console.log("Initiating payment for:", { phoneNumber, amount });
-
-//     const accessToken = await getAccessToken();
-//     const callbackUrl = process.env.KOPOKOPO_CALLBACK_URL!;
-//     const tillNumber = process.env.KOPOKOPO_TILL_NUMBER!;
-
-//     const payload = {
-//       payment_channel: "M-PESA STK Push",
-//       till_number: tillNumber,
-//       subscriber: {
-//         first_name: "Customer",
-//         last_name: "User",
-//         phone_number: phoneNumber,
-//       },
-//       amount: {
-//         currency: "KES",
-//         value: amount,
-//       },
-//       metadata: { reference: phoneNumber },
-//       _links: { callback_url: callbackUrl },
-//     };
-
-//     const response = await axios.post(
-//       `${process.env.KOPOKOPO_BASE_URL}/api/v1/incoming_payments`,
-//       payload,
-//       { headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" } }
-//     );
-
-//     console.log("Payment Response:", response.data);
-//     return NextResponse.json({ success: true, data: response.data });
-//   } catch (error: any) {
-//     console.error("Error in payment:", error.response?.data || error);
-//     return NextResponse.json({ success: false, message: error.message }, { status: 500 });
-//   }
-// }
-
-
 export async function POST(request: Request) {
   try {
-    const { requestId, amount, phoneNumber } = await request.json();
-    console.log('Received till payment request:', { requestId, amount, phoneNumber });
-    console.warn('Received till payment request:', { requestId, amount, phoneNumber });
-
+    const { requestId, amount, phoneNumber, userId } = await request.json();
+    console.log('Received till payment request:', { requestId, amount, phoneNumber, userId });
+    console.warn('Received till payment request:', { requestId, amount, phoneNumber, userId });
 
     // Get access token with retry logic
     console.log('Obtaining access token..........................:.:.');
@@ -156,7 +89,7 @@ export async function POST(request: Request) {
       },
       metadata: {
         requestId: requestId,
-        customerId: requestId,
+        customerId: userId,
       },
       _links: {
         callback_url: callbackUrl
@@ -198,7 +131,7 @@ export async function POST(request: Request) {
             paymentMethod: PaymentMethod.MPESA,
             status: PaymentStatus.PENDING,
             phoneNumber: phoneNumber,
-            userId: requestId, // This needs to be the actual user ID
+            userId: userId,
           },
         });
       });
@@ -209,36 +142,19 @@ export async function POST(request: Request) {
         message: 'Payment initiated successfully',
         data: paymentResponse.data 
       });
-    } catch (paymentError: any) {
-      console.error('Payment error details:', paymentError?.response?.data || paymentError);
-      if (paymentError.response?.status === 429) {
-        return NextResponse.json({ 
-          success: false, 
-          error_code: 429, 
-          error_message: 'Too many requests. Please wait a moment and try again.'
-        }, { status: 429 });
-      }
-      return NextResponse.json({ 
-        success: false, 
-        message: 'Error initiating payment', 
-        error: paymentError.response?.data?.message || paymentError.message || 'Unknown error occurred'
-      }, { status: 500 });
+    } catch (error) {
+      console.error('Error initiating payment:', error);
+      throw error;
     }
-  } catch (error: unknown) {
-    console.error('Error initiating till payment:', error);
-    
-    let errorMessage = 'An unknown error occurred';
-    let statusCode = 500;
-    if (axios.isAxiosError(error) && error.response) {
-      errorMessage = error.response.data.error_message || 'An error occurred with the payment provider';
-      statusCode = error.response.status;
-    } else if (error instanceof Error) {
-      errorMessage = error.message;
-    }
-    
+  } catch (error) {
+    console.error('Error in payment initiation:', error);
     return NextResponse.json(
-      { success: false, message: 'Error initiating till payment', error: errorMessage },
-      { status: statusCode }
+      { 
+        success: false, 
+        message: 'Failed to initiate payment',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      },
+      { status: 500 }
     );
   }
 }
