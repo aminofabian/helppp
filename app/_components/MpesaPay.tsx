@@ -10,18 +10,6 @@ import dynamic from 'next/dynamic';
 import { useKindeBrowserClient } from "@kinde-oss/kinde-auth-nextjs";
 import { LoginLink } from "@kinde-oss/kinde-auth-nextjs/components";
 import Link from 'next/link';
-
-
-// Dynamically import PayPal components
-// const PayPalButtonWrapper = dynamic(() => import('./PayPalButtonWrapper'), { ssr: false });
-// const PayPalScriptProvider = dynamic(
-//   () => import('@paypal/react-paypal-js').then(mod => mod.PayPalScriptProvider),
-//   { ssr: false }
-// );
-
-// Dynamically import Paystack Button component
-
-// Import Paystack inline-js normally since we'll use it only after checking for window
 import { PayPalScriptProvider } from '@paypal/react-paypal-js';
 import PayPalButtonWrapper from './PayPalButtonWrapper';
 

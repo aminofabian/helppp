@@ -101,7 +101,7 @@ const PayPalButtonWrapper: React.FC<PayPalButtonWrapperProps> = ({
             const details = await actions.order.capture();
       
             if (details.id) {
-              // Convert FormData to a plain object
+              // Create a plain object
               const paymentData = {
                 id: details.id,
                 amount: details.purchase_units?.[0]?.amount?.value || '',
@@ -113,14 +113,15 @@ const PayPalButtonWrapper: React.FC<PayPalButtonWrapperProps> = ({
       
               console.log('This is the payment data:', paymentData);
       
-              const formData = new FormData();
-              formData.append('id', paymentData.id);
-              formData.append('amount', paymentData.amount);
-              formData.append('create_time', paymentData.create_time);
-              formData.append('payer_email', paymentData.payer_email);
-              formData.append('payer_name', paymentData.payer_name);
-              formData.append('requestId', paymentData.requestId);
-              const paymentResponse = await handlePayPalWebhook(formData); // Send FormData instead of plain object
+              // Destructure paymentData before passing it to handlePayPalWebhook
+              const paymentResponse = await handlePayPalWebhook({
+                id: paymentData.id,
+                amount: paymentData.amount,
+                create_time: paymentData.create_time,
+                payer_email: paymentData.payer_email,
+                payer_name: paymentData.payer_name,
+                requestId: paymentData.requestId,
+              });
       
               if (paymentResponse?.status.toString() === 'COMPLETE') {
                 onPaymentSuccess(details.id);
