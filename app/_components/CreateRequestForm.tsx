@@ -181,269 +181,315 @@ export function CreateRequestForm({ createRequest, communityGuidelines, params }
   };
 
   return (    
-    <div className="my-5">
-    <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-8">
-    <div className="h-fit rounded-lg bg-secondary lg:col-span-2 my-2 py-5">
-    <h1 className='font-semibold mx-5 my-5'> c/ <Link href={`/c/${params.id}`} className='text-primary'>{params.id}</Link> </h1>
-    
-    <Tabs defaultValue="request" className="w-full px-5" onValueChange={handleTabChange}>
-    <TabsList className='grid w-full grid-cols-4'>
-    <TabsTrigger value='request'>
-    <TextIcon className='mr-2' />
-    <div className='flex flex-row w-full justify-between'>
-    Text
-    <ArrowBigRightDash className='relative top-0 r-100'/>
-    </div>
-    </TabsTrigger>
-    
-    <TabsTrigger value='time'>    
-    <VideoIcon className='mr-2' />
-    <div className='flex flex-row w-full justify-between'>
-    Time
-    <ArrowBigRightDash className='relative top-0 r-100'/>
-    </div>
-    </TabsTrigger>
-    
-    <TabsTrigger value='requestAmount'>    
-    <HandCoins className='mr-2' />
-    <div className='flex flex-row w-full justify-between'>
-    Amount
-    <ArrowBigRightDash className='relative top-0 r-100'/>
-    </div>
-    </TabsTrigger>
-    
-    <TabsTrigger value='image'>
-    <div className='flex flex-row w-full justify-between'>
-    Image
-    <ListEnd className='relative top-0 r-100'/>
-    </div>
-    </TabsTrigger>
-    </TabsList>
-    
-    <TabsContent value='request'>
-    <Card>
-    <CardHeader>
-    <Label>Title</Label>
-    <Input 
-    required 
-    name='title' 
-    placeholder='Enter the Title of Your Request Here' 
-    value={title}
-    onChange={(e) => setTitle(e.target.value)}
-    className="mb-4"
-    />
-    <TipTapEditor setJson={setJson} json={json} />    
-    </CardHeader>
-    <CardFooter>
-    <div className='ml-auto'>
-    <SubmitButton 
-    ButtonName='Next'
-    />
-    </div>
-    </CardFooter>
-    </Card>
-    </TabsContent>
-    
-    <TabsContent value='image'>
-    <Card>
-    <form action={createRequestFitrii}>
-    <input type='hidden' name='imageUrl' value={imageUrl ?? undefined}/>
-    <input type='hidden' name='communityName' value={params.id} /> 
-    <input type='hidden' name='amount' value={selectedAmount ?? undefined} />
-    <input type='hidden' name='jsonContent' value={JSON.stringify(json)} />
-    <input type='hidden' name='pointsUsed' value={pointsUsed ?? undefined} />
-    <input type='hidden' name='deadline' value={deadline ?? undefined} />
-    <input type='hidden' name='title' value={title} />
-    <CardHeader>
-    <div className="space-y-4">
-    {imageUrl === null ? (
-      <div className="space-y-4">
-      <input 
-      type="file" 
-      onChange={handleFileChange}
-      accept="image/*" 
-      className="w-full"
-      />
-      {uploadProgress > 0 && (
-        <div className="space-y-2">
-          <Progress value={uploadProgress} className="w-full" />
-          <p className="text-sm text-gray-500 text-center">{Math.round(uploadProgress)}% uploaded</p>
+    <div className="my-8 max-w-7xl mx-auto px-4">
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+        <div className="h-fit rounded-2xl bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl lg:col-span-2 p-8 shadow-lg border border-slate-100 dark:border-slate-800">
+          <div className="flex items-center gap-3 mb-8">
+            <div className="h-10 w-1 bg-primary rounded-full" />
+            <h1 className='text-xl font-semibold'> 
+              Creating Request in <Link href={`/c/${params.id}`} className='text-primary hover:text-primary/80 transition-colors'>
+                {params.id}
+              </Link>
+            </h1>
+          </div>
+          
+          <Tabs defaultValue="request" className="w-full" onValueChange={handleTabChange}>
+            <TabsList className='grid w-full grid-cols-4 p-1.5 bg-slate-100 dark:bg-slate-800/50 rounded-2xl gap-1'>
+              <TabsTrigger value='request' className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-950 data-[state=active]:text-primary data-[state=active]:shadow-md rounded-xl transition-all duration-200">
+                <div className='flex items-center gap-2 py-1'>
+                  <TextIcon className='h-4 w-4' />
+                  <span>Text</span>
+                </div>
+              </TabsTrigger>
+              
+              <TabsTrigger value='time' className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-950 data-[state=active]:text-primary data-[state=active]:shadow-md rounded-xl transition-all duration-200">
+                <div className='flex items-center gap-2 py-1'>
+                  <VideoIcon className='h-4 w-4' />
+                  <span>Time</span>
+                </div>
+              </TabsTrigger>
+              
+              <TabsTrigger value='requestAmount' className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-950 data-[state=active]:text-primary data-[state=active]:shadow-md rounded-xl transition-all duration-200">
+                <div className='flex items-center gap-2 py-1'>
+                  <HandCoins className='h-4 w-4' />
+                  <span>Amount</span>
+                </div>
+              </TabsTrigger>
+              
+              <TabsTrigger value='image' className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-950 data-[state=active]:text-primary data-[state=active]:shadow-md rounded-xl transition-all duration-200">
+                <div className='flex items-center gap-2 py-1'>
+                  <ListEnd className='h-4 w-4' />
+                  <span>Image</span>
+                </div>
+              </TabsTrigger>
+            </TabsList>
+            
+            <div className="mt-8">
+              <TabsContent value='request'>
+                <Card className="border-none shadow-lg bg-white dark:bg-slate-900 rounded-2xl">
+                  <CardHeader className="space-y-6">
+                    <div className="space-y-2">
+                      <Label className="text-base font-medium">Request Title</Label>
+                      <Input 
+                        required 
+                        name='title' 
+                        placeholder='Enter the Title of Your Request Here' 
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                        className="h-12 text-base rounded-xl focus:ring-2 focus:ring-primary/20"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-base font-medium">Request Details</Label>
+                      <div className="rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700">
+                        <TipTapEditor setJson={setJson} json={json} />
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardFooter className="pt-4">
+                    <div className='ml-auto'>
+                      <SubmitButton 
+                        ButtonName='Next'
+                      />
+                    </div>
+                  </CardFooter>
+                </Card>
+              </TabsContent>
+              
+              <TabsContent value='time'>
+                <Card className="border-none shadow-lg bg-white dark:bg-slate-900 rounded-2xl">
+                  <CardHeader>
+                    <div className="space-y-8">
+                      <div className="text-center space-y-2">
+                        <h1 className='text-2xl font-semibold'>Request Duration</h1>
+                        <p className="text-slate-500 dark:text-slate-400">How long should your request remain active?</p>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+                        {intervals.map((interval, index) => (
+                          <button
+                            key={index}
+                            onClick={() => handleIntervalSelect(interval.value)}
+                            className={`px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 ${
+                              selectedInterval === interval.value 
+                                ? 'bg-primary/10 text-primary ring-2 ring-primary/20' 
+                                : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-900 dark:text-slate-100'
+                            }`}
+                          >
+                            {interval.label}
+                          </button>
+                        ))}
+                      </div>
+                      {selectedInterval === 'custom' && (
+                        <div className="flex gap-3 items-center p-6 rounded-xl bg-slate-100 dark:bg-slate-800">
+                          <Input
+                            type="number"
+                            value={customTime}
+                            onChange={handleCustomTimeChange}
+                            placeholder="Enter days"
+                            className="text-center rounded-xl"
+                          />
+                          <button
+                            onClick={handleCustomTimeSubmit}
+                            className="px-6 py-2.5 bg-primary text-white rounded-xl hover:bg-primary/90 transition-colors"
+                          >
+                            Set
+                          </button>
+                        </div>
+                      )}
+                      {deadline && (
+                        <div className="flex justify-center">
+                          <div className='inline-flex items-center gap-3 px-6 py-3 bg-primary/10 text-primary rounded-xl'>
+                            <span className="font-medium">Deadline:</span>
+                            <span>{deadline}</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </CardHeader>
+                </Card>
+              </TabsContent>
+              
+              <TabsContent value='requestAmount'>
+                <Card className="border-none shadow-lg bg-white dark:bg-slate-900 rounded-2xl">
+                  <CardHeader>
+                    <div className="space-y-8">
+                      <div className="text-center space-y-2">
+                        <h2 className='text-2xl font-semibold'>Request Amount</h2>
+                        <p className="text-slate-500 dark:text-slate-400">Choose how much help you need</p>
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                        {numbers.map((number, index) => (
+                          <button
+                            key={index}
+                            onClick={() => handleAmountSelect(number, index)}
+                            className={`px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 ${
+                              selectedButtonIndex === index 
+                                ? 'bg-primary/10 text-primary ring-2 ring-primary/20' 
+                                : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-900 dark:text-slate-100'
+                            }`}
+                          >
+                            {number}
+                          </button>
+                        ))}
+                        <button
+                          onClick={handleEditClick}
+                          className="px-4 py-3 bg-orange-500/10 text-orange-600 rounded-xl hover:bg-orange-500/20 transition-colors font-medium"
+                        >
+                          Custom
+                        </button>
+                      </div>
+                      <div className="flex justify-center">
+                        {editMode ? (
+                          <div className="bg-slate-100 dark:bg-slate-800 p-6 rounded-xl">
+                            <Input
+                              type="number"
+                              className="max-w-[200px] text-center rounded-xl"
+                              value={selectedAmount ?? ''}
+                              onChange={handleInputChange}
+                              name='amount'
+                              placeholder="Enter amount"
+                            />
+                          </div>
+                        ) : (
+                          selectedAmount && (
+                            <div className="text-center space-y-3 bg-slate-100 dark:bg-slate-800 px-8 py-6 rounded-xl">
+                              <div className="text-3xl font-bold text-primary">
+                                {selectedAmount}/=
+                              </div>
+                              <div className="text-sm text-slate-500 dark:text-slate-400 font-medium">
+                                ({selectedAmount / 40} points)
+                              </div>
+                            </div>
+                          )
+                        )}
+                      </div>
+                    </div>
+                  </CardHeader>
+                </Card>
+              </TabsContent>
+              
+              <TabsContent value='image'>
+                <Card className="border-none shadow-lg bg-white dark:bg-slate-900 rounded-2xl">
+                  <form action={createRequestFitrii}>
+                    <input type='hidden' name='imageUrl' value={imageUrl ?? undefined}/>
+                    <input type='hidden' name='communityName' value={params.id} /> 
+                    <input type='hidden' name='amount' value={selectedAmount ?? undefined} />
+                    <input type='hidden' name='jsonContent' value={JSON.stringify(json)} />
+                    <input type='hidden' name='pointsUsed' value={pointsUsed ?? undefined} />
+                    <input type='hidden' name='deadline' value={deadline ?? undefined} />
+                    <input type='hidden' name='title' value={title} />
+                    <CardHeader>
+                      <div className="space-y-8">
+                        <div className="text-center space-y-2">
+                          <h2 className='text-2xl font-semibold'>Request Image</h2>
+                          <p className="text-slate-500 dark:text-slate-400">Add an image to support your request</p>
+                        </div>
+                        <div className="bg-slate-100 dark:bg-slate-800 p-8 rounded-2xl">
+                          {imageUrl === null ? (
+                            <div className="space-y-6">
+                              <div className="flex justify-center">
+                                <label className="group flex flex-col items-center gap-4 cursor-pointer">
+                                  <div className="p-6 rounded-2xl bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                    </svg>
+                                  </div>
+                                  <div className="text-center">
+                                    <span className="text-base font-medium text-primary">Click to upload image</span>
+                                    <p className="text-sm text-slate-500 dark:text-slate-400">PNG, JPG up to 10MB</p>
+                                  </div>
+                                  <input 
+                                    type="file" 
+                                    onChange={handleFileChange}
+                                    accept="image/*" 
+                                    className="hidden"
+                                  />
+                                </label>
+                              </div>
+                              {uploadProgress > 0 && (
+                                <div className="space-y-3 max-w-md mx-auto">
+                                  <div className="h-1 w-full bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                                    <div 
+                                      className="h-full bg-primary transition-all duration-300 rounded-full"
+                                      style={{ width: `${uploadProgress}%` }}
+                                    />
+                                  </div>
+                                  <p className="text-sm text-slate-500 dark:text-slate-400 text-center font-medium">
+                                    {Math.round(uploadProgress)}% uploaded
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="space-y-4">
+                              <div className="relative group rounded-2xl overflow-hidden">
+                                <Image 
+                                  src={imageUrl}
+                                  alt="Uploaded Image"
+                                  width={400}
+                                  height={300}
+                                  className="w-full h-auto max-h-[400px] object-cover"
+                                />
+                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                  <button
+                                    type="button"
+                                    onClick={() => setImageUrl(null)}
+                                    className="p-2 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-colors"
+                                  >
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardFooter className="flex justify-end pt-6">
+                      <SubmitButton ButtonName='Publish Request' />
+                    </CardFooter>
+                  </form>
+                </Card>
+              </TabsContent>
+            </div>
+          </Tabs>
         </div>
-      )}
+        
+        <div className="rounded-2xl bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl p-8 shadow-lg border border-slate-100 dark:border-slate-800 h-fit">
+          <div className='flex items-center gap-4 mb-8'>
+            <div className="relative w-16 h-16 rounded-2xl overflow-hidden shadow-lg">
+              <Image
+                src={'/help.png'}
+                fill
+                alt={'help'}
+                className="object-cover"
+              />
+            </div>
+            <div>
+              <h2 className='text-2xl font-semibold'>Guidelines</h2>
+              <p className="text-slate-500 dark:text-slate-400 text-sm">Follow these rules when posting</p>
+            </div>
+          </div>
+          
+          <div className="space-y-4">
+            {communityGuidelines.map((item) => (
+              <div key={item.id} className="p-5 bg-slate-100 dark:bg-slate-800 rounded-xl">
+                <div className='text-sm space-y-1'>
+                  <div className="flex items-center gap-2 text-primary font-medium mb-2">
+                    <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10">
+                      {item.id}
+                    </span>
+                    Guideline {item.id}
+                  </div>
+                  <p className="text-slate-600 dark:text-slate-300">{item.text}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
-    ) : (
-      <div className="space-y-4">
-      <div className="flex justify-center">
-      <Image 
-      src={imageUrl}
-      alt="Uploaded Image"
-      width={200}
-      height={120}
-      style={{
-        objectFit: 'cover',
-        width: '100%',
-        height: 'auto',
-        maxHeight: '500px'
-      }}
-      className="rounded-lg"
-      />
-      </div>
-      <button
-      type="button"
-      onClick={() => setImageUrl(null)}
-      className="w-full px-4 py-2 text-sm text-red-600 border border-red-300 rounded-md hover:bg-red-50"
-      >
-      Remove Image
-      </button>
-      </div>
-    )}  
     </div>
-    </CardHeader>
-    <CardFooter>
-    <div className='ml-auto'>
-    <SubmitButton 
-    ButtonName='Publish Request'
-    />
-    </div>
-    </CardFooter>
-    </form>
-    </Card>
-    </TabsContent>
-    
-    <TabsContent value='requestAmount'>
-    <Card>
-    <CardHeader>
-    <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_120px] lg:gap-8">
-    <div className="h-fit rounded-lg bg-gray-200">
-    <div className="grid grid-cols-3 md:grid-cols-5 gap-5 justify-between mx-5 my-5">
-    {numbers.map((number, index) => (
-      <button
-      key={index}
-      onClick={() => handleAmountSelect(number, index)}
-      className={`px-4 py-2 text-sm overflow-ellipsis ${selectedButtonIndex === index ? 'bg-primary text-[#d4e6d4]' : 'bg-secondary'} text-[#298126] rounded border-lime-200 hover:scale-105`}
-      >
-      {number}
-      </button>
-    ))}
-    <button
-    onClick={handleEditClick}
-    className="mr-2 w-full px-4 py-2 bg-orange-400 text-white rounded"
-    >
-    Edit
-    </button>
-    </div>
-    </div>
-    <div className="h-fit rounded-lg bg-secondary w-full">
-    <div className='container h-full flex flex-col justify-center items-center'>
-    <h2 className='text-xs text-primary border font-semibold justify-center items-center my-3 px-3 rounded-md ring-1 ring-primary'>
-    {selectedAmount ? `${selectedAmount / 40} p` : "0"}
-    </h2>
-    {editMode ? (
-      <input
-      type="number"
-      className="px-6 py-2 font-medium bg-primary text-white w-fit transition-all shadow-[3px_3px_0px_orange] hover:shadow-none hover:translate-x-[3px] hover:translate-y-[3px] rounded-md focus:border-primary"
-      value={selectedAmount ?? ''}
-      onChange={handleInputChange}
-      name='amount'
-      />
-    ) : (
-      <button className="px-6 py-2 font-medium bg-primary text-white w-fit transition-all shadow-[3px_3px_0px_orange] hover:shadow-none hover:translate-x-[3px] hover:translate-y-[3px] rounded-md">
-      {selectedAmount ? `${selectedAmount}/=` : "Select an amount"}
-      </button>
-    )}
-    </div>
-    </div>
-    </div>
-    </CardHeader>
-    </Card>
-    </TabsContent>
-    
-    <TabsContent value='time'>
-    <Card>
-    <CardHeader>
-    <div>
-    <h1 className='text-lg font-bold mx-auto mb-5'>For How Long Do You Want the Request to Run?</h1>
-    <div className="grid grid-cols-2 gap-4 lg:grid-cols-3 lg:gap-5">
-    {intervals.map((interval, index) => (
-      <button
-      key={index}
-      onClick={() => handleIntervalSelect(interval.value)}      className={`mr-2 px-5 py-1 text-${selectedInterval === interval.value ? 'secondary' : 'primary'} border border-slate-500 rounded-lg text-xs flex-shrink space-x-3 bg-${selectedInterval === interval.value ? 'primary' : 'secondary'}`}
-      >
-      {interval.label}
-      </button>
-    ))}
-    {selectedInterval === 'custom' && (
-      <div className="flex justify-center items-center w-full col-span-2 border border-primary px-3 py-2 rounded-md bg-secondary">
-      <input
-      type="number"
-      value={customTime}
-      onChange={handleCustomTimeChange}
-      placeholder="Enter days"
-      className="mr-5 px-4 py-1 text-primary bg-transparent border border-primary rounded text-center align-center w-full text-sm"
-      />
-      <button
-      onClick={handleCustomTimeSubmit}
-      className="px-4 py-1 text-secondary bg-primary border border-secondary rounded w-full mr-2 text-sm"
-      >
-      Add
-      </button>
-      </div>
-    )}
-    </div>
-    <div className="h-fit rounded-lg bg-slate-50 w-full">
-    <div className='container h-full flex flex-col justify-center items-center'>
-    <h2 className='text-xs text-primary border font-semibold justify-center items-center my-3 px-3 rounded-md ring-1 ring-primary'>
-    Deadline: {deadline}
-    
-    
-    </h2>
-    
-    
-    </div>
-    </div>
-    </div>
-    
-    
-    
-    </CardHeader> 
-    </Card> 
-    </TabsContent>
-    
-    
-    
-    
-    </Tabs>
-    
-    </div>
-    <div className="rounded-lg bg-secondary w-full">
-    <Card className='flex flex-col p-4'>
-    <div className='flex items-center'>
-    <Image
-    src={'/help.png'}
-    width={100}
-    height={100}
-    alt={'help'}
-    />
-    <h1 className='text-lg text-center font-bold gap-x-2 text-balance'> Posting Your Help Request on Fitrii</h1>
-    </div>
-    
-    <Separator className='my-5' />
-    
-    {communityGuidelines.map((item) => (
-      <div key={item.id}>
-      <div className='flex flex-col gap-y-5 mt-5 mx-5'>
-      <div className='text-sm'>
-      <span className='font-semibold'>{item.id}.</span>  {item.text}
-      
-      </div>
-      <Separator />
-      </div>
-      </div>
-    ))}
-    </Card>
-    </div>
-    </div>
-    </div>
-    
   );
 }
