@@ -151,6 +151,7 @@ export default function HomeNavRight({
   const [wallet, setWallet] = useState<WalletData>(initialWallet);
   const [isClient, setIsClient] = useState(false);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const [isWalletOpen, setIsWalletOpen] = useState(false);
 
   // Set isClient to true when component mounts
   useEffect(() => {
