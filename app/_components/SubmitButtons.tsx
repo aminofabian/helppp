@@ -7,9 +7,11 @@ import { useFormStatus } from "react-dom"
 interface SubmitButtonProps {
   ButtonName: string;
   isLoading?: boolean;
+  onClick?: () => void;
+  type?: 'submit' | 'button';
 }
 
-export function SubmitButton({ ButtonName, isLoading }: SubmitButtonProps) {
+export function SubmitButton({ ButtonName, isLoading, onClick, type = 'submit' }: SubmitButtonProps) {
   const { pending } = useFormStatus();
   const isDisabled = pending || isLoading;
 
@@ -21,7 +23,11 @@ export function SubmitButton({ ButtonName, isLoading }: SubmitButtonProps) {
           <div className="w-6 h-6 border-4 border-dashed rounded-full animate-spin dark:border-violet-600"></div>
         </Button>
       ) : (
-        <Button className='w-full dark:text-slate-50 dark:bg-slate-800 hover:scale-105' type='submit'>
+        <Button 
+          className='w-full dark:text-slate-50 dark:bg-slate-800 hover:scale-105' 
+          type={type}
+          onClick={onClick}
+        >
           {ButtonName}
         </Button>
       )}

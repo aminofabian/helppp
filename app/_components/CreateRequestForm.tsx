@@ -79,7 +79,7 @@ export function CreateRequestForm({
   const [selectedInterval, setSelectedInterval] = useState<string | null>(null);
   const [customTime, setCustomTime] = useState<string>('');
   const [deadline, setDeadline] = useState<string>('');
-  const [currentTab, setCurrentTab] = useState<number>(0);
+  const [currentTab, setCurrentTab] = useState<string>("request");
   const [file, setFile] = useState<File | null>(null);
   const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [showLevelError, setShowLevelError] = useState(false);
@@ -286,6 +286,27 @@ export function CreateRequestForm({
       });
       return;
     }
+    setCurrentTab(value);
+  };
+
+  const handleNextClick = () => {
+    if (!title.trim()) {
+      toast({
+        title: "Title Required",
+        description: "Please enter a title for your request before proceeding.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!json) {
+      toast({
+        title: "Details Required",
+        description: "Please add some details to your request before proceeding.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setCurrentTab("time");
   };
 
   if (hasRunningRequest) {
@@ -436,7 +457,7 @@ export function CreateRequestForm({
             </h1>
           </div>
           
-          <Tabs defaultValue="request" className="w-full" onValueChange={handleTabChange}>
+          <Tabs value={currentTab} defaultValue="request" className="w-full" onValueChange={setCurrentTab}>
             <TabsList className='grid w-full grid-cols-4 p-1.5 bg-slate-100 dark:bg-slate-800/50 rounded-2xl gap-1'>
               <TabsTrigger value='request' className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-950 data-[state=active]:text-primary data-[state=active]:shadow-md rounded-xl transition-all duration-200">
                 <div className='flex items-center gap-2 py-1'>
@@ -493,6 +514,8 @@ export function CreateRequestForm({
                     <div className='ml-auto'>
                       <SubmitButton 
                         ButtonName='Next'
+                        onClick={handleNextClick}
+                        type="button"
                       />
                     </div>
                   </CardFooter>
