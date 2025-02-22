@@ -170,6 +170,7 @@ export default function HomeNavRight({
       }
     };
 
+    // Only set up event listener if we're in the browser
     if (typeof window !== 'undefined') {
       // Set up event listener for donation events
       const handleDonationEvent = (event: CustomEvent) => {
@@ -200,6 +201,9 @@ export default function HomeNavRight({
         clearInterval(interval);
         window.removeEventListener('donation-made', handleDonationEvent as EventListener);
       };
+    } else {
+      // If we're on the server, just fetch stats once
+      fetchUpdatedStats();
     }
   }, [initialUser.id]);
 

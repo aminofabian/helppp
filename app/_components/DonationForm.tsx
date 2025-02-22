@@ -10,16 +10,21 @@ interface DonationFormProps {
 
 const emitDonationEvent = (amount: number, points: number, updatedStats: any) => {
   if (typeof window !== 'undefined') {
-    const donationEvent = new CustomEvent('donation-made', {
-      detail: {
-        amount: Number(amount),
-        points,
-        totalPoints: updatedStats.points,
-        level: updatedStats.level,
-        timestamp: new Date().toISOString()
-      }
-    });
-    window.dispatchEvent(donationEvent);
+    try {
+      const donationEvent = new CustomEvent('donation-made', {
+        detail: {
+          amount: Number(amount),
+          points,
+          totalPoints: updatedStats.points,
+          level: updatedStats.level,
+          timestamp: new Date().toISOString()
+        }
+      });
+      window.dispatchEvent(donationEvent);
+      console.log('Donation event emitted:', { amount, points, updatedStats });
+    } catch (error) {
+      console.error('Error emitting donation event:', error);
+    }
   }
 };
 
