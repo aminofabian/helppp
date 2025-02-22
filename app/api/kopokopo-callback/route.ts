@@ -277,14 +277,26 @@ async function handleBuyGoodsTransaction(event: any) {
     });
     console.log(`Donation recorded successfully: ${donation.id}`);
 
-    // Update user stats
+    // Calculate points (1 point per 50 KES)
     const pointsEarned = Math.floor(amount / 50);
+    console.log('Points calculation:', {
+      amount,
+      pointsEarned,
+      calculationDetails: `${amount} KES / 50 = ${pointsEarned} points`
+    });
+
     const points = await prisma.points.create({
       data: { 
         userId: giver.id, 
         amount: pointsEarned, 
         paymentId: payment.id 
       }
+    });
+
+    console.log('Created points record:', {
+      userId: giver.id,
+      pointsEarned,
+      paymentId: payment.id
     });
 
     // Calculate new level based on total points

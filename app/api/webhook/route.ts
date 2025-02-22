@@ -119,14 +119,28 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
 
     console.log(`[${webhookId}] Created donation record: ${donation.id}`);
 
-    // Calculate and award points
-    const pointsEarned = Math.floor((event.data.amount / 100) / 50); // 1 point per 50 KES
+    // Calculate and award points (1 point per 50 KES)
+    const amountInKES = event.data.amount / 100; // Convert from kobo to KES
+    const pointsEarned = Math.floor(amountInKES / 50);
+    console.log(`[${webhookId}] Points calculation:`, {
+      originalAmount: event.data.amount,
+      amountInKES,
+      pointsEarned,
+      calculationDetails: `${amountInKES} KES / 50 = ${pointsEarned} points`
+    });
+
     const points = await prisma.points.create({
       data: { 
         userId: giver.id, 
         amount: pointsEarned, 
         paymentId: payment.id 
       }
+    });
+
+    console.log(`[${webhookId}] Created points record:`, {
+      userId: giver.id,
+      pointsEarned,
+      paymentId: payment.id
     });
 
     // Calculate new level based on total points
