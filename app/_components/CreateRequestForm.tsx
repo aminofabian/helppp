@@ -13,6 +13,7 @@ import { TipTapEditor } from '@/app/_components/TipTapEditor';
 import { SubmitButton } from '@/app/_components/SubmitButtons';
 import { JSONContent } from '@tiptap/react';
 import { useToast } from "@/components/ui/use-toast";
+import { Progress } from "@/components/ui/progress";
 
 
 interface CommunityGuideline {
@@ -41,12 +42,13 @@ export function CreateRequestForm({ createRequest, communityGuidelines, params }
   const [pointsUsed, setPointsUsed] = useState<number | null>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [json, setJson] = useState<JSONContent | null>(null);
-  const [title, setTitle] = useState<string | null>(null);
+  const [title, setTitle] = useState<string>('');
   const [selectedInterval, setSelectedInterval] = useState<string | null>(null);
   const [customTime, setCustomTime] = useState<string>('');
   const [deadline, setDeadline] = useState<string>('');
   const [currentTab, setCurrentTab] = useState<number>(0);
   const [file, setFile] = useState<File | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
   
   const { toast } = useToast();
   
@@ -109,7 +111,6 @@ export function CreateRequestForm({ createRequest, communityGuidelines, params }
     }
   };
   
-  
   const handleFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -167,17 +168,36 @@ export function CreateRequestForm({ createRequest, communityGuidelines, params }
       });
     }
   };
-  
+
+  const handleTabChange = (value: string) => {
+    if (value === 'time' && !title.trim()) {
+      toast({
+        title: "Title Required",
+        description: "Please enter a title for your request before proceeding.",
+        variant: "destructive",
+      });
+      return;
+    }
+  };
+
   return (    
     <div className="my-5">
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-8">
     <div className="h-fit rounded-lg bg-secondary lg:col-span-2 my-2 py-5">
     <h1 className='font-semibold mx-5 my-5'> c/ <Link href={`/c/${params.id}`} className='text-primary'>{params.id}</Link> </h1>
     
-    <Tabs defaultValue="time" className="w-full px-5">
+    <Tabs defaultValue="request" className="w-full px-5" onValueChange={handleTabChange}>
     <TabsList className='grid w-full grid-cols-4'>
-    <TabsTrigger value='time'>
+    <TabsTrigger value='request'>
     <TextIcon className='mr-2' />
+    <div className='flex flex-row w-full justify-between'>
+    Text
+    <ArrowBigRightDash className='relative top-0 r-100'/>
+    </div>
+    </TabsTrigger>
+    
+    <TabsTrigger value='time'>    
+    <VideoIcon className='mr-2' />
     <div className='flex flex-row w-full justify-between'>
     Time
     <ArrowBigRightDash className='relative top-0 r-100'/>
@@ -185,7 +205,7 @@ export function CreateRequestForm({ createRequest, communityGuidelines, params }
     </TabsTrigger>
     
     <TabsTrigger value='requestAmount'>    
-    <VideoIcon className='mr-2' />
+    <HandCoins className='mr-2' />
     <div className='flex flex-row w-full justify-between'>
     Amount
     <ArrowBigRightDash className='relative top-0 r-100'/>
@@ -193,22 +213,38 @@ export function CreateRequestForm({ createRequest, communityGuidelines, params }
     </TabsTrigger>
     
     <TabsTrigger value='image'>
-    <HandCoins className='mr-2' />
     <div className='flex flex-row w-full justify-between'>
     Image
-    <ArrowBigRightDash className='relative top-0 r-100'/>
-    </div>
-    </TabsTrigger>
-    
-    <TabsTrigger value='Request'>
-    <div className='flex flex-row w-full justify-between'>
-    Text
     <ListEnd className='relative top-0 r-100'/>
     </div>
     </TabsTrigger>
     </TabsList>
     
-    <TabsContent value='Request'>
+    <TabsContent value='request'>
+    <Card>
+    <CardHeader>
+    <Label>Title</Label>
+    <Input 
+    required 
+    name='title' 
+    placeholder='Enter the Title of Your Request Here' 
+    value={title}
+    onChange={(e) => setTitle(e.target.value)}
+    className="mb-4"
+    />
+    <TipTapEditor setJson={setJson} json={json} />    
+    </CardHeader>
+    <CardFooter>
+    <div className='ml-auto'>
+    <SubmitButton 
+    ButtonName='Next'
+    />
+    </div>
+    </CardFooter>
+    </Card>
+    </TabsContent>
+    
+    <TabsContent value='image'>
     <Card>
     <form action={createRequestFitrii}>
     <input type='hidden' name='imageUrl' value={imageUrl ?? undefined}/>
@@ -217,32 +253,26 @@ export function CreateRequestForm({ createRequest, communityGuidelines, params }
     <input type='hidden' name='jsonContent' value={JSON.stringify(json)} />
     <input type='hidden' name='pointsUsed' value={pointsUsed ?? undefined} />
     <input type='hidden' name='deadline' value={deadline ?? undefined} />
+    <input type='hidden' name='title' value={title} />
     <CardHeader>
-    <Label>Title</Label>
-    <Input required name='title' placeholder='Enter the Title of Your Request Here' value={title ?? ''} onChange={(e) => setTitle(e.target.value)} />
-    <TipTapEditor setJson={setJson} json={json} />    
-    </CardHeader>
-    <CardFooter>
-    <div className='ml-auto'>
-    <SubmitButton ButtonName='Publish Request' />
-    </div>
-    </CardFooter>
-    </form>
-    </Card>
-    </TabsContent>
-    
-    <TabsContent value='image'>
-    <Card>
-    <CardHeader>
+    <div className="space-y-4">
     {imageUrl === null ? (
-      <div>
+      <div className="space-y-4">
       <input 
       type="file" 
       onChange={handleFileChange}
       accept="image/*" 
+      className="w-full"
       />
+      {uploadProgress > 0 && (
+        <div className="space-y-2">
+          <Progress value={uploadProgress} className="w-full" />
+          <p className="text-sm text-gray-500 text-center">{Math.round(uploadProgress)}% uploaded</p>
+        </div>
+      )}
       </div>
     ) : (
+      <div className="space-y-4">
       <div className="flex justify-center">
       <Image 
       src={imageUrl}
@@ -258,8 +288,25 @@ export function CreateRequestForm({ createRequest, communityGuidelines, params }
       className="rounded-lg"
       />
       </div>
+      <button
+      type="button"
+      onClick={() => setImageUrl(null)}
+      className="w-full px-4 py-2 text-sm text-red-600 border border-red-300 rounded-md hover:bg-red-50"
+      >
+      Remove Image
+      </button>
+      </div>
     )}  
+    </div>
     </CardHeader>
+    <CardFooter>
+    <div className='ml-auto'>
+    <SubmitButton 
+    ButtonName='Publish Request'
+    />
+    </div>
+    </CardFooter>
+    </form>
     </Card>
     </TabsContent>
     
