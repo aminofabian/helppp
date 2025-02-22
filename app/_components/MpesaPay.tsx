@@ -124,7 +124,7 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [email, setEmail] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('Mpesa');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('Paystack');
   const [isLoading, setIsLoading] = useState(false);
   const [stkQueryLoading, setStkQueryLoading] = useState(false);
   const [success, setSuccess] = useState(false);

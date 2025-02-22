@@ -61,13 +61,25 @@ async function getUserStats(userId: string) {
     }
   });
 
+  // Calculate total received from completed donations
+  const received = await prisma.donation.aggregate({
+    where: {
+      requestId: userId,
+      status: "COMPLETED"
+    },
+    _sum: {
+      amount: true
+    }
+  });
+
   console.log('Donation aggregates for user:', userId, donations);
 
   // If stats don't exist, create default values
   const enrichedStats = {
     ...stats,
     calculatedDonationCount: donations._count._all,
-    calculatedTotalDonated: donations._sum.amount || 0
+    calculatedTotalDonated: donations._sum.amount || 0,
+    totalReceived: received?._sum?.amount || 0
   };
 
   // Update user stats if they differ from calculated values
@@ -135,7 +147,8 @@ export default async function HomeNavRightWrapper() {
       donationCount: stats?.donationCount ?? 0,
       points: stats?.points ?? [],
       calculatedDonationCount: stats?.calculatedDonationCount ?? 0,
-      calculatedTotalDonated: stats?.calculatedTotalDonated ?? 0
+      calculatedTotalDonated: stats?.calculatedTotalDonated ?? 0,
+      totalReceived: stats?.totalReceived ?? 0
     };
 
     return (
@@ -157,7 +170,8 @@ export default async function HomeNavRightWrapper() {
           donationCount: 0,
           points: [],
           calculatedDonationCount: 0,
-          calculatedTotalDonated: 0
+          calculatedTotalDonated: 0,
+          totalReceived: 0
         }}
         initialWallet={{ balance: 0 }}
       />

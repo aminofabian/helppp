@@ -32,6 +32,7 @@ interface UserStats {
   donationCount: number;
   calculatedDonationCount?: number;
   calculatedTotalDonated?: number;
+  totalReceived: number;
   points: { amount: number }[];
 }
 
@@ -153,7 +154,8 @@ export default function HomeNavRight({
     totalDonated: initialStats.totalDonated || 0,
     donationCount: initialStats.donationCount || 0,
     calculatedTotalDonated: initialStats.calculatedTotalDonated || 0,
-    calculatedDonationCount: initialStats.calculatedDonationCount || 0
+    calculatedDonationCount: initialStats.calculatedDonationCount || 0,
+    totalReceived: initialStats.totalReceived || 0
   });
   const [hasRunningRequest, setHasRunningRequest] = useState(false);
   const [wallet, setWallet] = useState<WalletData>(initialWallet || { balance: 0 });
@@ -413,6 +415,30 @@ export default function HomeNavRight({
               initialCount={stats.calculatedDonationCount || stats.donationCount || 0} 
               userId={initialUser.id} 
             />
+          </div>
+
+          <div className="bg-secondary/20
+                          dark:bg-gray-800
+                          p-3 rounded-lg shadow-sm hover:shadow
+                          transition-colors">
+            <div className="flex items-center gap-2 mb-1">
+              <CreditCard className="w-4 h-4 text-primary" />
+              <span className="text-sm text-gray-600 dark:text-gray-300">Request Amount</span>
+            </div>
+            {(() => {
+              const netAmount = (stats.calculatedTotalDonated || stats.totalDonated || 0) - (stats.totalReceived || 0);
+              const requestAmount = netAmount * 0.0111;
+              return (
+                <>
+                  <p className={`text-lg font-semibold ${netAmount < 0 ? 'text-red-500' : 'text-primary'}`}>
+                    KES {requestAmount.toLocaleString()}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Based on 1.11% of net contributions
+                  </p>
+                </>
+              );
+            })()}
           </div>
 
           <div className="bg-secondary/10 dark:bg-gray-800/50 p-4 rounded-lg space-y-4">
