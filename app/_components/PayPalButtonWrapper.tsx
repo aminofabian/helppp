@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { PayPalButtons } from "@paypal/react-paypal-js";
 import { CreateOrderData, CreateOrderActions, OnApproveData, OnApproveActions } from "@paypal/paypal-js";
-import { handlePayPalPayment } from '../actions';
+import { handlePayPalWebhook } from '../actions';
 import toast from 'react-hot-toast';
 import { useRouter } from "next/navigation";
 
@@ -99,32 +99,32 @@ const PayPalButtonWrapper: React.FC<PayPalButtonWrapperProps> = ({
         if (actions.order) {
           try {
             const details = await actions.order.capture();
-            console.log('This is the details:', details);
       
             if (details.id) {
+              // Convert FormData to a plain object
+              const paymentData = {
+                id: details.id,
+                amount: details.purchase_units?.[0]?.amount?.value || '',
+                create_time: details.create_time || '',
+                payer_email: details.payer?.email_address || '',
+                payer_name: `${details.payer?.name?.given_name || ''} ${details.payer?.name?.surname || ''}`,
+                requestId: requestId,
+              };
+      
+              console.log('This is the payment data:', paymentData);
+      
               const formData = new FormData();
-              formData.append('id', details.id);
+              formData.append('id', paymentData.id);
+              formData.append('amount', paymentData.amount);
+              formData.append('create_time', paymentData.create_time);
+              formData.append('payer_email', paymentData.payer_email);
+              formData.append('payer_name', paymentData.payer_name);
+              formData.append('requestId', paymentData.requestId);
+              const paymentResponse = await handlePayPalWebhook(formData); // Send FormData instead of plain object
       
-              if (details.purchase_units && details.purchase_units[0].amount) {
-                formData.append('amount', details.purchase_units[0].amount.value); 
-              } else {
-                throw new Error("Purchase units or amount is undefined");
-              }
-      
-              formData.append('create_time', details.create_time || '');
-              formData.append('payer_email', details.payer?.email_address || '');
-              formData.append('payer_name', `${details.payer?.name?.given_name || ''} ${details.payer?.name?.surname || ''}`);
-              formData.append('requestId', requestId);
-      
-              const paymentResponse = await handlePayPalPayment(formData);
-      
-              if (paymentResponse && paymentResponse.status === 'PENDING') {
+              if (paymentResponse?.status.toString() === 'COMPLETE') {
                 onPaymentSuccess(details.id);
-      
-                // Show success message using alert
                 alert('Payment successfully saved!');
-      
-                // Reload and redirect to the homepage
                 window.location.href = '/';
               } else {
                 throw new Error('Failed to save payment details');
@@ -138,7 +138,8 @@ const PayPalButtonWrapper: React.FC<PayPalButtonWrapperProps> = ({
         } else {
           onPaymentError(new Error("PayPal actions.order is undefined"));
         }
-      };      
+      };
+            
 
 // const onApprove = async (data: OnApproveData, actions: OnApproveActions) => {
 //   if (actions.order) {

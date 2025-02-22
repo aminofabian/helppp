@@ -375,35 +375,245 @@ async function createNotification(type: NotificationType, recipientId: string, i
   }
 }
 
-export async function handlePayPalPayment(formData: FormData) {
-  const { getUser } = getKindeServerSession();
-  const user = await getUser();
 
-  if (!user) {
-    return redirect('/api/auth/login');
-  }
-
-  const amount = Number(formData.get('amount'));
+export async function handlePayPalWebhook(formData: FormData) {
+  const paymentId = formData.get('id') as string;
+  const amountUSD = Number(formData.get('amount')); // Amount in USD
+  const createTime = formData.get('create_time') as string;
+  const payerEmail = formData.get('payer_email') as string;
+  const payerName = formData.get('payer_name') as string;
   const requestId = formData.get('requestId') as string;
 
+  const exchangeRate = 120; // 1 USD = 120 KES
+  const amountKES = amountUSD * exchangeRate; // Convert to KES
+
+  console.log('Processing PayPal payment:', { paymentId, amountKES, requestId });
+
   try {
-    const payment = await prisma.payment.create({
-      data: {
-        amount,
-        paymentMethod: PaymentMethod.PAYPAL,
-        status: PaymentStatus.PENDING,
-        userId: user.id,
-        requestId,
-        userts: new Date(),
+    // Find the request and associated user (receiver)
+    const request = await prisma.request.findUnique({
+      where: { id: requestId },
+      include: {
+        User: true,
+        Community: true,
       },
     });
 
-    return payment;
+    if (!request) {
+      console.error('Request not found for requestId:', requestId);
+      return NextResponse.json(
+        { status: 'error', message: 'Request not found' },
+        { status: 404 }
+      );
+    }
+
+    // Find or create the giver (payer)
+    let giver = await prisma.user.findFirst({
+      where: { email: payerEmail },
+    });
+
+    if (!giver) {
+      const [firstName, lastName] = payerName.split(' ');
+      giver = await prisma.user.create({
+        data: {
+          email: payerEmail,
+          firstName: firstName || '',
+          lastName: lastName || '',
+          userName: `user_${Date.now()}`,
+          level: 1,
+          totalDonated: amountKES, // Use KES
+          donationCount: 1,
+        },
+      });
+      console.log('Created new user:', giver.id);
+    }
+
+    // Create payment record
+    const payment = await prisma.payment.create({
+      data: {
+        userId: giver.id,
+        amount: amountKES, // Use KES
+        paymentMethod: PaymentMethod.PAYPAL,
+        status: PaymentStatus.COMPLETED,
+        checkoutRequestId: paymentId,
+        merchantRequestId: paymentId,
+        resultCode: '0',
+        resultDesc: 'Success',
+        currency: 'KES', // Change to KES
+        requestId,
+        userts: new Date(createTime),
+        transactionDate: new Date(),
+      },
+    });
+
+    console.log('Created payment record:', payment.id);
+
+    // Create donation record
+    const donation = await prisma.donation.create({
+      data: {
+        userId: giver.id,
+        requestId,
+        amount: amountKES, // Use KES
+        payment: { connect: { id: payment.id } },
+        status: PaymentStatus.COMPLETED,
+        invoice: paymentId,
+      },
+    });
+
+    console.log('Created donation record:', donation.id);
+
+    // Calculate points (1 point per 50 KES, minimum 1 point)
+    const pointsEarned = Math.max(1, Math.floor(amountKES / 50));
+    console.log('Points calculation:', {
+      amountKES,
+      pointsEarned,
+      calculationDetails: `${amountKES} KES / 50 = ${pointsEarned} points (minimum 1 point)`,
+    });
+
+    // Create points record
+    const points = await prisma.points.create({
+      data: {
+        userId: giver.id,
+        amount: pointsEarned,
+        paymentId: payment.id,
+      },
+    });
+
+    console.log('Created points record:', points.id);
+
+    // Calculate new level based on total points
+    const userPoints = await prisma.points.findMany({
+      where: { userId: giver.id },
+    });
+    const totalPoints = userPoints.reduce((sum, p) => sum + p.amount, 0);
+    const newLevel = calculateLevel(totalPoints);
+
+    // Update user profile with new stats
+    await prisma.user.update({
+      where: { id: giver.id },
+      data: {
+        level: newLevel,
+        totalDonated: { increment: amountKES }, // Use KES
+        donationCount: { increment: 1 },
+      },
+    });
+
+    // Create notification for request creator
+    await prisma.notification.create({
+      data: {
+        recipientId: request.userId,
+        issuerId: giver.id,
+        title: 'New Donation Received! ',
+        content: `${giver.firstName || 'Someone'} donated KES ${amountKES} to your request. They earned ${pointsEarned} points and are now at Level ${newLevel}!`,
+        type: 'DONATION',
+        requestId,
+        donationId: donation.id,
+      },
+    });
+
+    // Create notification for the donor
+    await prisma.notification.create({
+      data: {
+        recipientId: giver.id,
+        issuerId: request.userId,
+        title: 'Thank You for Your Donation!',
+        content: `Your donation of KES ${amountKES} was successful. You earned ${pointsEarned} points and are now at Level ${newLevel}. Keep making a difference!`,
+        type: 'PAYMENT_COMPLETED',
+        requestId,
+        donationId: donation.id,
+      },
+    });
+
+    // Check if request is fully funded
+    const totalDonations = await prisma.donation.aggregate({
+      where: {
+        requestId,
+        status: PaymentStatus.COMPLETED,
+      },
+      _sum: {
+        amount: true,
+      },
+    });
+
+    if (request.amount && totalDonations._sum.amount && totalDonations._sum.amount >= request.amount) {
+      await prisma.request.update({
+        where: { id: requestId },
+        data: { status: 'FUNDED' },
+      });
+
+      // Create notification for request completion
+      await prisma.notification.create({
+        data: {
+          recipientId: request.userId,
+          issuerId: giver.id,
+          title: 'Fundraising Goal Reached!',
+          content: `Congratulations! Your request has reached its fundraising goal of KES ${request.amount}. Total amount raised: KES ${totalDonations._sum.amount}`,
+          type: 'PAYMENT_RECEIVED',
+          requestId,
+          donationId: donation.id,
+        },
+      });
+    }
+
+    // Update community statistics if applicable
+    if (request.Community?.id) {
+      await prisma.community.update({
+        where: { id: request.Community.id },
+        data: {
+          totalDonations: { increment: amountKES }, // Use KES
+        },
+      });
+    }
+
+    return NextResponse.json({
+      status: 'success',
+      message: 'Payment processed successfully',
+      data: {
+        paymentId: payment.id,
+        donationId: donation.id,
+        pointsEarned,
+        newLevel,
+      },
+    });
   } catch (error) {
-    console.error("Error in handlePayPalPayment:", error);
-    throw error;
+    console.error('Error processing PayPal payment:', error);
+    return NextResponse.json(
+      { status: 'error', message: 'Error processing payment', error: error instanceof Error ? error.message : 'Unknown error' },
+      { status: 500 }
+    );
   }
 }
+
+// export async function handlePayPalPayment(formData: FormData) {
+//   const { getUser } = getKindeServerSession();
+//   const user = await getUser();
+
+//   if (!user) {
+//     return redirect('/api/auth/login');
+//   }
+
+//   const amount = Number(formData.get('amount'));
+//   const requestId = formData.get('requestId') as string;
+//   console.log(amount, requestId, 'whats aupp]........./////////////////////////////////////////////////////////////////////')
+
+//   try {
+//     const payment = await prisma.payment.create({
+//       data: {
+//         amount,
+//         paymentMethod: PaymentMethod.PAYPAL,
+//         status: PaymentStatus.PENDING,
+//         userId: user.id,
+//         requestId,
+//         userts: new Date(),
+//       },
+//     });
+
+//     return payment;
+//   } catch (error) {
+//     console.error("Error in handlePayPalPayment:", error);
+//     throw error;
+//   }
+// }
 
 
 

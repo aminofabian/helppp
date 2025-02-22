@@ -11,18 +11,19 @@ import { useKindeBrowserClient } from "@kinde-oss/kinde-auth-nextjs";
 import { LoginLink } from "@kinde-oss/kinde-auth-nextjs/components";
 import Link from 'next/link';
 
+
 // Dynamically import PayPal components
-const PayPalButtonWrapper = dynamic(() => import('./PayPalButtonWrapper'), { ssr: false });
-const PayPalScriptProvider = dynamic(
-  () => import('@paypal/react-paypal-js').then(mod => mod.PayPalScriptProvider),
-  { ssr: false }
-);
+// const PayPalButtonWrapper = dynamic(() => import('./PayPalButtonWrapper'), { ssr: false });
+// const PayPalScriptProvider = dynamic(
+//   () => import('@paypal/react-paypal-js').then(mod => mod.PayPalScriptProvider),
+//   { ssr: false }
+// );
 
 // Dynamically import Paystack Button component
-const PaystackButton = dynamic(() => import('./PaystackButton'), { ssr: false });
 
 // Import Paystack inline-js normally since we'll use it only after checking for window
-import PaystackPop from "@paystack/inline-js";
+import { PayPalScriptProvider } from '@paypal/react-paypal-js';
+import PayPalButtonWrapper from './PayPalButtonWrapper';
 
 type PaymentMethod = 'Mpesa' | 'Paystack' | 'PayPal' | 'Till';
 
@@ -132,10 +133,12 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
   const [clientId, setClientId] = useState<string>("");
   const [loading, setLoading] = useState(true);
 
+  window
   const fetchClientId = async () => {
     try {
       const response = await fetch("/api/paypal");
       const data = await response.json();
+      console.log(data, 'rsa librann')
       if (data.clientId) {
         setClientId(data.clientId);
       } else {
@@ -203,6 +206,31 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
     setPhoneNumber(event.target.value);
     setError(null);
   };
+
+  const handleSuccess = () => {
+    toast.success('Payment successful! Thank you for your contribution.', {
+      duration: 3000,
+      position: 'top-center',
+      style: {
+        background: '#10B981',
+        color: '#fff',
+      },
+      icon: '🎉',
+    });
+  }
+  const onPaymentSuccess = (orderId: string) => {
+    handleSuccess();
+  };
+
+  const onPaymentError = (error: string) => {
+    handleError(error);
+  };
+
+  const setErrorMessage = (error: string) => {
+    setError(error);
+  };
+
+ 
 
   const validateForm = () => {
     if (!selectedAmount || selectedAmount <= 0) {
@@ -390,17 +418,7 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
     }
   };
   
-  const handleSuccess = () => {
-    toast.success('Payment successful! Thank you for your contribution.', {
-      duration: 3000,
-      position: 'top-center',
-      style: {
-        background: '#10B981',
-        color: '#fff',
-      },
-      icon: '🎉',
-    });
-  };
+  
 
   const handleError = (error: string) => {
     toast.error(`Payment failed: ${error}`, {
@@ -452,7 +470,7 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
       }
 
       // Redirect to Paystack checkout URL
-      window.location.href = data.authorization_url;
+      // window.location.href = data.authorization_url;
     } catch (error) {
       console.error('Failed to initialize Paystack:', error);
       toast.error('Failed to initialize payment');
@@ -608,7 +626,7 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
             )}
 
             {/* Email Input - Only show for PayPal */}
-            {paymentMethod === 'PayPal' && (
+            {/* {paymentMethod === 'PayPal' && (
               <div>
                 <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200 mb-4 
                              flex items-center gap-2">
@@ -638,9 +656,38 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
                   />
                 </div>
               </div>
-            )}
+            )} */}
             {/* Payment Button */}
+
+<PayPalScriptProvider options={{ clientId }}>
+
             <div className="mt-8">
+  {paymentMethod === 'PayPal' ? (
+    <PayPalButtonWrapper
+      requestId={requestId}
+      onPaymentSuccess={onPaymentSuccess}
+      onPaymentError={onPaymentError}
+      selectedAmount={selectedAmount || parseFloat(customAmount)}
+      setErrorMessage={setErrorMessage}
+      errorMessage={error || ''}
+    />
+  ) : paymentMethod === 'Paystack' && selectedAmount ? (
+    <SubmitButton
+      ButtonName={`Pay ${selectedAmount || customAmount} KES with Paystack`}
+      isLoading={isLoading}
+      onClick={initializePaystack}
+    />
+  ) : (
+    <SubmitButton
+      ButtonName={`Pay ${selectedAmount || customAmount} KES`}
+      isLoading={isLoading}
+      onClick={handleSubmit}
+    />
+  )}
+</div>
+</PayPalScriptProvider>
+
+            {/* <div className="mt-8">
               {paymentMethod === 'Paystack' && selectedAmount ? (
                 <SubmitButton
                   ButtonName={`Pay ${selectedAmount || customAmount} KES with Paystack`}
@@ -654,7 +701,7 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
                   onClick={handleSubmit}
                 />
               ))}
-            </div>
+            </div> */}
           </div>
         </div>
       </div>
