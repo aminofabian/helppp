@@ -505,24 +505,6 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
     try {
       setIsLoading(true);
 
-      // Create donation record first
-      const donationResponse = await fetch('/api/create-donation', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          amount: parseFloat(customAmount),
-          requestId: requestId,
-          paymentMethod: 'PAYSTACK',
-          email: user?.email || '',
-        }),
-      });
-
-      if (!donationResponse.ok) {
-        throw new Error('Failed to create donation record');
-      }
-
       const response = await fetch('/api/initialize-paystack', {
         method: 'POST',
         headers: {
