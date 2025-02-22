@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useKindeBrowserClient } from '@kinde-oss/kinde-auth-nextjs';
@@ -9,22 +9,22 @@ interface DonationFormProps {
 }
 
 const emitDonationEvent = (amount: number, points: number, updatedStats: any) => {
-  if (typeof window !== 'undefined') {
-    try {
-      const donationEvent = new CustomEvent('donation-made', {
-        detail: {
-          amount: Number(amount),
-          points,
-          totalPoints: updatedStats.points,
-          level: updatedStats.level,
-          timestamp: new Date().toISOString()
-        }
-      });
-      window.dispatchEvent(donationEvent);
-      console.log('Donation event emitted:', { amount, points, updatedStats });
-    } catch (error) {
-      console.error('Error emitting donation event:', error);
-    }
+  if (typeof window === 'undefined') return;
+
+  try {
+    const donationEvent = new CustomEvent('donation-made', {
+      detail: {
+        amount: Number(amount),
+        points,
+        totalPoints: updatedStats.points,
+        level: updatedStats.level,
+        timestamp: new Date().toISOString()
+      }
+    });
+    window.dispatchEvent(donationEvent);
+    console.log('Donation event emitted:', { amount, points, updatedStats });
+  } catch (error) {
+    console.error('Error emitting donation event:', error);
   }
 };
 
@@ -52,10 +52,15 @@ export default function DonationForm({ requestId }: DonationFormProps) {
   const [amount, setAmount] = useState('');
   const [loading, setLoading] = useState(false);
   const { user } = useKindeBrowserClient();
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!amount || loading || !user) return;
+    if (!amount || loading || !user || !isClient) return;
 
     setLoading(true);
 
@@ -83,18 +88,23 @@ export default function DonationForm({ requestId }: DonationFormProps) {
         });
 
         if (!statsResponse.ok) {
-          console.error('Failed to update stats');
+          console.error('Failed to update stats:', await statsResponse.text());
           toast.error('Failed to update donation stats');
-        } else {
-          const updatedStats = await statsResponse.json();
-          toast.success(`Donation successful! You earned ${points} points`);
-          
-          // Emit donation event for real-time updates
+          return;
+        }
+
+        const updatedStats = await statsResponse.json();
+        toast.success(`Donation successful! You earned ${points} points`);
+        
+        // Emit donation event for real-time updates
+        if (isClient) {
           emitDonationEvent(Number(amount), points, updatedStats);
         }
 
         // Clear form
         setAmount('');
+      } else {
+        toast.error(paymentData.message || 'Payment failed');
       }
     } catch (error) {
       console.error('Donation error:', error);

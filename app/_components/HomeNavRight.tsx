@@ -147,32 +147,31 @@ export default function HomeNavRight({
   initialWallet: WalletData;
 }) {
   const [stats, setStats] = useState<UserStats>(initialStats);
-  const [wallet, setWallet] = useState<WalletData>(initialWallet);
-  const [isWalletOpen, setIsWalletOpen] = useState(false);
-  const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [hasRunningRequest, setHasRunningRequest] = useState(false);
+  const [wallet, setWallet] = useState<WalletData>(initialWallet);
+  const [isClient, setIsClient] = useState(false);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
+
+  // Set isClient to true when component mounts
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   useEffect(() => {
-    // Function to fetch updated stats
     const fetchUpdatedStats = async () => {
       try {
         const response = await fetch(`/api/user-stats?userId=${initialUser.id}`);
         if (response.ok) {
-          const data = await response.json();
-          setStats(prevStats => ({
-            ...prevStats,
-            ...data,
-            points: data.points || prevStats.points
-          }));
+          const newStats = await response.json();
+          setStats(newStats);
         }
       } catch (error) {
         console.error('Error fetching updated stats:', error);
       }
     };
 
-    // Only set up event listener if we're in the browser
-    if (typeof window !== 'undefined') {
-      // Set up event listener for donation events
+    // Only set up event listeners and intervals if we're on the client
+    if (isClient) {
       const handleDonationEvent = (event: CustomEvent) => {
         const { amount, points } = event.detail;
         setStats(prevStats => ({
@@ -184,31 +183,27 @@ export default function HomeNavRight({
           points: [...(prevStats.points || []), { amount: points }]
         }));
         
-        // Fetch latest stats to ensure consistency
         fetchUpdatedStats();
       };
 
       window.addEventListener('donation-made', handleDonationEvent as EventListener);
 
-      // Fetch immediately when component mounts
+      // Initial fetch
       fetchUpdatedStats();
 
-      // Then poll for updates every 10 seconds
+      // Poll for updates
       const interval = setInterval(fetchUpdatedStats, 10000);
 
-      // Clean up
       return () => {
         clearInterval(interval);
         window.removeEventListener('donation-made', handleDonationEvent as EventListener);
       };
-    } else {
-      // If we're on the server, just fetch stats once
-      fetchUpdatedStats();
     }
-  }, [initialUser.id]);
+  }, [initialUser.id, isClient]);
 
   useEffect(() => {
-    // Check for running requests
+    if (!isClient) return;
+
     const checkRunningRequests = async () => {
       try {
         const response = await fetch(`/api/user-requests/running?userId=${initialUser.id}`);
@@ -222,10 +217,10 @@ export default function HomeNavRight({
     };
 
     checkRunningRequests();
-    const interval = setInterval(checkRunningRequests, 30000); // Check every 30 seconds
+    const interval = setInterval(checkRunningRequests, 30000);
 
     return () => clearInterval(interval);
-  }, [initialUser.id]);
+  }, [initialUser.id, isClient]);
 
   // Calculate total points
   const totalPoints = stats.points.reduce((acc, point) => acc + point.amount, 0);
