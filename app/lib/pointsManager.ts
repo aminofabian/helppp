@@ -35,7 +35,11 @@ const POINTS_MULTIPLIERS = {
 };
 
 export async function calculateDonationPoints(amount: number, userId: string): Promise<number> {
-  let totalPoints = Math.floor(amount / 50); // Base points calculation
+  console.log(`Calculating points for donation of KES ${amount} by user ${userId}`);
+  
+  // Base points calculation (1 point per 50 KES)
+  let totalPoints = Math.floor(amount / 50);
+  console.log(`Base points from amount: ${totalPoints}`);
 
   // Get user's donation history
   const completedDonations = await prisma.donation.count({
@@ -44,36 +48,39 @@ export async function calculateDonationPoints(amount: number, userId: string): P
       status: PaymentStatus.COMPLETED
     }
   });
+  console.log(`User has ${completedDonations} completed donations`);
 
-  // First-time donor bonus
+  // First-time donor bonus (10 points)
   if (completedDonations === 0) {
-    console.log(`First-time donor bonus of ${POINTS_MULTIPLIERS.FIRST_TIME_BONUS} points awarded`);
     totalPoints += POINTS_MULTIPLIERS.FIRST_TIME_BONUS;
+    console.log(`First-time donor bonus added: +${POINTS_MULTIPLIERS.FIRST_TIME_BONUS} points`);
   }
 
-  // Large donation bonus
+  // Large donation bonuses
   for (const [threshold, bonus] of Object.entries(POINTS_MULTIPLIERS.LARGE_DONATION_BONUS)) {
     if (amount >= parseInt(threshold)) {
-      console.log(`Large donation bonus of ${bonus} points awarded for amount >= ${threshold}`);
       totalPoints += bonus;
+      console.log(`Large donation bonus for ${threshold} KES: +${bonus} points`);
     }
   }
 
-  // Streak bonus
+  // Calculate streak bonus
   const streak = await calculateDonationStreak(userId);
   console.log(`Current donation streak: ${streak} days`);
   
+  let streakMultiplier = 1;
   for (const [days, multiplier] of Object.entries(POINTS_MULTIPLIERS.STREAK)) {
     if (streak >= parseInt(days)) {
-      const oldPoints = totalPoints;
-      totalPoints = Math.floor(totalPoints * multiplier);
-      console.log(`Streak bonus: ${days} days streak (${multiplier}x) increased points from ${oldPoints} to ${totalPoints}`);
-      break; // Only apply the highest streak multiplier
+      streakMultiplier = multiplier;
+      console.log(`Applied streak multiplier: ${multiplier}x for ${days}+ day streak`);
     }
   }
 
-  console.log(`Final points calculation: ${totalPoints} points for ${amount} KES donation`);
-  return totalPoints;
+  // Apply streak multiplier
+  const finalPoints = Math.floor(totalPoints * streakMultiplier);
+  console.log(`Final points after streak multiplier: ${finalPoints}`);
+
+  return finalPoints;
 }
 
 async function calculateDonationStreak(userId: string): Promise<number> {
@@ -123,14 +130,18 @@ export async function processPointsTransaction(transaction: PointsTransaction) {
 
     if (existingPoints) {
       console.log(`Points already awarded for payment ${paymentId}:`, existingPoints);
-      return;
+      return existingPoints;
     }
+
+    // Calculate points to award
+    const pointsToAward = await calculateDonationPoints(amount, userId);
+    console.log(`Calculated points to award: ${pointsToAward}`);
 
     // Create points record
     const points = await prisma.points.create({
       data: {
         userId,
-        amount,
+        amount: pointsToAward,
         paymentId
       }
     });
@@ -139,11 +150,11 @@ export async function processPointsTransaction(transaction: PointsTransaction) {
 
     // Get user's current stats
     const userStats = await getUserDonationStats(userId);
-    const newTotalPoints = userStats.points + amount;
+    const newTotalPoints = userStats.points + pointsToAward;
     const newLevel = calculateLevel(newTotalPoints);
 
     // Update user in a single transaction
-    await prisma.user.update({
+    const updatedUser = await prisma.user.update({
       where: { id: userId },
       data: { 
         level: newLevel,
@@ -158,8 +169,11 @@ export async function processPointsTransaction(transaction: PointsTransaction) {
 
     console.log(`Updated user stats:`, {
       userId,
+      previousLevel: userStats.level,
       newLevel,
-      newTotalPoints
+      previousPoints: userStats.points,
+      newTotalPoints,
+      pointsAwarded: pointsToAward
     });
 
     // Create level up notification if level changed
@@ -169,12 +183,23 @@ export async function processPointsTransaction(transaction: PointsTransaction) {
           recipientId: userId,
           issuerId: userId,
           type: NotificationType.PAYMENT_COMPLETED,
-          title: 'Level Up! 🎉',
-          content: `Congratulations! You've reached Level ${newLevel}! You now have ${newTotalPoints} total points.`
+          title: '🎉 Level Up!',
+          content: `Congratulations! You earned ${pointsToAward} points and reached Level ${newLevel}! Your total points are now ${newTotalPoints}.`
         }
       });
 
       console.log(`User leveled up from ${userStats.level} to ${newLevel}`);
+    } else {
+      // Create points earned notification
+      await prisma.notification.create({
+        data: {
+          recipientId: userId,
+          issuerId: userId,
+          type: NotificationType.PAYMENT_COMPLETED,
+          title: '🌟 Points Earned!',
+          content: `You earned ${pointsToAward} points for your donation! Your total points are now ${newTotalPoints}.`
+        }
+      });
     }
 
     return points;
