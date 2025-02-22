@@ -153,46 +153,74 @@ export default function AdminPage() {
     }
   };
 
+  const getRowColorClass = (request: RequestData) => {
+    if (request.status === 'BLOCKED') return 'bg-red-50 dark:bg-red-900/10';
+    if (request.status === 'CLOSED') return 'bg-yellow-50 dark:bg-yellow-900/10';
+    if (request.isFullyFunded) return 'bg-green-50 dark:bg-green-900/10';
+    if (request.isExpired) return 'bg-gray-50 dark:bg-gray-900/10';
+    return '';
+  };
+
   const handleRequestAction = async (requestId: string, action: 'close' | 'block' | 'delete') => {
-    if (!confirm(`Are you sure you want to ${action} this request?`)) {
-      return;
-    }
+    const toastId = toast({
+      title: `Confirm ${action} request`,
+      description: `Are you sure you want to ${action} this request?`,
+      action: (
+        <div className="flex gap-2">
+          <Button 
+            size="sm" 
+            variant="destructive"
+            onClick={async () => {
+              try {
+                const response = await fetch('/api/admin/requests', {
+                  method: 'PATCH',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({ requestId, action }),
+                });
 
-    try {
-      const response = await fetch('/api/admin/requests', {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ requestId, action }),
-      });
+                if (!response.ok) throw new Error(`Failed to ${action} request`);
 
-      if (!response.ok) throw new Error(`Failed to ${action} request`);
-
-      if (action === 'delete') {
-        setRequests(requests.filter(request => request.id !== requestId));
-        toast({
-          title: "Success",
-          description: "Request deleted successfully",
-        });
-      } else {
-        const updatedRequest = await response.json();
-        setRequests(requests.map(request => 
-          request.id === updatedRequest.id ? updatedRequest : request
-        ));
-        toast({
-          title: "Success",
-          description: `Request ${action}d successfully`,
-        });
-      }
-    } catch (error) {
-      console.error(`Error ${action}ing request:`, error);
-      toast({
-        title: "Error",
-        description: `Failed to ${action} request. Please try again.`,
-        variant: "destructive",
-      });
-    }
+                if (action === 'delete') {
+                  setRequests(requests.filter(request => request.id !== requestId));
+                  toast({
+                    title: "Success",
+                    description: "Request deleted successfully",
+                  });
+                } else {
+                  const updatedRequest = await response.json();
+                  setRequests(requests.map(request => 
+                    request.id === updatedRequest.id ? updatedRequest : request
+                  ));
+                  toast({
+                    title: "Success",
+                    description: `Request ${action}d successfully`,
+                  });
+                }
+              } catch (error) {
+                console.error(`Error ${action}ing request:`, error);
+                toast({
+                  title: "Error",
+                  description: `Failed to ${action} request. Please try again.`,
+                  variant: "destructive",
+                });
+              }
+              toast.dismiss(toastId);
+            }}
+          >
+            Confirm
+          </Button>
+          <Button 
+            size="sm" 
+            variant="outline"
+            onClick={() => toast.dismiss(toastId)}
+          >
+            Cancel
+          </Button>
+        </div>
+      ),
+    });
   };
 
   useEffect(() => {
@@ -505,14 +533,27 @@ export default function AdminPage() {
                 </TableHeader>
                 <TableBody>
                   {filteredRequests.map((request) => (
-                    <TableRow key={request.id}>
+                    <TableRow 
+                      key={request.id}
+                      className={getRowColorClass(request)}
+                    >
                       <TableCell className="font-medium">{request.title}</TableCell>
                       <TableCell>{request.user.email}</TableCell>
                       <TableCell>{formatCurrency(request.amount)}</TableCell>
                       <TableCell>{formatCurrency(request.totalDonated)}</TableCell>
                       <TableCell>
-                        <Badge variant={request.isFullyFunded ? "default" : request.isExpired ? "destructive" : "secondary"}>
-                          {request.isFullyFunded ? 'Fully Funded' : request.isExpired ? 'Expired' : 'In Progress'}
+                        <Badge 
+                          variant={
+                            request.status === 'BLOCKED' ? "destructive" :
+                            request.status === 'CLOSED' ? "secondary" :
+                            request.isFullyFunded ? "default" :
+                            request.isExpired ? "outline" : "secondary"
+                          }
+                        >
+                          {request.status === 'BLOCKED' ? 'Blocked' :
+                           request.status === 'CLOSED' ? 'Closed' :
+                           request.isFullyFunded ? 'Fully Funded' :
+                           request.isExpired ? 'Expired' : 'In Progress'}
                         </Badge>
                       </TableCell>
                       <TableCell>
@@ -576,14 +617,14 @@ export default function AdminPage() {
                                 <DropdownMenuContent>
                                   <DropdownMenuItem 
                                     onClick={() => handleRequestAction(request.id, 'close')}
-                                    className="text-yellow-600"
+                                    className="text-yellow-600 hover:bg-yellow-50 dark:hover:bg-yellow-900/10"
                                   >
                                     <Ban className="w-4 h-4 mr-2" />
                                     Close Request
                                   </DropdownMenuItem>
                                   <DropdownMenuItem 
                                     onClick={() => handleRequestAction(request.id, 'block')}
-                                    className="text-red-600"
+                                    className="text-red-600 hover:bg-red-50 dark:hover:bg-red-900/10"
                                   >
                                     <ShieldX className="w-4 h-4 mr-2" />
                                     Block Request
@@ -591,7 +632,7 @@ export default function AdminPage() {
                                   <DropdownMenuSeparator />
                                   <DropdownMenuItem 
                                     onClick={() => handleRequestAction(request.id, 'delete')}
-                                    className="text-red-700"
+                                    className="text-red-700 hover:bg-red-50 dark:hover:bg-red-900/10"
                                   >
                                     <Trash2 className="w-4 h-4 mr-2" />
                                     Delete Request
