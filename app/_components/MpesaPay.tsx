@@ -204,10 +204,6 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
     setError(null);
   };
 
-  // const handleEmailChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-  //   setEmail(event.target.value);
-  //   setError(null);
-  // };
   const validateForm = () => {
     if (!selectedAmount || selectedAmount <= 0) {
       setError('Please select a valid amount');
@@ -221,10 +217,9 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
       return false;
     }
 
-    // Email only required for Paystack and PayPal
-    if ((paymentMethod === 'Paystack' || paymentMethod === 'PayPal') && 
-        (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))) {
-      setError('Please enter a valid email address');
+    // Email validation not needed for Paystack as we use Kinde user email
+    if (paymentMethod === 'PayPal' && !user?.email) {
+      setError('Email is required for PayPal payments');
       return false;
     }
 
@@ -311,35 +306,6 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
     }, 5000);
   };
   
-  // const pollPaymentStatus = async (paymentId: string) => {
-  //   let pollCount = 0;
-  //   const maxPolls = 24; // 2 minutes with 5-second intervals
-    
-  //   const pollInterval = setInterval(async () => {
-  //     try {
-  //       pollCount++;
-  //       const status = await checkPaymentStatus(paymentId);
-        
-  //       if (status === 'SUCCESS') {
-  //         clearInterval(pollInterval);
-  //         setSuccess(true);
-  //         toast.success('Payment successful!');
-  //       } else if (status === 'FAILED' || pollCount >= maxPolls) {
-  //         clearInterval(pollInterval);
-  //         if (status === 'FAILED') {
-  //           toast.error('Payment failed. Please try again.');
-  //           setError('Payment failed');
-  //         } else {
-  //           toast.error('Payment timeout. Please try again.');
-  //           setError('Payment timeout');
-  //         }
-  //       }
-  //     } catch (error) {
-  //       console.error('Error checking payment status:', error);
-  //     }
-  //   }, 5000);
-  // };
-
   const handleSubmit = async () => {
     if (!validateForm()) return;
 
@@ -407,55 +373,7 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
         setIsLoading(false);
       }
       
-
-      // else if (paymentMethod === "Till") {
-      //   const result = await handleTillPayment(createPaymentFormData());
-      //   console.log('Till payment result:', result);
-
-      //   if (result?.status === 'PENDING' && result?.paymentId) {
-      //     // Show initial notification
-      //     toast.custom((t) => (
-      //       <div className="max-w-md w-full bg-white shadow-lg rounded-lg pointer-events-auto flex ring-1 ring-black ring-opacity-5">
-      //         <div className="flex-1 w-0 p-4">
-      //           <div className="flex items-center">
-      //             <Phone className="h-10 w-10 text-primary flex-shrink-0" />
-      //             <div className="ml-3">
-      //               <p className="text-sm font-medium text-gray-900">
-      //                 Payment Initiated
-      //               </p>
-      //               <p className="mt-1 text-sm text-gray-500">
-      //                 Your payment request has been sent. Please check your phone for the STK push.
-      //               </p>
-      //             </div>
-      //           </div>
-      //         </div>
-      //       </div>
-      //     ), { duration: 8000 });
-
-          // Start polling for payment status
-      //     await pollPaymentStatus(result.paymentId);
-      //   } else {
-      //     toast.error(result?.message || "Failed to initiate payment");
-      //     setError(result?.message || "Failed to initiate payment");
-      //   }
-      //   setIsLoading(false);
-      // }
-
       else if (paymentMethod === "Paystack") {
-        if (!email) {
-          setError("Email is required for Paystack payments");
-          toast.error("Please enter your email address");
-          setIsLoading(false);
-          return;
-        }
-
-        if (!selectedAmount) {
-          setError("Please select an amount");
-          toast.error("Please select an amount");
-          setIsLoading(false);
-          return;
-        }
-
         setShowPaystackButton(true);
         setIsLoading(false);
       }
@@ -472,7 +390,6 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
     }
   };
   
-
   const handleSuccess = () => {
     toast.success('Payment successful! Thank you for your contribution.', {
       duration: 3000,
@@ -511,7 +428,7 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          email: user?.email || '',
+          email: user?.email,
           amount: parseFloat(customAmount),
           reference: `${requestId}_${Date.now()}`,
           callback_url: `${window.location.origin}/api/paystack-callback`,
@@ -690,8 +607,8 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
               </div>
             )}
 
-            {/* Email Input - Only show for Paystack and PayPal */}
-            {(paymentMethod === 'Paystack' || paymentMethod === 'PayPal') && (
+            {/* Email Input - Only show for PayPal */}
+            {paymentMethod === 'PayPal' && (
               <div>
                 <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200 mb-4 
                              flex items-center gap-2">
@@ -724,7 +641,7 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
             )}
             {/* Payment Button */}
             <div className="mt-8">
-              {paymentMethod === 'Paystack' && selectedAmount && email ? (
+              {paymentMethod === 'Paystack' && selectedAmount ? (
                 <SubmitButton
                   ButtonName={`Pay ${selectedAmount || customAmount} KES with Paystack`}
                   isLoading={isLoading}
