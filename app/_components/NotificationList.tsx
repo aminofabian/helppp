@@ -120,7 +120,7 @@ export default function NotificationList({
   const formatAmount = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'NGN'
+      currency: 'KES'
     }).format(amount);
   };
 

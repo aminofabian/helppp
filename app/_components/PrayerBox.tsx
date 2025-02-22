@@ -29,7 +29,7 @@ const CURRENCIES = {
   africa: [
     { value: 'KES', label: 'Kenyan Shilling', symbol: 'KSh', flag: '🇰🇪' },
     { value: 'TZS', label: 'Tanzanian Shilling', symbol: 'TSh', flag: '🇹🇿' },
-    { value: 'NGN', label: 'Nigerian Naira', symbol: '₦', flag: '🇳🇬' },
+    { value: 'KES', label: 'Nigerian Naira', symbol: '₦', flag: '🇳🇬' },
     { value: 'UGX', label: 'Ugandan Shilling', symbol: 'USh', flag: '🇺🇬' },
     { value: 'RWF', label: 'Rwandan Franc', symbol: 'RF', flag: '🇷🇼' },
     { value: 'ETB', label: 'Ethiopian Birr', symbol: 'Br', flag: '🇪🇹' },
