@@ -63,6 +63,7 @@ interface RequestData {
   daysRunning: number;
   daysUntilDeadline: number;
   isExpired: boolean;
+  status: string;
   user: {
     email: string;
   };
@@ -162,7 +163,7 @@ export default function AdminPage() {
   };
 
   const handleRequestAction = async (requestId: string, action: 'close' | 'block' | 'delete') => {
-    const toastId = toast({
+    const { dismiss } = toast({
       title: `Confirm ${action} request`,
       description: `Are you sure you want to ${action} this request?`,
       action: (
@@ -206,7 +207,7 @@ export default function AdminPage() {
                   variant: "destructive",
                 });
               }
-              toast.dismiss(toastId);
+              dismiss();
             }}
           >
             Confirm
@@ -214,7 +215,7 @@ export default function AdminPage() {
           <Button 
             size="sm" 
             variant="outline"
-            onClick={() => toast.dismiss(toastId)}
+            onClick={() => dismiss()}
           >
             Cancel
           </Button>
