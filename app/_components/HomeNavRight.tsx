@@ -13,6 +13,7 @@ import { calculateLevel, LEVEL_THRESHOLDS } from '@/app/lib/levelCalculator';
 import dynamic from 'next/dynamic';
 import NotificationList from './NotificationList';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { calculateRequestAmount } from '@/app/lib/requestCalculator';
 
 // Dynamically import Dialog components with no SSR
 const Dialog = dynamic(() => import("@/components/ui/dialog").then(mod => mod.Dialog), { ssr: false });
@@ -426,15 +427,17 @@ export default function HomeNavRight({
               <span className="text-sm text-gray-600 dark:text-gray-300">Request Amount</span>
             </div>
             {(() => {
-              const netAmount = (stats.calculatedTotalDonated || stats.totalDonated || 0) - (stats.totalReceived || 0);
-              const requestAmount = netAmount * 0.0111;
+              const totalDonated = stats.calculatedTotalDonated || stats.totalDonated || 0;
+              const totalReceived = stats.totalReceived || 0;
+              const requestAmount = calculateRequestAmount(totalDonated, totalReceived);
+              const netAmount = totalDonated - totalReceived;
               return (
                 <>
                   <p className={`text-lg font-semibold ${netAmount < 0 ? 'text-red-500' : 'text-primary'}`}>
                     KES {requestAmount.toLocaleString()}
                   </p>
                   <p className="text-xs text-gray-500 mt-1">
-                    Based on 1.11% of net contributions
+                    Based on 111% of net contributions (given - received)
                   </p>
                 </>
               );

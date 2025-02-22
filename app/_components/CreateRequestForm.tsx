@@ -14,6 +14,8 @@ import { SubmitButton } from '@/app/_components/SubmitButtons';
 import { JSONContent } from '@tiptap/react';
 import { useToast } from "@/components/ui/use-toast";
 import { Progress } from "@/components/ui/progress";
+import { calculateRequestAmount, calculateMaxRequestAmount } from '@/app/lib/requestCalculator';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 
 interface CommunityGuideline {
@@ -31,6 +33,9 @@ interface CreateRequestFormProps {
   totalReceivedDonations: number;
   remainingLimit: number;
   levelLimit: number;
+  hasRunningRequest: boolean;
+  totalDonated: number;
+  totalReceived: number;
 }
 
 interface Interval {
@@ -52,7 +57,18 @@ const LEVEL_LIMITS = {
   10: 100000000,
 } as const;
 
-export function CreateRequestForm({ createRequest, communityGuidelines, params, userLevel, totalReceivedDonations, remainingLimit, levelLimit }: CreateRequestFormProps) {
+export function CreateRequestForm({ 
+  createRequest, 
+  communityGuidelines, 
+  params, 
+  userLevel, 
+  totalReceivedDonations, 
+  remainingLimit, 
+  levelLimit,
+  hasRunningRequest,
+  totalDonated,
+  totalReceived
+}: CreateRequestFormProps) {
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
   const [selectedButtonIndex, setSelectedButtonIndex] = useState<number | null>(null);
   const [editMode, setEditMode] = useState<boolean>(false);
@@ -86,23 +102,27 @@ export function CreateRequestForm({ createRequest, communityGuidelines, params, 
   
   // Ensure userLevel is a number and within valid range
   const validUserLevel = typeof userLevel === 'number' && userLevel >= 1 && userLevel <= 10 ? userLevel : 1;
-  const maxAmount = LEVEL_LIMITS[validUserLevel as keyof typeof LEVEL_LIMITS];
   
-  console.log('User Level Type:', typeof userLevel);
-  console.log('User Level Value:', userLevel);
-  console.log('Valid User Level:', validUserLevel);
-  console.log('Max Amount:', maxAmount);
+  // Calculate the maximum request amount based on net contributions
+  console.log('Calculation Debug:', {
+    totalDonated,
+    totalReceived,
+    netAmount: totalDonated - totalReceived,
+    requestAmount: calculateRequestAmount(totalDonated || 0, totalReceived || 0),
+    maxRequestAmount: calculateMaxRequestAmount(totalDonated || 0, totalReceived || 0)
+  });
+
+  const maxRequestAmount = calculateMaxRequestAmount(totalDonated || 0, totalReceived || 0);
+  
+  // Filter available amounts based on max request amount
+  const availableAmounts = numbers.filter(amount => amount <= maxRequestAmount);
   
   console.log('Form Debug:', {
     validUserLevel,
-    remainingLimit,
-    levelLimit,
+    maxRequestAmount,
     numbers,
+    availableAmounts,
   });
-  
-  // Filter available amounts based on remaining limit
-  const availableAmounts = numbers.filter(amount => amount <= remainingLimit);
-  console.log('Available Amounts:', availableAmounts);
 
   const handleAmountSelect = (amount: number, index: number) => {
     if (validUserLevel === 1) {
@@ -115,10 +135,10 @@ export function CreateRequestForm({ createRequest, communityGuidelines, params, 
       return;
     }
 
-    if (amount > remainingLimit) {
+    if (amount > maxRequestAmount) {
       toast({
         title: "Amount Limit Exceeded",
-        description: `You can only request up to ${remainingLimit.toLocaleString()} more based on your level limit of ${levelLimit.toLocaleString()}`,
+        description: `You can only request up to ${maxRequestAmount.toLocaleString()} (115% of your request amount)`,
         variant: "destructive",
       });
       setShowLevelError(true);
@@ -153,10 +173,10 @@ export function CreateRequestForm({ createRequest, communityGuidelines, params, 
       return;
     }
 
-    if (amount > remainingLimit) {
+    if (amount > maxRequestAmount) {
       toast({
         title: "Amount Limit Exceeded",
-        description: `You can only request up to ${remainingLimit.toLocaleString()} more based on your level limit of ${levelLimit.toLocaleString()}`,
+        description: `You can only request up to ${maxRequestAmount.toLocaleString()} (115% of your request amount)`,
         variant: "destructive",
       });
       setShowLevelError(true);
@@ -268,6 +288,24 @@ export function CreateRequestForm({ createRequest, communityGuidelines, params, 
     }
   };
 
+  if (hasRunningRequest) {
+    return (
+      <div className="my-8 max-w-7xl mx-auto px-4">
+        <div className="mb-8 p-4 bg-orange-100 border border-orange-200 rounded-xl text-orange-800">
+          <div className="flex items-center gap-3">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+            </svg>
+            <div>
+              <h3 className="font-semibold">Active Request Found</h3>
+              <p className="text-sm">You already have an active request. Please wait for it to be completed before creating a new one.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (    
     <div className="my-8 max-w-7xl mx-auto px-4">
       {validUserLevel === 1 && (
@@ -286,28 +324,104 @@ export function CreateRequestForm({ createRequest, communityGuidelines, params, 
 
       {validUserLevel > 1 && (
         <div className="mb-8 space-y-4">
-          <div className="p-4 bg-blue-50 border border-blue-100 rounded-xl text-blue-800">
-            <div className="flex items-center gap-3">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
-              </svg>
-              <div>
-                <h3 className="font-semibold">Level {validUserLevel} Limit</h3>
-                <p className="text-sm">Your remaining request limit is {remainingLimit.toLocaleString()} out of {levelLimit.toLocaleString()}</p>
+          <Dialog>
+            <DialogTrigger asChild>
+              <div className="p-4 bg-blue-50 border border-blue-100 rounded-xl text-blue-800 cursor-pointer hover:bg-blue-100 transition-colors">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
+                    </svg>
+                    <h3 className="font-semibold">Request Amount Limit</h3>
+                  </div>
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="mt-2">
+                  <p className="text-sm font-medium text-blue-800 dark:text-blue-300">
+                    Request Amount (111%): KES {calculateRequestAmount(totalDonated || 0, totalReceived || 0).toLocaleString()}
+                  </p>
+                </div>
               </div>
-            </div>
-          </div>
-          <div className="p-4 bg-green-50 border border-green-100 rounded-xl text-green-800">
-            <div className="flex items-center gap-3">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
-              </svg>
-              <div>
-                <h3 className="font-semibold">Total Received Donations</h3>
-                <p className="text-sm">You have received {totalReceivedDonations.toLocaleString()} in total donations</p>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Request Amount Details</DialogTitle>
+                <DialogDescription>
+                  <div className="mt-4 space-y-3">
+                    <div className="flex justify-between text-sm">
+                      <span>Total Donated:</span>
+                      <span className="font-medium">KES {(totalDonated || 0).toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span>Total Received:</span>
+                      <span className="font-medium">KES {(totalReceived || 0).toLocaleString()}</span>
+                    </div>
+                    <Separator className="my-2" />
+                    <div className="flex justify-between text-sm">
+                      <span>Net Amount:</span>
+                      <span className="font-medium">KES {((totalDonated || 0) - (totalReceived || 0)).toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between text-sm text-primary">
+                      <span>Request Amount (111%):</span>
+                      <span className="font-medium">KES {calculateRequestAmount(totalDonated || 0, totalReceived || 0).toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between text-sm text-primary">
+                      <span>Maximum Allowed (115%):</span>
+                      <span className="font-medium">KES {maxRequestAmount.toLocaleString()}</span>
+                    </div>
+                    <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+                      <p className="text-xs text-blue-800">
+                        Your request amount is calculated as 111% of your net contributions (total donated minus total received).
+                        The maximum allowed amount is 115% of your request amount.
+                      </p>
+                    </div>
+                  </div>
+                </DialogDescription>
+              </DialogHeader>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog>
+            <DialogTrigger asChild>
+              <div className="p-4 bg-green-50 border border-green-100 rounded-xl text-green-800 cursor-pointer hover:bg-green-100 transition-colors">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+                    </svg>
+                    <h3 className="font-semibold">Total Received Donations</h3>
+                  </div>
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="mt-2">
+                  <p className="text-sm">You have received {totalReceivedDonations.toLocaleString()} in total donations</p>
+                </div>
               </div>
-            </div>
-          </div>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Donation History</DialogTitle>
+                <DialogDescription>
+                  <div className="mt-4 space-y-3">
+                    <div className="flex justify-between text-sm">
+                      <span>Total Received:</span>
+                      <span className="font-medium">KES {totalReceivedDonations.toLocaleString()}</span>
+                    </div>
+                    <div className="mt-4 p-3 bg-green-50 rounded-lg">
+                      <p className="text-xs text-green-800">
+                        This represents the total amount of donations you have received from the community.
+                        These donations contribute to your overall platform activity and help determine your request limits.
+                      </p>
+                    </div>
+                  </div>
+                </DialogDescription>
+              </DialogHeader>
+            </DialogContent>
+          </Dialog>
         </div>
       )}
 
@@ -465,7 +579,7 @@ export function CreateRequestForm({ createRequest, communityGuidelines, params, 
                         ) : (
                           <div className="col-span-full text-center space-y-2 text-slate-500 dark:text-slate-400 py-4">
                             <p>No amounts available for your current level</p>
-                            {remainingLimit === 0 && (
+                            {maxRequestAmount === 0 && (
                               <p className="text-sm text-orange-600">
                                 You have reached your level limit with active requests. 
                                 Wait for your current requests to be funded or closed before creating new ones.

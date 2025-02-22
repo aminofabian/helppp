@@ -9,6 +9,7 @@ async function getUserData(userId: string) {
     where: { id: userId },
     select: { 
       level: true,
+      totalDonated: true,
       requests: {
         where: {
           OR: [
@@ -31,6 +32,17 @@ async function getUserData(userId: string) {
     },
   });
 
+  // Calculate total received from completed donations
+  const received = await prisma.donation.aggregate({
+    where: {
+      requestId: userId,
+      status: "COMPLETED"
+    },
+    _sum: {
+      amount: true
+    }
+  });
+
   const userLevel = user?.level ?? 1;
   const LEVEL_LIMITS = {
     1: 0,
@@ -46,7 +58,7 @@ async function getUserData(userId: string) {
   } as const;
 
   // Calculate total amount of active requests
-  const totalActiveRequests = user?.requests.reduce((total, request) => total + request.amount, 0) ?? 0;
+  const totalActiveRequests = user?.requests?.reduce((total, request) => total + request.amount, 0) ?? 0;
 
   // Calculate the level limit
   const levelLimit = LEVEL_LIMITS[userLevel as keyof typeof LEVEL_LIMITS];
@@ -59,7 +71,9 @@ async function getUserData(userId: string) {
     levelLimit,
     totalActiveRequests,
     remainingLimit,
-    activeRequests: user?.requests.map(req => ({
+    totalDonated: user?.totalDonated ?? 0,
+    totalReceived: received._sum.amount ?? 0,
+    activeRequests: user?.requests?.map(req => ({
       amount: req.amount,
       status: req.status,
       createdAt: req.createdAt
@@ -70,7 +84,10 @@ async function getUserData(userId: string) {
     level: userLevel,
     totalReceivedDonations: 0, // We'll handle this separately
     remainingLimit,
-    levelLimit
+    levelLimit,
+    totalDonated: user?.totalDonated ?? 0,
+    totalReceived: received._sum.amount ?? 0,
+    hasRunningRequest: (user?.requests?.length ?? 0) > 0
   };
 }
 
@@ -114,6 +131,9 @@ export default async function CreateRequestPage({
       totalReceivedDonations={userData.totalReceivedDonations}
       remainingLimit={userData.remainingLimit}
       levelLimit={userData.levelLimit}
+      hasRunningRequest={userData.hasRunningRequest}
+      totalDonated={userData.totalDonated}
+      totalReceived={userData.totalReceived}
     />
   );
 }
