@@ -441,17 +441,22 @@ export async function handleTillPayment(formData: FormData): Promise<PaymentResp
   try {
     // Create payment record
     const payment = await createPaymentRecord(amount, requestId, phoneNumber, user.id);
+    console.log('Created payment record:', payment);
 
-    // Initiate payment
-    const response = await initiatePayment(requestId, amount, phoneNumber);
+    // Initiate payment with user ID
+    const response = await initiatePayment(requestId, amount, phoneNumber, user.id);
+    console.log('Payment initiation response:', response.data);
 
-    return {
-      success: true,
-      message: 'Payment initiated successfully',
-      transactionId: response.data.transactionId,
-    //   status: 'PENDING',
-    //  paymentId: payment.id
-    };
+    if (response.data.success) {
+      return {
+        success: true,
+        message: 'Payment initiated successfully',
+        paymentId: payment.id,
+        status: 'PENDING'
+      };
+    } else {
+      throw new Error(response.data.message || 'Failed to initiate payment');
+    }
   } catch (error) {
     handlePaymentError(error);
   }
@@ -504,19 +509,18 @@ async function createPaymentRecord(
  * @throws AxiosError if the API call fails
  */
 
-async function initiatePayment(requestId: string, amount: number, phoneNumber: string) {
+async function initiatePayment(requestId: string, amount: number, phoneNumber: string, userId: string) {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://fitrii.com';
 
   try {
     const response = await axios.post<PaymentResponse>(
       `${baseUrl}/api/initiate-till-payment`,
-      { requestId, amount, phoneNumber },
+      { requestId, amount, phoneNumber, userId },
       {
         headers: { 'Content-Type': 'application/json' },
         timeout: 30000,
       }
     );
-    console.log(response, 'resposnee.:.')
     return response;
   } catch (error: any) {
     if (axios.isAxiosError(error)) {
@@ -533,26 +537,6 @@ async function initiatePayment(requestId: string, amount: number, phoneNumber: s
     throw new Error(error.message || 'Failed to process payment request.');
   }
 }
-
-// async function initiatePayment(requestId: string, amount: number, phoneNumber: string) {
-//   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://fitrii.com';
-
-//   try {
-//     const response = await axios.post<PaymentResponse>(
-//       `${baseUrl}/api/initiate-till-payment`,
-//       { requestId, amount, phoneNumber },
-//       {
-//         headers: { 'Content-Type': 'application/json' },
-//         timeout: 3000, // 15-second timeout
-//       }
-//     );
-
-//     return response;
-//   } catch (error) {
-//     console.error('Payment initiation failed:', error);
-//     throw error;
-//   }
-// }
 
 /**
  * Handles payment processing errors
@@ -578,202 +562,3 @@ function handlePaymentError(error: unknown): never {
 
   throw new Error('Unexpected error while processing the payment.');
 }
-
-// export async function handleTillPayment(formData: FormData) {
-//   const { getUser } = getKindeServerSession();
-//   const user = await getUser();
-
-//   if (!user) {
-//     return redirect('/api/auth/login');
-//   }
-
-//   // Extract form values safely
-//   const amount = Number(formData.get('amount'));
-//   const requestId = formData.get('requestId')?.toString().trim();
-//   const phoneNumber = formData.get('phoneNumber')?.toString().trim();
-
-//   // Input validation
-//   if (isNaN(amount) || amount <= 0) {
-//     throw new Error('Invalid amount. It must be a positive number.');
-//   }
-//   if (!requestId) {
-//     throw new Error('Request ID is required.');
-//   }
-//   if (!phoneNumber || !/^\d{10,13}$/.test(phoneNumber)) {
-//     throw new Error('Invalid phone number format. Must be 10-13 digits.');
-//   }
-
-//   console.log('🔹 Processing Payment:', { amount, requestId, phoneNumber });
-
-//   try {
-//     // Create a payment record
-//     const payment = await prisma.payment.create({
-//       data: {
-//         amount,
-//         paymentMethod: PaymentMethod.MPESA,
-//         status: PaymentStatus.PENDING,
-//         userId: user.id,
-//         requestId,
-//         phoneNumber,
-//         userts: new Date(),
-//       },
-//     });
-
-//     // Define API base URL
-//     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://fitrii.com';
-
-//     console.log('📡 Initiating Till Payment API Call...');
-
-//     // Make API call to initiate payment
-//     const response = await axios.post(
-//       `${baseUrl}/api/initiate-till-payment`,
-//       { requestId, amount, phoneNumber },
-//       {
-//         headers: { 'Content-Type': 'application/json' },
-//         timeout: 15000, // 15-second timeout to prevent request hanging
-//       }
-//     );
-
-//     console.log('✅ Payment Initiation Successful:', response.data);
-
-//     return { ...payment, ...response.data };
-//   } catch (error: any) {
-//     console.error('❌ Error in handleTillPayment:', error);
-
-//     if (axios.isAxiosError(error)) {
-//       console.error('🛑 Axios Error:', error.response?.data || error.message);
-//       throw new Error(error.response?.data?.message || 'Failed to process payment request.');
-//     }
-
-//     // Handle specific network errors
-//     if (error.code === 'ETIMEDOUT') {
-//       throw new Error('Payment request timed out. Please try again.');
-//     }
-//     if (error.code === 'ECONNREFUSED') {
-//       throw new Error('Payment service is unavailable. Please try again later.');
-//     }
-
-//     throw new Error('Unexpected error while processing the payment.');
-//   }
-// }
-
-// export async function handleTillPayment(formData: FormData) {
-//   const { getUser } = getKindeServerSession();
-//   const user = await getUser();
-
-//   if (!user) {
-//     return redirect('/api/auth/login');
-//   }
-
-//   // Extract and validate form data
-//   const amount = Number(formData.get('amount'));
-//   const requestId = formData.get('requestId') as string;
-//   const phoneNumber = formData.get('phoneNumber') as string;
-
-//   if (!amount || amount <= 0 || isNaN(amount)) {
-//     throw new Error('Invalid amount. It must be a positive number.');
-//   }
-//   if (!requestId) {
-//     throw new Error('Request ID is required.');
-//   }
-//   if (!phoneNumber || !/^\d{10,13}$/.test(phoneNumber)) {
-//     throw new Error('Invalid phone number format.');
-//   }
-
-//   console.log('/////////////////////////////////////////////////////////////////:::::::::::::::::::::::::::::::::::::::::::::::',`Processing payment - Amount: ${amount}, Request ID: ${requestId}, Phone: ${phoneNumber}`);
-
-//   try {
-//     // Create a payment record in the database
-//     const payment = await prisma.payment.create({
-//       data: {
-//         amount,
-//         paymentMethod: PaymentMethod.MPESA,
-//         status: PaymentStatus.PENDING,
-//         userId: user.id,
-//         requestId,
-//         phoneNumber,
-//         userts: new Date(),
-//       },
-//     });
-
-//     // Define API base URL
-//     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://fitrii.com';
-
-//     // Send payment initiation request
-//     const response = await axios.post(
-//       `${baseUrl}/api/initiate-till-payment`,
-//       { requestId, amount, phoneNumber },
-//       {
-//         headers: { 'Content-Type': 'application/json' },
-//         timeout: 15000, // 15-second timeout to prevent request hanging
-//       }
-//     );
-
-//     console.log(`Payment initiation response:`, response.data);
-
-//     return { ...payment, ...response.data };
-//   } catch (error) {
-//     console.error('Error in handleTillPayment:', error);
-
-//     if (axios.isAxiosError(error)) {
-//       console.error('Axios Error Response:', error.response?.data);
-//       console.error('Axios Error Config:', error.config);
-//       throw new Error(error.response?.data?.message || 'Failed to process payment request.');
-//     }
-
-//     throw new Error('Unexpected error while processing the payment.');
-//   }
-// }
-// export async function handleTillPayment(formData: FormData) {
-//   const { getUser } = getKindeServerSession();
-//   const user = await getUser();
-
-//   if (!user) {
-//     return redirect('/api/auth/login');
-//   }
-
-//   const amount = Number(formData.get('amount'));
-//   const requestId = formData.get('requestId') as string;
-//   const phoneNumber = formData.get('phoneNumber') as string;
-//   console.log(amount, requestId, phoneNumber, 'HEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEY');
-
-//   try {
-//     // First create the payment record
-//     const payment = await prisma.payment.create({
-//       data: {
-//         amount,
-//         paymentMethod: PaymentMethod.MPESA,
-//         status: PaymentStatus.PENDING,
-//         userId: user.id,
-//         requestId,
-//         phoneNumber,
-//         userts: new Date(),
-//       },
-//     });
-
-//     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://fitrii.com';
-//     // Then initiate the till payment
-//     const response = await axios.post(
-//       `${baseUrl}/api/initiate-till-payment`,
-//       {
-//         requestId,
-//         amount,
-//         phoneNumber,
-//       },
-//       {
-//         headers: {
-//           'Content-Type': 'application/json',
-//         },
-//       }
-//     );
-//     console.log()
-
-//     return { ...payment, ...response.data };
-//   } catch (error) {
-//     console.error("Error in handleTillPayment:", error);
-//     if (axios.isAxiosError(error)) {
-//       throw new Error(error.response?.data?.message || error.message);
-//     }
-//     throw error;
-//   }
-// }
