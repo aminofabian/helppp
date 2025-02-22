@@ -121,12 +121,12 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
 
     // Calculate and award points (1 point per 50 KES)
     const amountInKES = event.data.amount / 100; // Convert from kobo to KES
-    const pointsEarned = Math.floor(amountInKES / 50);
+    const pointsEarned = Math.max(1, Math.floor(amountInKES / 50));
     console.log(`[${webhookId}] Points calculation:`, {
       originalAmount: event.data.amount,
       amountInKES,
       pointsEarned,
-      calculationDetails: `${amountInKES} KES / 50 = ${pointsEarned} points`
+      calculationDetails: `${amountInKES} KES / 50 = ${pointsEarned} points (minimum 1 point)`
     });
 
     const points = await prisma.points.create({
