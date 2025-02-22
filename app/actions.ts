@@ -12,6 +12,7 @@ import { v4 as uuidv4 } from 'uuid';
 import crypto from 'crypto';
 import { calculateLevel } from "@/app/lib/levelCalculator";
 import axios from 'axios';
+import { calculateDonationPoints, processPointsTransaction, getUserDonationStats } from "@/app/lib/pointsManager";
 
 export async function updateUsername(prevState: any, formData: FormData) {
   const { getUser } = getKindeServerSession();
@@ -616,40 +617,21 @@ export async function handlePayPalWebhook(paymentData: {
       }
     });
 
-    // Calculate points (1 point per 50 KES, minimum 1 point)
-    const pointsEarned = Math.max(1, Math.floor(amountKES / 50));
-    console.log('Points calculation:', {
-      amountKES,
-      pointsEarned,
-      calculationDetails: `${amountKES} KES / 50 = ${pointsEarned} points (minimum 1 point)`,
-      userId: giver.id
-    });
-    
-    // Create points record for giver
-    const points = await prisma.points.create({
-      data: { 
-        userId: giver.id, 
-        amount: pointsEarned,
-        paymentId: payment.id 
-      }
+    // Calculate and award points using pointsManager
+    const points = await calculateDonationPoints(amountKES, giver.id);
+    console.log(`Calculated points for donation ${donation.id}: ${points}`);
+
+    // Process points transaction
+    await processPointsTransaction({
+      userId: giver.id,
+      amount: points,
+      paymentId: payment.id,
+      description: `Points earned for donating KES ${amountKES}`
     });
 
-    // Calculate new level based on total points for giver
-    const giverPoints = await prisma.points.findMany({
-      where: { userId: giver.id }
-    });
-    const giverTotalPoints = giverPoints.reduce((sum, p) => sum + p.amount, 0);
-    const giverNewLevel = calculateLevel(giverTotalPoints);
-
-    // Update giver profile with new stats
-    await prisma.user.update({
-      where: { id: giver.id },
-      data: {
-        level: giverNewLevel,
-        totalDonated: { increment: amountKES },
-        donationCount: { increment: 1 }
-      }
-    });
+    // Get donor's updated stats
+    const donorStats = await getUserDonationStats(giver.id);
+    console.log(`Updated donor stats for ${giver.id}:`, donorStats);
 
     // Create notification for request creator
     await prisma.notification.create({
@@ -657,7 +639,7 @@ export async function handlePayPalWebhook(paymentData: {
         recipientId: request.userId,
         issuerId: giver.id,
         title: 'New Donation Received! 🎉',
-        content: `${giver.firstName || 'Someone'} donated KES ${amountKES} to your request. They earned ${pointsEarned} points and are now at Level ${giverNewLevel}!`,
+        content: `${giver.firstName || 'Someone'} donated KES ${amountKES} to your request. They earned ${points} points and are now at Level ${donorStats.level}!`,
         type: 'DONATION',
         requestId: requestId,
         donationId: donation.id
@@ -670,7 +652,7 @@ export async function handlePayPalWebhook(paymentData: {
         recipientId: giver.id,
         issuerId: request.userId,
         title: 'Thank You for Your Donation! 🌟',
-        content: `Your donation of KES ${amountKES} was successful. You earned ${pointsEarned} points and are now at Level ${giverNewLevel}. Keep making a difference!`,
+        content: `You earned ${points} points for your donation of KES ${amountKES}. Your total points are now ${donorStats.points} and you're at Level ${donorStats.level}. Keep up the great work with your ${donorStats.streak} donation streak!`,
         type: 'PAYMENT_COMPLETED',
         requestId: requestId,
         donationId: donation.id
@@ -732,8 +714,8 @@ export async function handlePayPalWebhook(paymentData: {
       data: {
         paymentId: payment.id,
         donationId: donation.id,
-        pointsEarned,
-        newLevel: giverNewLevel
+        pointsEarned: points,
+        newLevel: donorStats.level
       }
     };
 
