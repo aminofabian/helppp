@@ -192,7 +192,7 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
       data: {
         recipientId: giver.id,
         issuerId: request.userId,
-        title: 'Thank You for Your Donation! 🌟',
+        title: 'Thank You for Your Donation! ',
         content: `Your donation of KES ${event.data.amount / 100} was successful. You earned ${pointsEarned} points and are now at Level ${newLevel}. Keep making a difference!`,
         type: 'PAYMENT_COMPLETED',
         requestId: requestId,
@@ -222,7 +222,7 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
         data: {
           recipientId: request.userId,
           issuerId: giver.id,
-          title: 'Fundraising Goal Reached! 🎊',
+          title: 'Fundraising Goal Reached! ',
           content: `Congratulations! Your request has reached its fundraising goal of KES ${request.amount}. Total amount raised: KES ${totalDonations._sum.amount}`,
           type: 'PAYMENT_RECEIVED',
           requestId: requestId,
@@ -357,8 +357,67 @@ async function handleKopokopoWebhook(data: any, webhookId: string) {
   }
 }
 
+// export async function POST(req: Request) {
+//   const webhookId = crypto.randomBytes(16).toString("hex");
+//   console.log(`[${webhookId}] Webhook received at ${new Date().toISOString()}`);
+
+//   try {
+//     const rawBody = await req.text();
+//     console.log(`[${webhookId}] Raw webhook body:`, rawBody);
+
+//     let event: any;
+//     try {
+//       event = JSON.parse(rawBody);
+//     } catch (error) {
+//       console.error(`[${webhookId}] Error parsing JSON:`, error);
+//       return NextResponse.json({ status: "error", message: "Invalid JSON" }, { status: 400 });
+//     }
+
+//     // Check if it's a Kopokopo webhook
+//     if (event.data?.type === 'incoming_payment') {
+//       return handleKopokopoWebhook(event.data, webhookId);
+//     }
+
+//     // Otherwise, treat it as a Paystack webhook
+//     const secretKey = process.env.PAYSTACK_SECRET_KEY;
+//     const sig = req.headers.get("x-paystack-signature");
+
+//     if (!secretKey || !sig) {
+//       console.error(`[${webhookId}] Missing secret key or signature`);
+//       return NextResponse.json({ status: "error", message: "Missing secret key or signature" }, { status: 400 });
+//     }
+
+//     const computedSignature = crypto
+//       .createHmac("sha512", secretKey)
+//       .update(rawBody)
+//       .digest("hex");
+
+//     if (sig !== computedSignature) {
+//       console.error(`[${webhookId}] Invalid signature`);
+//       return NextResponse.json({ status: "error", message: "Invalid signature" }, { status: 400 });
+//     }
+
+//     if (event.event === "charge.success") {
+//       return handlePaystackWebhook(event, webhookId);
+//     }
+
+//     // Handle other event types if needed
+//     console.log(`[${webhookId}] Unhandled event type: ${event.event}`);
+//     return NextResponse.json({ status: "success", message: "Webhook received" });
+
+//   } catch (error) {
+//     console.error(`[${webhookId}] Webhook processing error:`, error);
+//     return NextResponse.json({ 
+//       status: "error", 
+//       message: "Internal server error",
+//       error: error instanceof Error ? error.message : 'Unknown error'
+//     }, { status: 500 });
+//   }
+// }
+
+
 export async function POST(req: Request) {
-  const webhookId = crypto.randomBytes(16).toString("hex");
+  const webhookId = crypto.randomBytes(16).toString('hex');
   console.log(`[${webhookId}] Webhook received at ${new Date().toISOString()}`);
 
   try {
@@ -370,7 +429,7 @@ export async function POST(req: Request) {
       event = JSON.parse(rawBody);
     } catch (error) {
       console.error(`[${webhookId}] Error parsing JSON:`, error);
-      return NextResponse.json({ status: "error", message: "Invalid JSON" }, { status: 400 });
+      return NextResponse.json({ status: 'error', message: 'Invalid JSON' }, { status: 400 });
     }
 
     // Check if it's a Kopokopo webhook
@@ -380,37 +439,102 @@ export async function POST(req: Request) {
 
     // Otherwise, treat it as a Paystack webhook
     const secretKey = process.env.PAYSTACK_SECRET_KEY;
-    const sig = req.headers.get("x-paystack-signature");
+    const sig = req.headers.get('x-paystack-signature');
 
     if (!secretKey || !sig) {
       console.error(`[${webhookId}] Missing secret key or signature`);
-      return NextResponse.json({ status: "error", message: "Missing secret key or signature" }, { status: 400 });
+      return NextResponse.json({ status: 'error', message: 'Missing secret key or signature' }, { status: 400 });
     }
 
     const computedSignature = crypto
-      .createHmac("sha512", secretKey)
+      .createHmac('sha512', secretKey)
       .update(rawBody)
-      .digest("hex");
+      .digest('hex');
 
     if (sig !== computedSignature) {
       console.error(`[${webhookId}] Invalid signature`);
-      return NextResponse.json({ status: "error", message: "Invalid signature" }, { status: 400 });
+      return NextResponse.json({ status: 'error', message: 'Invalid signature' }, { status: 400 });
     }
 
-    if (event.event === "charge.success") {
-      return handlePaystackWebhook(event, webhookId);
+    // Handle Paystack events
+    switch (event.event) {
+      case 'charge.success':
+        return handlePaystackWebhook(event, webhookId);
+
+      case 'transfer.success':
+      case 'transfer.failed':
+      case 'transfer.reversed':
+        return handleWithdraw(event, webhookId);
+
+      default:
+        console.log(`[${webhookId}] Unhandled event type: ${event.event}`);
+        return NextResponse.json({ status: 'success', message: 'Webhook received' });
     }
-
-    // Handle other event types if needed
-    console.log(`[${webhookId}] Unhandled event type: ${event.event}`);
-    return NextResponse.json({ status: "success", message: "Webhook received" });
-
   } catch (error) {
     console.error(`[${webhookId}] Webhook processing error:`, error);
-    return NextResponse.json({ 
-      status: "error", 
-      message: "Internal server error",
-      error: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        status: 'error',
+        message: 'Internal server error',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      },
+      { status: 500 }
+    );
   }
+}
+
+
+
+
+
+async function handleWithdraw(event: any, webhookId: string) {
+  console.log(`[${webhookId}] Handling withdrawal event:`, event.event);
+
+  try {
+    const transferData = event.data;
+
+    switch (event.event) {
+      case 'transfer.success':
+        console.log(`[${webhookId}] Transfer Successful:`, transferData);
+        // Update database to mark transfer as successful
+        await updateTransferStatus(transferData.reference, 'success');
+        break;
+
+      case 'transfer.failed':
+        console.log(`[${webhookId}] Transfer Failed:`, transferData);
+        // Update database to mark transfer as failed
+        await updateTransferStatus(transferData.reference, 'failed', transferData.reason);
+        break;
+
+      case 'transfer.reversed':
+        console.log(`[${webhookId}] Transfer Reversed:`, transferData);
+        // Update database to mark transfer as reversed
+        await updateTransferStatus(transferData.reference, 'reversed');
+        break;
+
+      default:
+        console.log(`[${webhookId}] Unhandled withdrawal event:`, event.event);
+    }
+
+    return NextResponse.json({ status: 'success', message: 'Withdrawal event handled' });
+  } catch (error) {
+    console.error(`[${webhookId}] Error handling withdrawal event:`, error);
+    return NextResponse.json(
+      {
+        status: 'error',
+        message: 'Failed to handle withdrawal event',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      },
+      { status: 500 }
+    );
+  }
+}
+
+async function updateTransferStatus(reference: string, status: string, reason?: string) {
+  // Update your database with the transfer status
+  // Example using Prisma:
+  await prisma.payment.update({
+    where: { id: reference },
+    data: { status: status as PaymentStatus },
+  });
 }

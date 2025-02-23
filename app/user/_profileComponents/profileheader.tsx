@@ -29,9 +29,9 @@ export default function ProfileHeader({userName, firstName, lastName, email, poi
   return (
     <div className="w-full bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden">
       {/* Header Banner */}
-      <div className="h-32 bg-gradient-to-r from-emerald-400 to-blue-500 relative">
+      <div className="h-32 bg-gradient-to-r from-primary to-primary/60 relative">
         <div className="absolute bottom-4 right-4 bg-white/90 dark:bg-gray-800/90 px-3 py-1.5 rounded-full shadow flex items-center gap-2">
-          <Trophy className="w-4 h-4 text-amber-500" />
+          <Trophy className="w-4 h-4 text-primary" />
           <span className="text-sm font-medium">Level {level}</span>
         </div>
       </div>
@@ -45,7 +45,7 @@ export default function ProfileHeader({userName, firstName, lastName, email, poi
               <AvatarImage src={imageUrl} alt={`${firstName} ${lastName}`} />
               <AvatarFallback className="text-2xl">{initials}</AvatarFallback>
             </Avatar>
-            <div className="absolute -bottom-2 -right-2 bg-gradient-to-r from-emerald-400 to-emerald-500 rounded-full p-2 shadow-lg">
+            <div className="absolute -bottom-2 -right-2 bg-gradient-to-r from-primary to-primary/60 rounded-full p-2 shadow-lg">
               <Star className="w-4 h-4 text-white" />
             </div>
           </div>
