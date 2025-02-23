@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
     const transfer = await paystackRequest("transfer", "POST", {
       source: "balance",
       reason: "Donee Withdrawal",
-      amount: amount * 10, // Convert to kobo
+      amount: amount * 100, // Convert to kobo
       recipient: recipientCode,
       currency: "KES",
     });
