@@ -19,18 +19,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Amount and M-Pesa number are required" }, { status: 400 });
     }
 
-    // Format M-Pesa number to required format (254XXXXXXXXX)
+    // Format M-Pesa number to required format (0XXXXXXXXX)
     let formattedMpesaNumber = mpesaNumber.replace(/\D/g, ''); // Remove non-digits
-    if (formattedMpesaNumber.startsWith('0')) {
-      formattedMpesaNumber = '254' + formattedMpesaNumber.substring(1);
+    
+    // Convert from international format to local format if needed
+    if (formattedMpesaNumber.startsWith('254')) {
+      formattedMpesaNumber = '0' + formattedMpesaNumber.substring(3);
     } else if (formattedMpesaNumber.startsWith('7') || formattedMpesaNumber.startsWith('1')) {
-      formattedMpesaNumber = '254' + formattedMpesaNumber;
-    } else if (!formattedMpesaNumber.startsWith('254')) {
+      formattedMpesaNumber = '0' + formattedMpesaNumber;
+    } else if (!formattedMpesaNumber.startsWith('0')) {
       return NextResponse.json({ error: "Invalid M-Pesa number format" }, { status: 400 });
     }
 
-    // Ensure the number is exactly 12 digits (254 + 9 digits)
-    if (formattedMpesaNumber.length !== 12) {
+    // Ensure the number is exactly 10 digits (0 + 9 digits)
+    if (formattedMpesaNumber.length !== 10) {
       return NextResponse.json({ error: "Invalid M-Pesa number length" }, { status: 400 });
     }
 
@@ -65,8 +67,7 @@ export async function POST(req: NextRequest) {
       name: user.given_name || "User",
       account_number: formattedMpesaNumber,
       bank_code: "MPESA",
-      currency: "KES",
-      mobile_number: formattedMpesaNumber
+      currency: "KES"
     });
     
     const recipient = await paystackRequest("transferrecipient", "POST", {
@@ -75,13 +76,7 @@ export async function POST(req: NextRequest) {
       account_number: formattedMpesaNumber,
       bank_code: "MPESA",
       currency: "KES",
-      description: "Wallet withdrawal to M-Pesa",
-      mobile_number: formattedMpesaNumber,
-      metadata: {
-        mobile_number: formattedMpesaNumber,
-        email: user.email,
-        country: "KE"
-      }
+      description: "Wallet withdrawal to M-Pesa"
     });
     console.log('Transfer recipient response:', recipient);
 
