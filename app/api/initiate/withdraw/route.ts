@@ -1,33 +1,60 @@
 import { NextRequest, NextResponse } from "next/server";
-import { paystackRequest } from "../pastack";
+import { paystackRequest } from "../paystack";
+import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
+import crypto from "crypto";
+import prisma from "../../../lib/db";
 
 export async function POST(req: NextRequest) {
   try {
+    // ✅ Step 1: Get authenticated user
+    const { getUser } = getKindeServerSession();
+    const user = await getUser();
+
+    if (!user || !user.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { mpesaNumber, amount } = await req.json();
 
-    console.log("Raw M-Pesa Number:", mpesaNumber, "Amount:", amount);
+    console.log("M-Pesa Number:", mpesaNumber, "Amount:", amount);
 
     if (!amount || !mpesaNumber) {
       return NextResponse.json({ error: "Amount and M-Pesa number are required" }, { status: 400 });
     }
 
-    // // ✅ Ensure correct number format
-    // let formattedNumber = mpesaNumber.trim();
-    // if (formattedNumber.startsWith("+254")) {
-    //   formattedNumber = formattedNumber.replace("+", ""); // Remove "+"
-    // } else if (formattedNumber.startsWith("07")) {
-    //   formattedNumber = "254" + formattedNumber.substring(1); // Convert 07XXXXXXX → 2547XXXXXXX
-    // } else if (!formattedNumber.startsWith("2547")) {
-    //   return NextResponse.json({ error: "Invalid M-Pesa number format" }, { status: 400 });
-    // }
+    // Step 2: Check if user's withdrawal request is valid
+    const userRequest = await prisma.request.findFirst({
+      where: { userId: user.id },
+      select: { amount: true },
+    });
 
-    // console.log("Formatted M-Pesa Number:", formattedNumber);
+    if (!userRequest) {
+      return NextResponse.json({ error: "No active request found" }, { status: 404 });
+    }
 
-    // ✅ Step 1: Create Transfer Recipient
+    if (amount > userRequest.amount) {
+      return NextResponse.json({ error: "Requested amount exceeds available balance" }, { status: 400 });
+    }
+
+    // ✅ Step 3: Check Paystack balance before proceeding
+    const balanceResponse = await paystackRequest("balance", "GET");
+
+    if (!balanceResponse.status || !balanceResponse.data.length) {
+      return NextResponse.json({ error: "Unable to retrieve Paystack balance" }, { status: 500 });
+    }
+
+    const availableBalance = balanceResponse.data[0].balance / 100; // Convert from kobo
+    console.log("Paystack Available Balance:", availableBalance);
+
+    if (amount > availableBalance) {
+      return NextResponse.json({ error: "Insufficient Paystack balance" }, { status: 400 });
+    }
+
+    // ✅ Step 4: Create Transfer Recipient
     const recipient = await paystackRequest("transferrecipient", "POST", {
       type: "mobile_money",
       name: "Donee",
-      account_number: mpesaNumber, // Ensure correct format
+      account_number: mpesaNumber,
       bank_code: "MPESA",
       currency: "KES",
     });
@@ -39,7 +66,7 @@ export async function POST(req: NextRequest) {
 
     const recipientCode = recipient.data.recipient_code;
 
-    // ✅ Step 2: Initiate Transfer
+    // ✅ Step 5: Initiate Transfer
     const transfer = await paystackRequest("transfer", "POST", {
       source: "balance",
       reason: "Donee Withdrawal",
