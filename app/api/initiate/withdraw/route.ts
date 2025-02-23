@@ -1,12 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { paystackRequest } from "../paystack";
 import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
-import crypto from "crypto";
 import prisma from "../../../lib/db";
 
 export async function POST(req: NextRequest) {
   try {
-    // ✅ Step 1: Get authenticated user
     const { getUser } = getKindeServerSession();
     const user = await getUser();
 
@@ -22,7 +20,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Amount and M-Pesa number are required" }, { status: 400 });
     }
 
-    // Step 2: Check if user's withdrawal request is valid
+  
     const userRequest = await prisma.request.findFirst({
       where: { userId: user.id },
       select: { amount: true },
@@ -36,7 +34,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Requested amount exceeds available balance" }, { status: 400 });
     }
 
-    // ✅ Step 3: Check Paystack balance before proceeding
     const balanceResponse = await paystackRequest("balance", "GET");
 
     if (!balanceResponse.status || !balanceResponse.data.length) {
@@ -50,7 +47,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Insufficient Paystack balance" }, { status: 400 });
     }
 
-    // ✅ Step 4: Create Transfer Recipient
+    //Step 4: Create Transfer Recipient
     const recipient = await paystackRequest("transferrecipient", "POST", {
       type: "mobile_money",
       name: "Donee",
@@ -66,7 +63,7 @@ export async function POST(req: NextRequest) {
 
     const recipientCode = recipient.data.recipient_code;
 
-    // ✅ Step 5: Initiate Transfer
+    // Step 5: Initiate Transfer
     const transfer = await paystackRequest("transfer", "POST", {
       source: "balance",
       reason: "Donee Withdrawal",
