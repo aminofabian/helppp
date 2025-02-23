@@ -168,7 +168,7 @@ export function RequestCard({
                                 border border-secondary dark:border-gray-700
                                 ${!isExpanded && "line-clamp-2"}`}>
                     <div className="leading-relaxed
-                                  text-gray-700 dark:text-gray-200
+                                  text-slate-700 dark:text-gray-200
                                   text-[15px]">
                       {typeof textContent === 'string' 
                         ? textContent 
@@ -197,8 +197,8 @@ export function RequestCard({
                                 bg-secondary/20 dark:bg-gray-800
                                 border border-secondary dark:border-gray-700
                                 ${!isExpanded && "line-clamp-2"}`}>
-                    <div className="leading-relaxed
-                                  text-gray-700 dark:text-gray-200">
+                    <div className="leading-tight
+                                  text-slate-700 dark:text-gray-200">
                       <RenderToJson data={jsonContent} />
                     </div>
                   </div>

@@ -451,13 +451,23 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
       });
 
       const data = await response.json();
+      console.log('Paystack initialization response:', data);
 
       if (!response.ok) {
+        console.error('Paystack initialization failed:', {
+          status: response.status,
+          statusText: response.statusText,
+          data
+        });
         throw new Error(data.message || 'Failed to initialize payment');
       }
 
       // Redirect to Paystack checkout URL
-      // window.location.href = data.authorization_url;
+      if (data.authorization_url) {
+        window.location.href = data.authorization_url;
+      } else {
+        throw new Error('No authorization URL received from Paystack');
+      }
     } catch (error) {
       console.error('Failed to initialize Paystack:', error);
       toast.error('Failed to initialize payment');
