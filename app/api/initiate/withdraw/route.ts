@@ -13,6 +13,7 @@ export async function POST(req: NextRequest) {
     }
 
     const { mpesaNumber, amount } = await req.json();
+    console.log('Withdrawal request:', { mpesaNumber, amount });
     
     if (!amount || !mpesaNumber) {
       return NextResponse.json({ error: "Amount and M-Pesa number are required" }, { status: 400 });
@@ -22,11 +23,13 @@ export async function POST(req: NextRequest) {
     const formattedMpesaNumber = mpesaNumber.startsWith('0') 
       ? '254' + mpesaNumber.substring(1) 
       : mpesaNumber;
+    console.log('Formatted M-Pesa number:', formattedMpesaNumber);
 
     // Check wallet balance
     const wallet = await prisma.wallet.findUnique({
       where: { userId: user.id }
     });
+    console.log('Wallet balance:', wallet?.balance);
 
     if (!wallet || wallet.balance < amount) {
       return NextResponse.json({ error: "Insufficient wallet balance" }, { status: 400 });
@@ -34,6 +37,7 @@ export async function POST(req: NextRequest) {
 
     // Check Paystack balance
     const balanceResponse = await paystackRequest("balance", "GET");
+    console.log('Paystack balance response:', balanceResponse);
 
     if (!balanceResponse.status || !balanceResponse.data.length) {
       return NextResponse.json({ error: "Unable to retrieve Paystack balance" }, { status: 500 });
@@ -45,29 +49,58 @@ export async function POST(req: NextRequest) {
     }
 
     // Create transfer recipient for M-Pesa
-    const recipient = await paystackRequest("transferrecipient", "POST", {
-      type: "mobile_money",
+    console.log('Creating transfer recipient with:', {
+      type: "mobile_money_kenya",
       name: user.given_name || "User",
       account_number: formattedMpesaNumber,
-      bank_code: "MPS",
-      currency: "KES",
-      description: "Wallet withdrawal to M-Pesa"
+      bank_code: "M-PESA"
     });
+    
+    const recipient = await paystackRequest("transferrecipient", "POST", {
+      type: "mobile_money_kenya",
+      name: user.given_name || "User",
+      account_number: formattedMpesaNumber,
+      bank_code: "M-PESA",
+      currency: "KES",
+      description: "Wallet withdrawal to M-Pesa",
+      metadata: {
+        mobile_number: formattedMpesaNumber,
+        sender_country: "KEN",
+        mobile_money_provider: "mpesa"
+      }
+    });
+    console.log('Transfer recipient response:', recipient);
 
     if (!recipient.status) {
       console.log("Recipient Error:", recipient);
-      return NextResponse.json({ error: recipient.message || "Failed to create transfer recipient" }, { status: 400 });
+      return NextResponse.json({ 
+        error: recipient.message || "Failed to create transfer recipient",
+        details: recipient.data
+      }, { status: 400 });
     }
 
     const recipientCode = recipient.data.recipient_code;
+    console.log('Recipient code:', recipientCode);
 
     // Initiate transfer
+    console.log('Initiating transfer with:', {
+      amount: amount * 100,
+      recipient: recipientCode,
+      currency: "KES"
+    });
+
     const transfer = await paystackRequest("transfer", "POST", {
       source: "balance",
       reason: "Wallet withdrawal",
       amount: amount * 100, // Convert to cents
       recipient: recipientCode,
-      currency: "KES"
+      currency: "KES",
+      reference: `withdrawal_${Date.now()}_${user.id}`,
+      metadata: {
+        type: "wallet_withdrawal",
+        user_id: user.id,
+        mobile_number: formattedMpesaNumber
+      }
     });
 
     if (!transfer.status) {
