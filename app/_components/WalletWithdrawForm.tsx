@@ -14,6 +14,20 @@ export default function WalletWithdrawForm({ onClose, walletBalance }: WalletWit
   const [mpesaNumber, setMpesaNumber] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  const validateMpesaNumber = (number: string) => {
+    // Remove any spaces or special characters
+    const cleaned = number.replace(/[^\d]/g, '');
+    
+    // Check if it starts with 254 and has 12 digits total
+    const isValid = /^254\d{9}$/.test(cleaned);
+    
+    if (!isValid) {
+      toast.error('Please enter a valid M-Pesa number (format: 254XXXXXXXXX)');
+      return false;
+    }
+    return true;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -29,7 +43,11 @@ export default function WalletWithdrawForm({ onClose, walletBalance }: WalletWit
     }
 
     if (numAmount > walletBalance) {
-      toast.error('Insufficient balance');
+      toast.error('Insufficient wallet balance');
+      return;
+    }
+
+    if (!validateMpesaNumber(mpesaNumber)) {
       return;
     }
 
@@ -50,7 +68,12 @@ export default function WalletWithdrawForm({ onClose, walletBalance }: WalletWit
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to process withdrawal');
+        if (data.error === "Insufficient Paystack balance") {
+          toast.error('The service is temporarily unavailable. Please try again later.');
+        } else {
+          throw new Error(data.error || 'Failed to process withdrawal');
+        }
+        return;
       }
 
       toast.success('Withdrawal initiated successfully');
@@ -62,6 +85,18 @@ export default function WalletWithdrawForm({ onClose, walletBalance }: WalletWit
     }
   };
 
+  const handleMpesaNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Only allow digits
+    const value = e.target.value.replace(/[^\d]/g, '');
+    
+    // Ensure it starts with 254
+    if (value && !value.startsWith('254')) {
+      setMpesaNumber('254' + value);
+    } else {
+      setMpesaNumber(value);
+    }
+  };
+
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
@@ -69,11 +104,13 @@ export default function WalletWithdrawForm({ onClose, walletBalance }: WalletWit
         <Input
           id="mpesaNumber"
           type="text"
-          placeholder="254700000000"
+          placeholder="254XXXXXXXXX"
           value={mpesaNumber}
-          onChange={(e) => setMpesaNumber(e.target.value)}
+          onChange={handleMpesaNumberChange}
+          maxLength={12}
           required
         />
+        <p className="text-xs text-gray-500">Format: 254XXXXXXXXX (12 digits)</p>
       </div>
 
       <div className="space-y-2">
