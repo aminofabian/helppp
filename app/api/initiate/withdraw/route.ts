@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { paystackRequest } from "../paystack";
-import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
 import prisma from "../../../lib/db";
+import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
+import { paystackRequest } from "../pastack";
 
 export async function POST(req: NextRequest) {
   try {
@@ -13,6 +13,7 @@ export async function POST(req: NextRequest) {
     }
 
     const { mpesaNumber, amount } = await req.json();
+    console.log(mpesaNumber, amount, 'mpesaNumber, amount////////////////////////');
 
     console.log("M-Pesa Number:", mpesaNumber, "Amount:", amount);
 
@@ -89,3 +90,70 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+
+
+// import { NextRequest, NextResponse } from "next/server";
+// import { paystackRequest } from "../pastack";
+
+// export async function POST(req: NextRequest) {
+//   try {
+//     const { mpesaNumber, amount } = await req.json();
+
+//     console.log("Raw M-Pesa Number:", mpesaNumber, "Amount:", amount);
+
+//     if (!amount || !mpesaNumber) {
+//       return NextResponse.json({ error: "Amount and M-Pesa number are required" }, { status: 400 });
+//     }
+
+//     const recipient = await paystackRequest("transferrecipient", "POST", {
+//       type: "mobile_money",
+//       name: "Donee",
+//       account_number: mpesaNumber, 
+//       bank_code: "MPESA",
+//       currency: "KES",
+//     });
+
+//     if (!recipient.status) {
+//       console.log("Recipient Error:", recipient);
+//       return NextResponse.json({ error: recipient.message }, { status: 400 });
+//     }
+
+//     const recipientCode = recipient.data.recipient_code;
+
+//     // ✅ Step 2: Initiate Transfer
+//     const transfer = await paystackRequest("transfer", "POST", {
+//       source: "balance",
+//       reason: "Donee Withdrawal",
+//       amount: amount * 100, // Convert to kobo
+//       recipient: recipientCode,
+//       currency: "KES",
+//     });
+
+//     if (!transfer.status) {
+//       console.log("Transfer Error:", transfer);
+//       return NextResponse.json({ error: transfer.message }, { status: 400 });
+//     }
+
+//     return NextResponse.json(
+//       { message: "Withdrawal initiated", transfer: transfer.data },
+//       { status: 200 }
+//     );
+//   } catch (error: any) {
+//     console.error("Server Error:", error);
+//     return NextResponse.json(
+//       { error: "Server error", details: error.message || error },
+//       { status: 500 }
+//     );
+//   }
+// };
+
+
+
+
+
+
+
+
+
+
+

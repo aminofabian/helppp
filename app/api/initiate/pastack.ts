@@ -15,5 +15,4 @@ export const paystackRequest = async (endpoint: string, method = "POST", body?: 
     });
   
     return res.json();
-  };
-  
+};
