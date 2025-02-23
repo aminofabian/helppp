@@ -192,7 +192,7 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
       data: {
         recipientId: giver.id,
         issuerId: request.userId,
-        title: 'Thank You for Your Donation! 🌟',
+        title: 'Thank You for Your Donation! ',
         content: `Your donation of KES ${event.data.amount / 100} was successful. You earned ${pointsEarned} points and are now at Level ${newLevel}. Keep making a difference!`,
         type: 'PAYMENT_COMPLETED',
         requestId: requestId,
@@ -222,7 +222,7 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
         data: {
           recipientId: request.userId,
           issuerId: giver.id,
-          title: 'Fundraising Goal Reached! 🎊',
+          title: 'Fundraising Goal Reached! ',
           content: `Congratulations! Your request has reached its fundraising goal of KES ${request.amount}. Total amount raised: KES ${totalDonations._sum.amount}`,
           type: 'PAYMENT_RECEIVED',
           requestId: requestId,
