@@ -20,9 +20,20 @@ export async function POST(req: NextRequest) {
     }
 
     // Format M-Pesa number to required format (254XXXXXXXXX)
-    const formattedMpesaNumber = mpesaNumber.startsWith('0') 
-      ? '254' + mpesaNumber.substring(1) 
-      : mpesaNumber;
+    let formattedMpesaNumber = mpesaNumber.replace(/\D/g, ''); // Remove non-digits
+    if (formattedMpesaNumber.startsWith('0')) {
+      formattedMpesaNumber = '254' + formattedMpesaNumber.substring(1);
+    } else if (formattedMpesaNumber.startsWith('7') || formattedMpesaNumber.startsWith('1')) {
+      formattedMpesaNumber = '254' + formattedMpesaNumber;
+    } else if (!formattedMpesaNumber.startsWith('254')) {
+      return NextResponse.json({ error: "Invalid M-Pesa number format" }, { status: 400 });
+    }
+
+    // Ensure the number is exactly 12 digits (254 + 9 digits)
+    if (formattedMpesaNumber.length !== 12) {
+      return NextResponse.json({ error: "Invalid M-Pesa number length" }, { status: 400 });
+    }
+
     console.log('Formatted M-Pesa number:', formattedMpesaNumber);
 
     // Check wallet balance
@@ -54,7 +65,8 @@ export async function POST(req: NextRequest) {
       name: user.given_name || "User",
       account_number: formattedMpesaNumber,
       bank_code: "MPESA",
-      currency: "KES"
+      currency: "KES",
+      mobile_number: formattedMpesaNumber
     });
     
     const recipient = await paystackRequest("transferrecipient", "POST", {
@@ -63,7 +75,13 @@ export async function POST(req: NextRequest) {
       account_number: formattedMpesaNumber,
       bank_code: "MPESA",
       currency: "KES",
-      description: "Wallet withdrawal to M-Pesa"
+      description: "Wallet withdrawal to M-Pesa",
+      mobile_number: formattedMpesaNumber,
+      metadata: {
+        mobile_number: formattedMpesaNumber,
+        email: user.email,
+        country: "KE"
+      }
     });
     console.log('Transfer recipient response:', recipient);
 
