@@ -61,19 +61,19 @@ export async function POST(req: Request) {
         where: { userId: user.id },
         update: {
           balance: {
-            increment: amount / 100 // Convert from kobo to KES
+            increment: amount // Use amount as is
           }
         },
         create: {
           userId: user.id,
-          balance: amount / 100
+          balance: amount
         }
       });
 
       // Create transaction record
       await tx.transaction.create({
         data: {
-          amount: amount / 100,
+          amount: amount, // Use amount as is
           giver: { connect: { id: user.id } },
           receiver: { connect: { id: user.id } }
         }

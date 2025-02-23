@@ -30,7 +30,7 @@ export default function WalletDepositForm({ onClose, onSuccess }: WalletDepositF
         },
         body: JSON.stringify({
           email: user?.email,
-          amount: parseFloat(amount) * 100, // Convert to kobo
+          amount: parseFloat(amount), // Send amount as is
           reference: `wallet_deposit_${Date.now()}`,
           callback_url: `${window.location.origin}/wallet/success`, // Redirect to success page
           metadata: {
