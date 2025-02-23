@@ -5,6 +5,7 @@ import { updateDonationStatus } from "@/app/(actions)/handleDonation";
 import { prisma } from "@/app/lib/db";
 import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
 import { calculateLevel } from "@/app/lib/levelCalculator";
+import { handleDonationTransaction } from "@/app/(actions)/handleDonationTransaction";
 
 // Keep track of processed references in memory
 const processedReferences = new Set<string>();
@@ -118,6 +119,17 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
     });
 
     console.log(`[${webhookId}] Created donation record: ${donation.id}`);
+
+    // Update receiver's wallet if this is a donation to a request
+    if (request?.User) {
+      await handleDonationTransaction(
+        giver.id,
+        request.User.id,
+        event.data.amount / 100,
+        payment.id
+      );
+      console.log(`[${webhookId}] Donation transaction processed for payment ${payment.id}`);
+    }
 
     // Calculate points (1 point per 50 KES, minimum 1 point)
     const amountInKES = event.data.amount / 100; // Convert from kobo to KES
