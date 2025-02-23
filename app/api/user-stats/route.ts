@@ -93,6 +93,23 @@ export async function GET(req: NextRequest) {
       });
     }
 
+    // Calculate total received from all valid donations
+    const received = await prisma.donation.aggregate({
+      where: {
+        Request: {
+          userId: userId  // Find donations to requests created by this user
+        },
+        NOT: {
+          status: {
+            in: ['PENDING', 'FAILED', 'CANCELLED']
+          }
+        }
+      },
+      _sum: {
+        amount: true
+      }
+    });
+
     // Prepare stats response
     const donationStats = {
       totalDonated: user.totalDonated || 0,
@@ -100,7 +117,8 @@ export async function GET(req: NextRequest) {
       calculatedTotalDonated: calculatedTotalDonated,
       calculatedDonationCount: calculatedDonationCount,
       points: user.points,
-      level: user.level || calculateLevel(totalPoints)
+      level: user.level || calculateLevel(totalPoints),
+      totalReceived: received._sum.amount || 0
     };
 
     console.log(`Returning stats for user ${userId}:`, donationStats);
