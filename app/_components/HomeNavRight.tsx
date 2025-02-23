@@ -346,7 +346,13 @@ export default function HomeNavRight({
               Add funds to your wallet using M-Pesa
             </DialogDescription>
           </DialogHeader>
-          <WalletDepositForm onClose={() => setIsWalletDepositOpen(false)} />
+          <WalletDepositForm 
+            onSuccess={(newBalance) => {
+              setWallet(prev => ({ ...prev, balance: newBalance }));
+              setIsWalletDepositOpen(false);
+            }}
+            onClose={() => setIsWalletDepositOpen(false)}
+          />
         </DialogContent>
       </Dialog>
 

@@ -11,9 +11,10 @@ import { useKindeBrowserClient } from "@kinde-oss/kinde-auth-nextjs";
 
 interface WalletDepositFormProps {
   onSuccess?: (newBalance: number) => void;
+  onClose?: () => void;
 }
 
-export default function WalletDepositForm({ onSuccess }: WalletDepositFormProps) {
+export default function WalletDepositForm({ onSuccess, onClose }: WalletDepositFormProps) {
   const [amount, setAmount] = useState('');
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
@@ -58,6 +59,7 @@ export default function WalletDepositForm({ onSuccess }: WalletDepositFormProps)
       description: "You have cancelled the payment process.",
       variant: "destructive",
     });
+    onClose?.();
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
