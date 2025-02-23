@@ -50,24 +50,20 @@ export async function POST(req: NextRequest) {
 
     // Create transfer recipient for M-Pesa
     console.log('Creating transfer recipient with:', {
-      type: "mobile_money_kenya",
+      type: "mobile_money",
       name: user.given_name || "User",
       account_number: formattedMpesaNumber,
-      bank_code: "M-PESA"
+      bank_code: "057",
+      currency: "KES"
     });
     
     const recipient = await paystackRequest("transferrecipient", "POST", {
-      type: "mobile_money_kenya",
+      type: "mobile_money",
       name: user.given_name || "User",
       account_number: formattedMpesaNumber,
-      bank_code: "M-PESA",
+      bank_code: "057",
       currency: "KES",
-      description: "Wallet withdrawal to M-Pesa",
-      metadata: {
-        mobile_number: formattedMpesaNumber,
-        sender_country: "KEN",
-        mobile_money_provider: "mpesa"
-      }
+      description: "Wallet withdrawal to M-Pesa"
     });
     console.log('Transfer recipient response:', recipient);
 
