@@ -33,6 +33,9 @@ export async function POST(req: Request) {
 
     const { data } = verifyData;
     const { metadata, amount, customer } = data;
+    
+    // Convert amount from kobo to KES
+    const amountInKES = amount / 100;
 
     // Verify this is a wallet deposit
     if (metadata?.type !== 'wallet_deposit') {
@@ -61,19 +64,19 @@ export async function POST(req: Request) {
         where: { userId: user.id },
         update: {
           balance: {
-            increment: amount // Use amount as is
+            increment: amountInKES // Use converted amount
           }
         },
         create: {
           userId: user.id,
-          balance: amount
+          balance: amountInKES // Use converted amount
         }
       });
 
       // Create transaction record
       await tx.transaction.create({
         data: {
-          amount: amount, // Use amount as is
+          amount: amountInKES, // Use converted amount
           giver: { connect: { id: user.id } },
           receiver: { connect: { id: user.id } }
         }
