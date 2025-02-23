@@ -51,9 +51,6 @@ export default function WalletWithdrawForm({ onClose, walletBalance }: WalletWit
       return;
     }
 
-    // Convert 0XXXXXXXXX to 254XXXXXXXXX format for the API
-    const apiMpesaNumber = '254' + mpesaNumber.substring(1);
-
     setIsLoading(true);
 
     try {
@@ -64,7 +61,7 @@ export default function WalletWithdrawForm({ onClose, walletBalance }: WalletWit
         },
         body: JSON.stringify({
           amount: numAmount,
-          mpesaNumber: apiMpesaNumber, // Send in 254 format to the API
+          mpesaNumber, // Send in 0XXXXXXXXX format
         }),
       });
 
