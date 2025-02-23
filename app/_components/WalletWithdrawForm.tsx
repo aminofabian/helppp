@@ -61,14 +61,18 @@ export default function WalletWithdrawForm({ onClose, walletBalance }: WalletWit
         },
         body: JSON.stringify({
           amount: numAmount,
-          mpesaNumber, // Send in 0XXXXXXXXX format
+          mpesaNumber,
         }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        if (data.error === "Insufficient Paystack balance") {
+        if (data.code === "TRANSFERS_NOT_ENABLED") {
+          toast.error('Withdrawals are temporarily unavailable', {
+            description: 'Our payment service is being configured. Please try again later.'
+          });
+        } else if (data.error === "Insufficient Paystack balance") {
           toast.error('The service is temporarily unavailable. Please try again later.');
         } else {
           throw new Error(data.error || 'Failed to process withdrawal');

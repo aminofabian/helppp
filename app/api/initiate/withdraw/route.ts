@@ -98,48 +98,74 @@ export async function POST(req: NextRequest) {
       currency: "KES"
     });
 
-    const transfer = await paystackRequest("transfer", "POST", {
-      source: "balance",
-      reason: "Wallet withdrawal",
-      amount: amount * 100, // Convert to cents
-      recipient: recipientCode,
-      currency: "KES",
-      reference: `withdrawal_${Date.now()}_${user.id}`,
-      metadata: {
-        type: "wallet_withdrawal",
-        user_id: user.id,
-        mobile_number: formattedMpesaNumber
-      }
-    });
-
-    if (!transfer.status) {
-      console.log("Transfer Error:", transfer);
-      return NextResponse.json({ error: transfer.message || "Failed to initiate transfer" }, { status: 400 });
-    }
-
-    // Update wallet balance
-    await prisma.$transaction(async (tx) => {
-      // Deduct from wallet
-      await tx.wallet.update({
-        where: { userId: user.id },
-        data: { balance: { decrement: amount } }
-      });
-
-      // Create transaction record
-      await tx.transaction.create({
-        data: {
-          amount: amount,
-          giver: { connect: { id: user.id } },
-          receiver: { connect: { id: user.id } }
+    try {
+      const transfer = await paystackRequest("transfer", "POST", {
+        source: "balance",
+        reason: "Wallet withdrawal",
+        amount: amount * 100, // Convert to cents
+        recipient: recipientCode,
+        currency: "KES",
+        reference: `withdrawal_${Date.now()}_${user.id}`,
+        metadata: {
+          type: "wallet_withdrawal",
+          user_id: user.id,
+          mobile_number: formattedMpesaNumber
         }
       });
-    });
 
-    return NextResponse.json({
-      success: true,
-      message: "Withdrawal initiated successfully",
-      transfer: transfer.data
-    });
+      if (!transfer.status) {
+        console.log("Transfer Error:", transfer);
+        
+        // Handle specific Paystack errors
+        if (transfer.message?.toLowerCase().includes('third party payouts')) {
+          return NextResponse.json({ 
+            error: "Withdrawals are temporarily unavailable. Please try again later or contact support.",
+            details: "Service activation pending",
+            code: "TRANSFERS_NOT_ENABLED"
+          }, { status: 400 });
+        }
+
+        return NextResponse.json({ error: transfer.message || "Failed to initiate transfer" }, { status: 400 });
+      }
+
+      // Update wallet balance only if transfer was successful
+      await prisma.$transaction(async (tx) => {
+        // Deduct from wallet
+        await tx.wallet.update({
+          where: { userId: user.id },
+          data: { balance: { decrement: amount } }
+        });
+
+        // Create transaction record
+        await tx.transaction.create({
+          data: {
+            amount: amount,
+            giver: { connect: { id: user.id } },
+            receiver: { connect: { id: user.id } }
+          }
+        });
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: "Withdrawal initiated successfully",
+        transfer: transfer.data
+      });
+
+    } catch (transferError: any) {
+      console.error("Transfer Error:", transferError);
+      
+      // Check for transfer restriction errors
+      if (transferError.message?.toLowerCase().includes('third party payouts')) {
+        return NextResponse.json({ 
+          error: "Withdrawals are temporarily unavailable. Please try again later or contact support.",
+          details: "Service activation pending",
+          code: "TRANSFERS_NOT_ENABLED"
+        }, { status: 400 });
+      }
+
+      throw transferError; // Re-throw other errors to be caught by the outer catch block
+    }
 
   } catch (error: any) {
     console.error("Withdrawal Error:", error);
