@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import Link from 'next/link';
-import { Heart, Users } from 'lucide-react';
+import { Heart, Users, Trophy, HandHeart } from 'lucide-react';
 
 interface Community {
   id: string;
@@ -11,25 +11,45 @@ interface Community {
   memberCount?: number;
 }
 
+interface TopHelper {
+  id: string;
+  userName: string;
+  level: number;
+  totalDonated: number;
+  donationCount: number;
+  imageUrl: string | null;
+}
+
 export default function RightNavHome() {
   const [communities, setCommunities] = useState<Community[]>([]);
+  const [topHelpers, setTopHelpers] = useState<TopHelper[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const fetchCommunities = async () => {
+    const fetchData = async () => {
       try {
-        const response = await fetch('/api/communities');
-        if (!response.ok) throw new Error('Failed to fetch communities');
-        const data = await response.json();
-        setCommunities(data.communities);
+        const [communitiesRes, helpersRes] = await Promise.all([
+          fetch('/api/communities'),
+          fetch('/api/top-helpers')
+        ]);
+        
+        if (!communitiesRes.ok || !helpersRes.ok) {
+          throw new Error('Failed to fetch data');
+        }
+        
+        const communitiesData = await communitiesRes.json();
+        const helpersData = await helpersRes.json();
+        
+        setCommunities(communitiesData.communities);
+        setTopHelpers(helpersData);
       } catch (error) {
-        console.error('Error fetching communities:', error);
+        console.error('Error fetching data:', error);
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchCommunities();
+    fetchData();
   }, []);
 
   return (
@@ -67,6 +87,81 @@ export default function RightNavHome() {
             </div>
           </div>
           
+          <div className="space-y-4">
+            <h2 className="text-lg font-bold text-primary dark:text-blue-400 uppercase flex items-center">
+              <Trophy className="w-5 h-5 mr-2" />
+              Top Helpers
+            </h2>
+            {isLoading ? (
+              <div className="text-center text-gray-500 dark:text-gray-400">Loading top helpers...</div>
+            ) : (
+              <div className="space-y-3">
+                {topHelpers.map((helper, index) => (
+                  <div 
+                    key={helper.id}
+                    className="flex items-center gap-3 p-3 
+                              bg-gradient-to-r from-primary/5 to-primary/10 
+                              dark:from-blue-600/10 dark:to-blue-600/5
+                              rounded-lg transition-all duration-300
+                              hover:shadow-md hover:scale-[1.02]"
+                  >
+                    <div className="relative flex-shrink-0">
+                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                        {helper.imageUrl ? (
+                          <img 
+                            src={helper.imageUrl} 
+                            alt={helper.userName}
+                            className="w-full h-full rounded-full object-cover"
+                          />
+                        ) : (
+                          <span className="text-lg font-bold text-primary">
+                            {helper.userName[0].toUpperCase()}
+                          </span>
+                        )}
+                      </div>
+                      <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full 
+                                    bg-primary flex items-center justify-center">
+                        <div className="absolute inset-0.5 rounded-full 
+                                      bg-white dark:bg-gray-900 
+                                      flex items-center justify-center">
+                          <span className="text-[10px] font-bold text-primary">
+                            L{helper.level}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="absolute -top-1 -left-1 w-5 h-5 rounded-full 
+                                    bg-amber-500 flex items-center justify-center
+                                    text-[10px] font-bold text-white">
+                        #{index + 1}
+                      </div>
+                    </div>
+                    
+                    <div className="flex-1 min-w-0">
+                      <Link 
+                        href={`/user/${helper.id}`}
+                        className="text-sm font-semibold text-gray-900 dark:text-gray-100
+                                 hover:text-primary dark:hover:text-blue-400
+                                 transition-colors"
+                      >
+                        {helper.userName}
+                      </Link>
+                      <div className="flex items-center gap-3 mt-1 text-xs text-gray-500 dark:text-gray-400">
+                        <span className="flex items-center">
+                          <HandHeart className="w-3 h-3 mr-1 text-emerald-500" />
+                          KES {helper.totalDonated.toLocaleString()}
+                        </span>
+                        <span className="flex items-center">
+                          <Users className="w-3 h-3 mr-1 text-blue-500" />
+                          {helper.donationCount} helped
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           <div className="space-y-4">
             <h2 className="text-lg font-bold text-primary dark:text-blue-400 uppercase flex items-center">
               <Users className="w-5 h-5 mr-2" />
