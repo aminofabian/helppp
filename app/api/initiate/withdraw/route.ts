@@ -13,79 +13,96 @@ export async function POST(req: NextRequest) {
     }
 
     const { mpesaNumber, amount } = await req.json();
-    console.log(mpesaNumber, amount, 'mpesaNumber, amount////////////////////////');
-
-    console.log("M-Pesa Number:", mpesaNumber, "Amount:", amount);
-
+    
     if (!amount || !mpesaNumber) {
       return NextResponse.json({ error: "Amount and M-Pesa number are required" }, { status: 400 });
     }
 
-  
-    const userRequest = await prisma.request.findFirst({
-      where: { userId: user.id },
-      select: { amount: true },
+    // Format M-Pesa number to required format (254XXXXXXXXX)
+    const formattedMpesaNumber = mpesaNumber.startsWith('0') 
+      ? '254' + mpesaNumber.substring(1) 
+      : mpesaNumber;
+
+    // Check wallet balance
+    const wallet = await prisma.wallet.findUnique({
+      where: { userId: user.id }
     });
 
-    if (!userRequest) {
-      return NextResponse.json({ error: "No active request found" }, { status: 404 });
+    if (!wallet || wallet.balance < amount) {
+      return NextResponse.json({ error: "Insufficient wallet balance" }, { status: 400 });
     }
 
-    if (amount > userRequest.amount) {
-      return NextResponse.json({ error: "Requested amount exceeds available balance" }, { status: 400 });
-    }
-
+    // Check Paystack balance
     const balanceResponse = await paystackRequest("balance", "GET");
 
     if (!balanceResponse.status || !balanceResponse.data.length) {
       return NextResponse.json({ error: "Unable to retrieve Paystack balance" }, { status: 500 });
     }
 
-    const availableBalance = balanceResponse.data[0].balance / 100; // Convert from kobo
-    console.log("Paystack Available Balance:", availableBalance);
-
+    const availableBalance = balanceResponse.data[0].balance / 100;
     if (amount > availableBalance) {
       return NextResponse.json({ error: "Insufficient Paystack balance" }, { status: 400 });
     }
 
-    //Step 4: Create Transfer Recipient
+    // Create transfer recipient for M-Pesa
     const recipient = await paystackRequest("transferrecipient", "POST", {
       type: "mobile_money",
-      name: "Donee",
-      account_number: mpesaNumber,
-      bank_code: "MPESA",
+      name: user.given_name || "User",
+      account_number: formattedMpesaNumber,
+      bank_code: "MPS",
       currency: "KES",
+      description: "Wallet withdrawal to M-Pesa"
     });
 
     if (!recipient.status) {
       console.log("Recipient Error:", recipient);
-      return NextResponse.json({ error: recipient.message }, { status: 400 });
+      return NextResponse.json({ error: recipient.message || "Failed to create transfer recipient" }, { status: 400 });
     }
 
     const recipientCode = recipient.data.recipient_code;
 
-    // Step 5: Initiate Transfer
+    // Initiate transfer
     const transfer = await paystackRequest("transfer", "POST", {
       source: "balance",
-      reason: "Donee Withdrawal",
-      amount: amount * 100, // Convert to kobo
+      reason: "Wallet withdrawal",
+      amount: amount * 100, // Convert to cents
       recipient: recipientCode,
-      currency: "KES",
+      currency: "KES"
     });
 
     if (!transfer.status) {
       console.log("Transfer Error:", transfer);
-      return NextResponse.json({ error: transfer.message }, { status: 400 });
+      return NextResponse.json({ error: transfer.message || "Failed to initiate transfer" }, { status: 400 });
     }
 
-    return NextResponse.json(
-      { message: "Withdrawal initiated", transfer: transfer.data },
-      { status: 200 }
-    );
+    // Update wallet balance
+    await prisma.$transaction(async (tx) => {
+      // Deduct from wallet
+      await tx.wallet.update({
+        where: { userId: user.id },
+        data: { balance: { decrement: amount } }
+      });
+
+      // Create transaction record
+      await tx.transaction.create({
+        data: {
+          amount: amount,
+          giver: { connect: { id: user.id } },
+          receiver: { connect: { id: user.id } }
+        }
+      });
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: "Withdrawal initiated successfully",
+      transfer: transfer.data
+    });
+
   } catch (error: any) {
-    console.error("Server Error:", error);
+    console.error("Withdrawal Error:", error);
     return NextResponse.json(
-      { error: "Server error", details: error.message || error },
+      { error: "Failed to process withdrawal", details: error.message },
       { status: 500 }
     );
   }
