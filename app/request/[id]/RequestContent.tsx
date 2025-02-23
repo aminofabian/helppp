@@ -92,6 +92,7 @@ export const ClientRequestContent = ({ request }: { request: RequestData }) => {
             userName={request.User?.userName ?? 'Anonymous'}
             communityName={request.communityName ?? 'Unknown'}
             pointsUsed={request.pointsUsed}
+            level={request.User?.level ?? 1}
             commentCount={request.Comment.length}
             voteCount1={request.Vote.reduce((acc: number, vote) => 
               vote.voteType === "LOVE" ? acc + 1 : acc, 0)}
