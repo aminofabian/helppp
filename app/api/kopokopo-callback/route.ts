@@ -4,6 +4,7 @@ import crypto from 'crypto';
 import { PaymentMethod, PaymentStatus } from '@prisma/client';
 import { calculateLevel } from '@/app/lib/levelCalculator';
 import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
+import { handleDonationTransaction } from '@/app/(actions)/handleDonationTransaction';
 
 // Validate Kopokopo webhook signature
 function validateWebhookSignature(body: string, signature: string | null, clientSecret: string): boolean {
@@ -386,6 +387,17 @@ async function handleBuyGoodsTransaction(event: any) {
       });
     }
 
+    // Update receiver's wallet
+    if (request?.User) {
+      await handleDonationTransaction(
+        payment.userId!,
+        request.User.id,
+        payment.amount,
+        payment.id
+      );
+      console.log(`Donation transaction processed for payment ${payment.id}`);
+    }
+
     return NextResponse.json({ 
       status: 'success',
       message: "Payment processed successfully",
@@ -482,25 +494,16 @@ async function handleSuccessfulPayment(payment: any, request?: any) {
       });
       console.log(`Transaction recorded: Giver ${payment.userId} -> Receiver ${request.User.id}`);
 
-      // Update receiver's wallet
-      let receiverWallet = await prisma.wallet.findUnique({ 
-        where: { userId: request.User.id } 
+      // Update receiver's wallet using atomic upsert
+      const updatedWallet = await prisma.wallet.upsert({
+        where: { userId: request.User.id },
+        create: { userId: request.User.id, balance: payment.amount },
+        update: { balance: { increment: payment.amount } }
       });
-
-      if (!receiverWallet) {
-        receiverWallet = await prisma.wallet.create({
-          data: { userId: request.User.id, balance: payment.amount }
-        });
-        console.log(`New wallet created for receiver with initial funding: ${request.User.id}`);
-      } else {
-        await prisma.wallet.update({
-          where: { userId: request.User.id },
-          data: { balance: { increment: payment.amount } },
-        });
-        console.log(`Receiver's wallet updated: ${request.User.id}, Amount added: ${payment.amount}`);
-      }
+      console.log(`Receiver's wallet updated: ${request.User.id}, New balance: ${updatedWallet.balance}`);
     }
   } catch (error) {
     console.error('Error processing successful payment:', error);
+    throw error; // Re-throw to ensure the error is properly handled
   }
 }

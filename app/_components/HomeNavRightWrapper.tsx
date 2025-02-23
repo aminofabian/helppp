@@ -61,11 +61,17 @@ async function getUserStats(userId: string) {
     }
   });
 
-  // Calculate total received from completed donations
+  // Calculate total received from all valid donations
   const received = await prisma.donation.aggregate({
     where: {
-      requestId: userId,
-      status: "COMPLETED"
+      Request: {
+        userId: userId  // Find donations to requests created by this user
+      },
+      NOT: {
+        status: {
+          in: ['PENDING', 'FAILED', 'CANCELLED']
+        }
+      }
     },
     _sum: {
       amount: true

@@ -169,6 +169,31 @@ export default function HomeNavRight({
     setIsClient(true);
   }, []);
 
+  // Add wallet polling
+  useEffect(() => {
+    if (!isClient || !initialUser?.id) return;
+
+    const fetchWalletData = async () => {
+      try {
+        const response = await fetch(`/api/wallet?userId=${initialUser.id}`);
+        if (response.ok) {
+          const data = await response.json();
+          setWallet(data);
+        }
+      } catch (error) {
+        console.error('Error fetching wallet data:', error);
+      }
+    };
+
+    // Initial fetch
+    fetchWalletData();
+
+    // Poll every 10 seconds
+    const interval = setInterval(fetchWalletData, 10000);
+
+    return () => clearInterval(interval);
+  }, [initialUser?.id, isClient]);
+
   useEffect(() => {
     const fetchUpdatedStats = async () => {
       try {
@@ -429,6 +454,13 @@ export default function HomeNavRight({
             {(() => {
               const totalDonated = stats.calculatedTotalDonated || stats.totalDonated || 0;
               const totalReceived = stats.totalReceived || 0;
+              console.log('Stats values:', {
+                calculatedTotalDonated: stats.calculatedTotalDonated,
+                totalDonated: stats.totalDonated,
+                totalReceived: stats.totalReceived,
+                finalTotalDonated: totalDonated,
+                finalTotalReceived: totalReceived
+              });
               const requestAmount = calculateRequestAmount(totalDonated, totalReceived);
               const netAmount = totalDonated - totalReceived;
               return (
@@ -437,7 +469,7 @@ export default function HomeNavRight({
                     KES {requestAmount.toLocaleString()}
                   </p>
                   <p className="text-xs text-gray-500 mt-1">
-                    Based on 111% of net contributions (given - received)
+                    Based on 110% of your net contributions (total donated - total received)
                   </p>
                 </>
               );
