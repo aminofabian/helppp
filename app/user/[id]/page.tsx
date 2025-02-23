@@ -4,7 +4,7 @@ import { getKindeServerSession } from '@kinde-oss/kinde-auth-nextjs/server'
 import { notFound, redirect } from 'next/navigation';
 import prisma from '@/app/lib/db';
 import HomeNavRightWrapper from '@/app/_components/HomeNavRightWrapper';
-import { Verified, Heart, HandHeart, Trophy, Activity, Calendar, HelpCircle, TrendingUp, Users, Medal, History } from 'lucide-react';
+import { Verified, Heart, HandHeart, Trophy, Activity, Calendar, HelpCircle, TrendingUp, Users, Medal, History, Wallet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import {
@@ -163,6 +163,30 @@ export default async function UserProfile({ params }: { params: { id: string } }
     return redirect('/api/auth/login');
   }
 
+  // Get the user's level from the database
+  const currentUser = await prisma.user.findUnique({
+    where: { id: user.id },
+    select: { level: true }
+  });
+
+  // Restrict access to level 5 and above
+  if (!currentUser || currentUser.level < 5) {
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4 p-4">
+        <div className="bg-primary/10 p-3 rounded-full">
+          <Users className="w-12 h-12 text-primary" />
+        </div>
+        <h1 className="text-2xl font-bold text-center">Level 5 Required</h1>
+        <p className="text-muted-foreground text-center max-w-md">
+          This feature is only available to level 5 members and above. Continue helping others to level up and unlock this feature.
+        </p>
+        <Button asChild className="mt-4">
+          <Link href="/">Return Home</Link>
+        </Button>
+      </div>
+    );
+  }
+
   // Calculate total amount requested
   const totalRequested = data.requests.reduce((acc: number, req: RequestFromDB) => acc + req.amount, 0);
   
@@ -170,11 +194,11 @@ export default async function UserProfile({ params }: { params: { id: string } }
   const getStatusColor = (status: string | null) => {
     switch ((status || 'pending').toLowerCase()) {
       case 'pending':
-        return 'text-yellow-500 bg-yellow-100 dark:bg-yellow-900/20';
+        return 'text-primary/70 bg-primary/10 dark:bg-primary/20';
       case 'completed':
-        return 'text-green-500 bg-green-100 dark:bg-green-900/20';
+        return 'text-primary bg-primary/10 dark:bg-primary/20';
       case 'rejected':
-        return 'text-red-500 bg-red-100 dark:bg-red-900/20';
+        return 'text-destructive bg-destructive/10 dark:bg-destructive/20';
       default:
         return 'text-gray-500 bg-gray-100 dark:bg-gray-900/20';
     }
@@ -190,25 +214,25 @@ export default async function UserProfile({ params }: { params: { id: string } }
     {
       title: "Early Adopter",
       description: "Joined in the early days",
-      icon: <Medal className="w-5 h-5 text-amber-500" />,
+      icon: <Medal className="w-5 h-5 text-primary" />,
       earned: new Date(data.createdAt).getFullYear() <= 2024
     },
     {
       title: "Generous Soul",
       description: "Donated over KES 10,000",
-      icon: <HandHeart className="w-5 h-5 text-emerald-500" />,
+      icon: <HandHeart className="w-5 h-5 text-primary" />,
       earned: data.totalDonated >= 10000
     },
     {
       title: "Community Pillar",
       description: "Member of 5+ communities",
-      icon: <Users className="w-5 h-5 text-blue-500" />,
+      icon: <Users className="w-5 h-5 text-primary" />,
       earned: data.memberships.length >= 5
     },
     {
       title: "Helper Extraordinaire",
       description: "Helped 10+ people",
-      icon: <Heart className="w-5 h-5 text-red-500" />,
+      icon: <Heart className="w-5 h-5 text-primary" />,
       earned: data.donationCount >= 10
     }
   ];
@@ -243,10 +267,10 @@ export default async function UserProfile({ params }: { params: { id: string } }
         {/* Tabs for different sections */}
         <Tabs defaultValue="requests" className="w-full">
           <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="requests">Requests</TabsTrigger>
-            <TabsTrigger value="donations">Donations</TabsTrigger>
-            <TabsTrigger value="points">Points</TabsTrigger>
-            <TabsTrigger value="communities">Communities</TabsTrigger>
+            <TabsTrigger value="requests" className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary">Requests</TabsTrigger>
+            <TabsTrigger value="donations" className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary">Donations</TabsTrigger>
+            <TabsTrigger value="points" className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary">Points</TabsTrigger>
+            <TabsTrigger value="communities" className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary">Communities</TabsTrigger>
           </TabsList>
 
           {/* Help Requests Tab */}
@@ -291,7 +315,7 @@ export default async function UserProfile({ params }: { params: { id: string } }
                             <TableCell className="w-[100px]">
                               <div className="h-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                                 <div 
-                                  className="h-full bg-emerald-500" 
+                                  className="h-full bg-primary" 
                                   style={{ 
                                     width: `${Math.min((amountDonated / request.amount) * 100, 100)}%` 
                                   }}
@@ -459,7 +483,7 @@ export default async function UserProfile({ params }: { params: { id: string } }
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Trophy className="w-5 h-5 text-amber-500" />
+              <Trophy className="w-5 h-5 text-primary" />
               Achievements
             </CardTitle>
           </CardHeader>
@@ -470,7 +494,7 @@ export default async function UserProfile({ params }: { params: { id: string } }
                   key={index}
                   className={`flex items-center gap-3 p-3 rounded-lg ${
                     achievement.earned
-                      ? 'bg-accent'
+                      ? 'bg-primary/10'
                       : 'bg-gray-100 dark:bg-gray-800 opacity-50'
                   }`}
                 >
@@ -537,6 +561,39 @@ export default async function UserProfile({ params }: { params: { id: string } }
                     </div>
                   );
                 })}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Donation Summary */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Donation Summary</CardTitle>
+            <CardDescription>Summary of donations and contributions</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="bg-gradient-to-br from-primary/5 to-primary/10 dark:from-primary/10 dark:to-primary/5 rounded-lg p-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <HandHeart className="w-4 h-4 text-primary" />
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Given</span>
+                </div>
+                <p className="text-lg font-semibold text-primary">KES {data.totalDonated.toLocaleString()}</p>
+              </div>
+              <div className="bg-gradient-to-br from-primary/5 to-primary/10 dark:from-primary/10 dark:to-primary/5 rounded-lg p-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <HelpCircle className="w-4 h-4 text-primary" />
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Helped</span>
+                </div>
+                <p className="text-lg font-semibold text-primary">{data.donationCount} people</p>
+              </div>
+              <div className="bg-gradient-to-br from-primary/5 to-primary/10 dark:from-primary/10 dark:to-primary/5 rounded-lg p-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <Wallet className="w-4 h-4 text-primary" />
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Balance</span>
+                </div>
+                <p className="text-lg font-semibold text-primary">KES {data.wallet?.balance.toLocaleString()}</p>
+              </div>
             </div>
           </CardContent>
         </Card>
