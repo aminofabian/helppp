@@ -30,9 +30,9 @@ export default function WalletDepositForm({ onClose, onSuccess }: WalletDepositF
         },
         body: JSON.stringify({
           email: user?.email,
-          amount: parseFloat(amount),
+          amount: parseFloat(amount) * 100, // Convert to kobo
           reference: `wallet_deposit_${Date.now()}`,
-          callback_url: `${window.location.origin}/api/paystack-callback`,
+          callback_url: `${window.location.origin}/wallet/success`, // Redirect to success page
           metadata: {
             type: 'wallet_deposit',
             custom_fields: [
@@ -52,6 +52,9 @@ export default function WalletDepositForm({ onClose, onSuccess }: WalletDepositF
       if (!response.ok) {
         throw new Error(data.message || 'Failed to initialize payment');
       }
+
+      // Store the reference in localStorage to verify on return
+      localStorage.setItem('paystack_reference', data.reference);
 
       // Redirect to Paystack checkout URL
       if (data.authorization_url) {
