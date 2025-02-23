@@ -18,11 +18,11 @@ export default function WalletWithdrawForm({ onClose, walletBalance }: WalletWit
     // Remove any spaces or special characters
     const cleaned = number.replace(/[^\d]/g, '');
     
-    // Check if it starts with 254 and has 12 digits total
-    const isValid = /^254\d{9}$/.test(cleaned);
+    // Check if it starts with 0 and has 10 digits total
+    const isValid = /^0\d{9}$/.test(cleaned);
     
     if (!isValid) {
-      toast.error('Please enter a valid M-Pesa number (format: 254XXXXXXXXX)');
+      toast.error('Please enter a valid M-Pesa number (format: 07XXXXXXXX)');
       return false;
     }
     return true;
@@ -51,6 +51,9 @@ export default function WalletWithdrawForm({ onClose, walletBalance }: WalletWit
       return;
     }
 
+    // Convert 0XXXXXXXXX to 254XXXXXXXXX format for the API
+    const apiMpesaNumber = '254' + mpesaNumber.substring(1);
+
     setIsLoading(true);
 
     try {
@@ -61,7 +64,7 @@ export default function WalletWithdrawForm({ onClose, walletBalance }: WalletWit
         },
         body: JSON.stringify({
           amount: numAmount,
-          mpesaNumber,
+          mpesaNumber: apiMpesaNumber, // Send in 254 format to the API
         }),
       });
 
@@ -89,9 +92,9 @@ export default function WalletWithdrawForm({ onClose, walletBalance }: WalletWit
     // Only allow digits
     const value = e.target.value.replace(/[^\d]/g, '');
     
-    // Ensure it starts with 254
-    if (value && !value.startsWith('254')) {
-      setMpesaNumber('254' + value);
+    // Ensure it starts with 0
+    if (value && !value.startsWith('0')) {
+      setMpesaNumber('0' + value);
     } else {
       setMpesaNumber(value);
     }
@@ -104,13 +107,13 @@ export default function WalletWithdrawForm({ onClose, walletBalance }: WalletWit
         <Input
           id="mpesaNumber"
           type="text"
-          placeholder="254XXXXXXXXX"
+          placeholder="07XXXXXXXX"
           value={mpesaNumber}
           onChange={handleMpesaNumberChange}
-          maxLength={12}
+          maxLength={10}
           required
         />
-        <p className="text-xs text-gray-500">Format: 254XXXXXXXXX (12 digits)</p>
+        <p className="text-xs text-gray-500">Format: 07XXXXXXXX (10 digits)</p>
       </div>
 
       <div className="space-y-2">
