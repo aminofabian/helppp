@@ -5,6 +5,7 @@ import Navbar from "@/app/_components/Navbar";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { Toaster } from "@/components/ui/toaster"
 import MenuBar from "./_components/MenuBar";
+import PushNotificationManager from './_components/PushNotificationManager';
 
 const jakarta = Plus_Jakarta_Sans({ 
   subsets: ["latin"],
@@ -49,6 +50,7 @@ export default function RootLayout({
             {children}
           </div>
           <Toaster />
+          <PushNotificationManager />
         </ThemeProvider>
         <MenuBar className='sticky bottom-0 flex w-full justify-evenly border-t bg-card p-3 sm:hidden'/>
       </body>

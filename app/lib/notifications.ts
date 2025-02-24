@@ -1,5 +1,6 @@
 import prisma from '@/app/lib/db';
-import { NotificationType,  } from '@prisma/client';
+import { NotificationType } from '@prisma/client';
+import { sendPushNotification } from './pushNotification';
 
 export async function createNotification({
   type,
@@ -54,9 +55,13 @@ export async function createNotification({
       // Send email notification
     }
 
-    // TODO: Implement push notifications
+    // Send push notification if enabled
     if (userSettings?.notificationSettings?.pushEnabled) {
-      // Send push notification
+      await sendPushNotification(recipientId, {
+        title,
+        content,
+        url: requestId ? `/requests/${requestId}` : '/'
+      });
     }
 
     return notification;

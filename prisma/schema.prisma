@@ -44,6 +44,7 @@ model User {
   answers         Answer[]  
   commentReactions CommentReaction[]
   leaderboard Leaderboard[] @relation("UserLeaderboard")
+  pushSubscriptions PushSubscription[]
   
   @@map("users")
   @@index([id])
@@ -440,6 +441,19 @@ model NotificationSettings {
   pushEnabled  Boolean @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
 }
