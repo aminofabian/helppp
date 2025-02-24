@@ -67,7 +67,7 @@ const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
   onSelect,
   onMethodChange 
 }) => {
-  const methods: PaymentMethod[] = ['Till', 'Paystack', 'PayPal', 'Mpesa'];
+  const methods: PaymentMethod[] = ['Mpesa', 'Paystack', 'PayPal'];
   
   const handleMethodSelect = (method: PaymentMethod) => {
     onSelect(method);
@@ -337,26 +337,8 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
       };
 
       if (paymentMethod === "Mpesa") {
-        const result = await handleMpesa(createPaymentFormData());
-        console.log(result, "result from handleMpesa");
-
-        if (result.success && result.response.CheckoutRequestID) {
-          toast.success('Mpesa payment prompt sent to your phone. Please check your phone to complete the payment.', {
-            duration: 6000,
-          });
-          stkPushQueryWithIntervals(result.response.CheckoutRequestID);
-        } else {
-          toast.error(result.message || "Failed to initiate payment", {
-            duration: 5000,
-            position: "top-center",
-          });
-          setError(result.message || "Failed to initiate payment");
-        }
-      }
-
-      else if (paymentMethod === "Till") {
         const result = await handleTillPayment(createPaymentFormData());
-        console.log("📡 Till payment result:", result);
+        console.log("📡 Mpesa payment result:", result);
       
         if (result?.success) {
           toast.custom((t) => (
@@ -375,7 +357,6 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
             </div>
           ), { duration: 8000 });
       
-          // ✅ Only poll if paymentId exists
           if (result.paymentId) {
             await pollPaymentStatus(result.paymentId);
           } else {
