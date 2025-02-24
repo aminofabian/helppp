@@ -4,10 +4,14 @@ import prisma from '@/app/lib/db';
 import webpush from 'web-push';
 
 // Configure web-push with your VAPID keys
+if (!process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || !process.env.VAPID_PRIVATE_KEY) {
+  throw new Error('VAPID keys must be set in environment variables');
+}
+
 webpush.setVapidDetails(
-  'mailto:your-email@example.com', // Replace with your email
-  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
-  process.env.VAPID_PRIVATE_KEY!
+  'mailto:fabianngaira@gmail.com', // Using admin email from .env
+  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
+  process.env.VAPID_PRIVATE_KEY
 );
 
 export async function POST(request: Request) {
@@ -36,4 +40,4 @@ export async function POST(request: Request) {
     console.error('Error storing push subscription:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
-} 
+}
