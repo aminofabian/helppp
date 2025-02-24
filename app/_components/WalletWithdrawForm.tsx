@@ -69,13 +69,17 @@ export default function WalletWithdrawForm({ onClose, walletBalance }: WalletWit
 
       if (!response.ok) {
         if (data.code === "TRANSFERS_NOT_ENABLED") {
-          toast.error('Withdrawals are temporarily unavailable', {
-            description: 'Our payment service is being configured. Please try again later.'
+          toast.error('Payment service error', {
+            description: data.error || 'Transfers not enabled'
           });
         } else if (data.error === "Insufficient Paystack balance") {
-          toast.error('The service is temporarily unavailable. Please try again later.');
+          toast.error('Payment service error', {
+            description: data.error
+          });
         } else {
-          throw new Error(data.error || 'Failed to process withdrawal');
+          toast.error('Payment service error', {
+            description: data.error || 'Failed to process withdrawal'
+          });
         }
         return;
       }
@@ -83,7 +87,9 @@ export default function WalletWithdrawForm({ onClose, walletBalance }: WalletWit
       toast.success('Withdrawal initiated successfully');
       onClose();
     } catch (error: any) {
-      toast.error(error.message || 'Failed to process withdrawal');
+      toast.error('Payment service error', {
+        description: error.message
+      });
     } finally {
       setIsLoading(false);
     }
