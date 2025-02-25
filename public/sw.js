@@ -3,8 +3,8 @@ self.addEventListener('push', function(event) {
   
   const options = {
     body: data.content,
-    icon: '/icon.png', // Make sure to add an icon file
-    badge: '/badge.png', // Make sure to add a badge file
+    icon: '/fitrii.png', // Using existing fitrii logo
+    badge: '/fitrii.png', // Using existing fitrii logo as badge
     vibrate: [200, 100, 200],
     data: {
       url: data.url // URL to open when notification is clicked
@@ -22,4 +22,4 @@ self.addEventListener('notificationclick', function(event) {
   event.waitUntil(
     clients.openWindow(event.notification.data.url)
   );
-}); 
+});
