@@ -70,13 +70,14 @@ export function RequestCard({
 
   return (
     <Card className="w-full max-w-xl mx-auto
-                    border-x-0 md:border rounded-none md:rounded-xl 
-                    hover:translate-y-[-2px] transition-all duration-300 
-                    bg-white dark:bg-gray-900
-                    dark:border-gray-800
-                    shadow-sm md:shadow-md hover:shadow-lg
-                    overflow-hidden mb-2 md:my-3
-                    p-3 md:p-4">
+                    border-0 md:border rounded-none md:rounded-xl
+                    hover:translate-y-[-2px] transition-all duration-300
+                    bg-white/95 backdrop-blur-sm dark:bg-gray-900/95
+                    dark:border-gray-800/50
+                    shadow-none md:shadow-md hover:shadow-lg
+                    overflow-hidden mb-1 md:mb-3
+                    p-3 sm:p-4 md:p-5
+                    touch-pan-y">
       <div className="relative">
         {/* Funded Badge */}
         {isFunded && (
