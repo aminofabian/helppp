@@ -59,19 +59,23 @@ export function ShowItems() {
     setIsLoading(true);
     setError(null);
     try {
-      console.log('Loading page:', page);
-      const response = await fetch(`/api/getData?page=${page}`);
+      const batchSize = 10; // Number of items to load per batch
+      const response = await fetch(`/api/getData?page=${page}&limit=${batchSize}`);
       if (!response.ok) {
-        throw new Error('Network response was not ok');
+        throw new Error('Failed to fetch requests');
       }
       const { data, count } = await response.json();
-      // console.log('Received data:', data);
-      setItems(prevItems => [...prevItems, ...data]);
-      setPage(prevPage => prevPage + 1);
-      setHasMore(items.length + data.length < count);
+      
+      if (Array.isArray(data)) {
+        setItems(prevItems => [...prevItems, ...data]);
+        setPage(prevPage => prevPage + 1);
+        setHasMore(items.length + data.length < count);
+      } else {
+        throw new Error('Invalid data format received');
+      }
     } catch (error) {
       console.error("Error loading more items:", error);
-      setError(`Failed to load items: ${(error as Error).message}`);
+      setError(`Failed to load requests. Please try again later.`);
     } finally {
       setIsLoading(false);
     }
