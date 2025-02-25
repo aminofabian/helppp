@@ -169,7 +169,7 @@ export function RequestCard({
                               p-3 sm:p-4 rounded-lg
                               bg-secondary/20 dark:bg-gray-800
                               border border-secondary dark:border-gray-700">
-                  <div className={`leading-relaxed text-slate-700 dark:text-gray-200 ${!isExpanded ? "line-clamp-2" : ""}`}>
+                  <div className={`leading-relaxed text-slate-700 dark:text-gray-200 ${!isExpanded ? "line-clamp-3" : ""}`}>
                     {textContent ? (
                       typeof textContent === 'string' 
                         ? textContent 
@@ -184,9 +184,9 @@ export function RequestCard({
                   </div>
                 </div>
                 {((textContent && (
-                  (typeof textContent === 'string' && textContent.length > 80) ||
-                  (typeof textContent === 'object' && textContent?.content?.[0]?.content?.[0]?.text?.length > 80) ||
-                  (typeof textContent === 'object' && textContent?.text?.length > 80)
+                  (typeof textContent === 'string' && textContent.length > 60) ||
+                  (typeof textContent === 'object' && textContent?.content?.[0]?.content?.[0]?.text?.length > 60) ||
+                  (typeof textContent === 'object' && textContent?.text?.length > 60)
                 )) || (jsonContent && Object.keys(jsonContent).length > 2)) && (
                   <button 
                     onClick={() => setIsExpanded(!isExpanded)}
