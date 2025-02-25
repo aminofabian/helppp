@@ -69,13 +69,14 @@ export function RequestCard({
   const remainingAmount = amount - funded;
 
   return (
-    <Card className="w-full max-w-xl mx-auto border rounded-xl 
+    <Card className="w-full max-w-xl mx-auto
+                    border-x-0 md:border rounded-none md:rounded-xl 
                     hover:translate-y-[-2px] transition-all duration-300 
                     bg-white dark:bg-gray-900
                     dark:border-gray-800
-                    shadow-md hover:shadow-lg
-                    overflow-hidden my-3
-                    sm:p-4 p-2">
+                    shadow-sm md:shadow-md hover:shadow-lg
+                    overflow-hidden mb-2 md:my-3
+                    p-3 md:p-4">
       <div className="relative">
         {/* Funded Badge */}
         {isFunded && (
