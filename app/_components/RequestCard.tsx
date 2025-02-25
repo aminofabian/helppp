@@ -75,9 +75,10 @@ export function RequestCard({
                     bg-white/95 backdrop-blur-sm dark:bg-gray-900/95
                     dark:border-gray-800/50
                     shadow-none md:shadow-md hover:shadow-lg
-                    overflow-hidden mb-1 md:mb-3
-                    p-3 sm:p-4 md:p-5
-                    touch-pan-y">
+                    overflow-hidden mb-3 md:mb-4
+                    p-4 sm:p-5 md:p-6
+                    touch-pan-y
+                    border-b border-gray-100 dark:border-gray-800 md:border-none">
       <div className="relative">
         {/* Funded Badge */}
         {isFunded && (
