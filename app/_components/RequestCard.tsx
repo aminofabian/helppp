@@ -165,12 +165,11 @@ export function RequestCard({
           {(textContent || jsonContent) && (
             <div className="mt-1">
               <div>
-                <div className={`text-sm sm:text-base
+                <div className="text-sm sm:text-base
                               p-3 sm:p-4 rounded-lg
                               bg-secondary/20 dark:bg-gray-800
-                              border border-secondary dark:border-gray-700
-                              ${!isExpanded && "line-clamp-2"}`}>
-                  <div className="leading-relaxed text-slate-700 dark:text-gray-200">
+                              border border-secondary dark:border-gray-700">
+                  <div className={`leading-relaxed text-slate-700 dark:text-gray-200 ${!isExpanded ? "line-clamp-2" : ""}`}>
                     {textContent ? (
                       typeof textContent === 'string' 
                         ? textContent 
