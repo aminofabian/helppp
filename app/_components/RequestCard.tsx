@@ -184,10 +184,10 @@ export function RequestCard({
                   </div>
                 </div>
                 {((textContent && (
-                  (typeof textContent === 'string' && textContent.length > 100) ||
-                  (typeof textContent === 'object' && textContent?.content?.[0]?.content?.[0]?.text?.length > 100) ||
-                  (typeof textContent === 'object' && textContent?.text?.length > 100)
-                )) || jsonContent) && (
+                  (typeof textContent === 'string' && textContent.length > 150) ||
+                  (typeof textContent === 'object' && textContent?.content?.[0]?.content?.[0]?.text?.length > 150) ||
+                  (typeof textContent === 'object' && textContent?.text?.length > 150)
+                )) || (jsonContent && Object.keys(jsonContent).length > 0)) && (
                   <button 
                     onClick={() => setIsExpanded(!isExpanded)}
                     className="text-xs sm:text-sm font-medium
