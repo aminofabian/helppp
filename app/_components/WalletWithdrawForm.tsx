@@ -84,7 +84,9 @@ export default function WalletWithdrawForm({ onClose, walletBalance }: WalletWit
         return;
       }
 
-      toast.success('Withdrawal initiated successfully');
+      toast.success('Withdrawal Successful', {
+        description: `KES ${numAmount.toLocaleString()} has been sent to M-Pesa number ${mpesaNumber}. The transaction will be processed shortly.`
+      });
       onClose();
     } catch (error: any) {
       toast.error('Payment service error', {
@@ -148,4 +150,4 @@ export default function WalletWithdrawForm({ onClose, walletBalance }: WalletWit
       </div>
     </form>
   );
-} 
+}
