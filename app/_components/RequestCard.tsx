@@ -183,16 +183,22 @@ export function RequestCard({
                     )}
                   </div>
                 </div>
-                <button 
-                  onClick={() => setIsExpanded(!isExpanded)}
-                  className="text-xs sm:text-sm font-medium
-                           mt-1 px-3 py-1 rounded-full
-                           text-primary
-                           hover:bg-secondary/50 dark:hover:bg-gray-800
-                           transition-colors"
-                >
-                  {isExpanded ? 'Show less' : 'Read more'}
-                </button>
+                {((textContent && (
+                  (typeof textContent === 'string' && textContent.length > 100) ||
+                  (typeof textContent === 'object' && textContent?.content?.[0]?.content?.[0]?.text?.length > 100) ||
+                  (typeof textContent === 'object' && textContent?.text?.length > 100)
+                )) || jsonContent) && (
+                  <button 
+                    onClick={() => setIsExpanded(!isExpanded)}
+                    className="text-xs sm:text-sm font-medium
+                             mt-1 px-3 py-1 rounded-full
+                             text-primary
+                             hover:bg-secondary/50 dark:hover:bg-gray-800
+                             transition-colors"
+                  >
+                    {isExpanded ? 'Show less' : 'Read more'}
+                  </button>
+                )}
               </div>
             </div>
           )}
