@@ -74,7 +74,8 @@ export function RequestCard({
                     bg-white dark:bg-gray-900
                     dark:border-gray-800
                     shadow-md hover:shadow-lg
-                    overflow-hidden my-3">
+                    overflow-hidden my-3
+                    sm:p-4 p-2">
       <div className="relative">
         {/* Funded Badge */}
         {isFunded && (
@@ -86,9 +87,9 @@ export function RequestCard({
           </div>
         )}
 
-        <div className="p-4">
+        <div className="space-y-3">
           {/* Header - Community and Time */}
-          <div className="flex justify-between items-center mb-3">
+          <div className="flex justify-between items-center">
             {communityName && (
               <Link 
                 href={`/c/${communityName}`} 
@@ -97,8 +98,8 @@ export function RequestCard({
                          dark:bg-gray-800 dark:hover:bg-gray-700
                          rounded-full transition-colors"
               >
-                <Users className="w-3.5 h-3.5 text-primary" />
-                <span className="text-xs font-medium text-primary">
+                <Users className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-primary" />
+                <span className="text-xs font-medium text-primary truncate max-w-[120px] sm:max-w-none">
                   c/{communityName.replace(/_/g, ' ')}
                 </span>
               </Link>
@@ -117,17 +118,17 @@ export function RequestCard({
           </div>
           
           {/* Title and User Info */}
-          <div className="flex items-start gap-3 mb-3">
+          <div className="flex items-start gap-2 sm:gap-3">
             <div className="relative flex-shrink-0">
-              <ClientAvatar className="w-10 h-10 rounded-full 
+              <ClientAvatar className="w-8 h-8 sm:w-10 sm:h-10 rounded-full 
                                     ring-2 ring-secondary dark:ring-primary/20" />
-              <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full 
+              <div className="absolute -bottom-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 rounded-full 
                             bg-primary
                             flex items-center justify-center">
                 <div className="absolute inset-0.5 rounded-full 
                               bg-white dark:bg-gray-900 
                               flex items-center justify-center">
-                  <span className="text-[10px] font-bold text-primary">
+                  <span className="text-[8px] sm:text-[10px] font-bold text-primary">
                     L{level}
                   </span>
                 </div>
@@ -136,10 +137,10 @@ export function RequestCard({
             
             <div className="flex-1 min-w-0">
               <Link href={`/request/${id}`} className="block">
-                <h2 className="text-base font-semibold 
+                <h2 className="text-sm sm:text-base font-semibold 
                              text-gray-900 dark:text-gray-100
                              hover:text-primary dark:hover:text-primary 
-                             transition-colors mb-0.5">
+                             transition-colors mb-0.5 line-clamp-2">
                   {title}
                 </h2>
               </Link>
@@ -151,7 +152,7 @@ export function RequestCard({
                                transition-colors
                                flex items-center gap-1">
                   {userName}
-                  <BadgeCheck className="w-3.5 h-3.5 text-primary" />
+                  <BadgeCheck className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-primary" />
                 </Link>
               </div>
             </div>
@@ -159,67 +160,44 @@ export function RequestCard({
 
           {/* Description */}
           {(textContent || jsonContent) && (
-            <div className="mb-3 mt-2">
-              {textContent ? (
-                <div>
-                  <div className={`text-base
-                                p-4 rounded-lg
-                                bg-secondary/20 dark:bg-gray-800
-                                border border-secondary dark:border-gray-700
-                                ${!isExpanded && "line-clamp-2"}`}>
-                    <div className="leading-relaxed
-                                  text-slate-700 dark:text-gray-200
-                                  text-[15px]">
-                      {typeof textContent === 'string' 
+            <div className="mt-1">
+              <div>
+                <div className={`text-sm sm:text-base
+                              p-3 sm:p-4 rounded-lg
+                              bg-secondary/20 dark:bg-gray-800
+                              border border-secondary dark:border-gray-700
+                              ${!isExpanded && "line-clamp-2"}`}>
+                  <div className="leading-relaxed text-slate-700 dark:text-gray-200">
+                    {textContent ? (
+                      typeof textContent === 'string' 
                         ? textContent 
                         : typeof textContent === 'object' && textContent?.content?.[0]?.content?.[0]?.text 
                           ? textContent.content[0].content[0].text 
                           : typeof textContent === 'object' && textContent?.text
                             ? textContent.text
-                            : 'No description provided'}
-                    </div>
-                  </div>
-                  <button 
-                    onClick={() => setIsExpanded(!isExpanded)}
-                    className="text-sm font-medium
-                             mt-2 px-4 py-1.5 rounded-full
-                             text-primary
-                             hover:bg-secondary/50 dark:hover:bg-gray-800
-                             transition-colors"
-                  >
-                    {isExpanded ? 'Show less' : 'Read more'}
-                  </button>
-                </div>
-              ) : jsonContent ? (
-                <div>
-                  <div className={`text-base
-                                p-4 rounded-lg
-                                bg-secondary/20 dark:bg-gray-800
-                                border border-secondary dark:border-gray-700
-                                ${!isExpanded && "line-clamp-2"}`}>
-                    <div className="leading-tight
-                                  text-slate-700 dark:text-gray-200">
+                            : 'No description provided'
+                    ) : (
                       <RenderToJson data={jsonContent} />
-                    </div>
+                    )}
                   </div>
-                  <button 
-                    onClick={() => setIsExpanded(!isExpanded)}
-                    className="text-sm font-medium
-                             mt-2 px-4 py-1.5 rounded-full
-                             text-primary
-                             hover:bg-secondary/50 dark:hover:bg-gray-800
-                             transition-colors"
-                  >
-                    {isExpanded ? 'Show less' : 'Read more'}
-                  </button>
                 </div>
-              ) : null}
+                <button 
+                  onClick={() => setIsExpanded(!isExpanded)}
+                  className="text-xs sm:text-sm font-medium
+                           mt-1 px-3 py-1 rounded-full
+                           text-primary
+                           hover:bg-secondary/50 dark:hover:bg-gray-800
+                           transition-colors"
+                >
+                  {isExpanded ? 'Show less' : 'Read more'}
+                </button>
+              </div>
             </div>
           )}
 
           {/* Image */}
           {imageString && (
-            <div className="mb-3 rounded-lg overflow-hidden h-48 
+            <div className="rounded-lg overflow-hidden h-40 sm:h-48 
                           border border-secondary dark:border-gray-700">
               <Image
                 src={imageString}
@@ -234,16 +212,15 @@ export function RequestCard({
 
           {/* Contribution Info */}
           <div className="bg-secondary/20 dark:bg-gray-800 
-                        rounded-lg p-4
-                        border border-secondary dark:border-gray-700
-                        mb-3">
+                        rounded-lg p-3 sm:p-4
+                        border border-secondary dark:border-gray-700">
             <div className="flex justify-between items-center mb-2">
-              <div className="flex items-center gap-3">
-                <p className="text-base font-semibold text-primary">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <p className="text-sm sm:text-base font-semibold text-primary">
                   KES {funded.toLocaleString()}
                   <span className="text-xs font-normal text-gray-500 dark:text-gray-400 ml-1">/=</span>
                 </p>
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400">
                   of KES {amount.toLocaleString()}/=
                 </p>
               </div>
@@ -258,7 +235,7 @@ export function RequestCard({
 
             <div className="flex justify-between items-center text-xs text-gray-500 dark:text-gray-400">
               <div className="flex items-center gap-1.5">
-                <Users className="w-3.5 h-3.5" />
+                <Users className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                 <span>{contributors} contributor{contributors !== 1 ? 's' : ''}</span>
               </div>
               {remainingAmount > 0 ? (
@@ -275,7 +252,7 @@ export function RequestCard({
 
           {/* Action Buttons */}
           <div className="flex justify-between items-center">
-            <div className="flex items-center">
+            <div className="flex items-center scale-90 sm:scale-100 origin-left">
               <VoteButtons
                 initialVoteCount1={voteCount1}
                 initialVoteCount2={voteCount2}
@@ -283,16 +260,16 @@ export function RequestCard({
               />
             </div>
 
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-0.5 sm:gap-1">
               <Link href={`/request/${id}`} passHref>
                 <Button 
                   size="sm" 
                   variant="ghost" 
-                  className="h-8 px-2 rounded-full
+                  className="h-8 px-1.5 sm:px-2 rounded-full
                            text-gray-600 hover:text-primary hover:bg-secondary/50
                            dark:text-gray-400 dark:hover:text-primary dark:hover:bg-gray-800"
                 >
-                  <MessageCircleIcon className="w-4 h-4 mr-1" />
+                  <MessageCircleIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1" />
                   <span className="text-xs">{commentCount}</span>
                 </Button>
               </Link>
@@ -300,16 +277,16 @@ export function RequestCard({
               <Button 
                 variant="ghost" 
                 size="sm" 
-                className="h-8 px-2 rounded-full
+                className="h-8 px-1.5 sm:px-2 rounded-full
                          text-gray-600 hover:text-primary hover:bg-secondary/50
                          dark:text-gray-400 dark:hover:text-primary dark:hover:bg-gray-800"
               >
-                <BookmarkIcon className="w-4 h-4" />
+                <BookmarkIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </Button>
 
               <CopyLink 
                 id={id} 
-                className="h-8 px-2 rounded-full
+                className="h-8 px-1.5 sm:px-2 rounded-full
                          text-gray-600 hover:text-primary hover:bg-secondary/50
                          dark:text-gray-400 dark:hover:text-primary dark:hover:bg-gray-800"
               />
@@ -323,7 +300,7 @@ export function RequestCard({
         <DialogTrigger asChild>
           <Button 
             variant="default" 
-            className={`w-full py-2.5 rounded-none
+            className={`w-full py-2 sm:py-2.5 rounded-none
               ${isFunded
                 ? 'bg-gray-900 dark:bg-gray-800 hover:bg-gray-800 dark:hover:bg-gray-700'
                 : 'bg-primary hover:bg-primary/90'
