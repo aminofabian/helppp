@@ -14,6 +14,8 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
   const reference = event.data.reference;
   const requestId = event.data.metadata?.request_id;
   const customerId = event.data.metadata?.userId;
+
+  console.log(event.data.amount,"this is the data///////////////////////////////////////////////////////////////////////////::::::::::::::::::::::::::::::::")
   
   console.log(`[${webhookId}] Processing Paystack charge.success for reference: ${reference}, requestId: ${requestId}, customerId: ${customerId}`);
 
@@ -61,9 +63,12 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
       console.log(`[${webhookId}] Found user by email:`, giver?.id);
     }
 
+    // If still not found, create a new user
+    
     // 3. If still not found, create a new user with available data
+    // If still not found, create a new user
+    let isNewUser = false;
     if (!giver) {
-      // Try to get Kinde user data if customerId exists
       let kindeUserData = null;
       if (customerId) {
         const { getUser } = getKindeServerSession();
@@ -73,24 +78,26 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
       giver = await prisma.user.create({
         data: {
           id: customerId || crypto.randomUUID(),
-          email: event.data.customer?.email || '',
-          firstName: kindeUserData?.given_name || event.data.customer?.first_name || '',
-          lastName: kindeUserData?.family_name || event.data.customer?.last_name || '',
-          imageUrl: kindeUserData?.picture || '',
+          email: event.data.customer?.email || "",
+          firstName: kindeUserData?.given_name || event.data.customer?.first_name || "",
+          lastName: kindeUserData?.family_name || event.data.customer?.last_name || "",
+          imageUrl: kindeUserData?.picture || "",
           userName: `user_${Date.now()}`,
           level: 1,
-          totalDonated: event.data.amount / 100, // Convert from kobo to KES
-          donationCount: 1
-        }
+          totalDonated: 0, // Initialize at 0 to prevent double counting
+          donationCount: 0,
+        },
       });
-      console.log(`[${webhookId}] Created new user:`, giver.id);
+      isNewUser = true;
     }
+
+    const amountInKES = event.data.amount / 100; // Convert from kobo to KES
 
     // Create payment record
     const payment = await prisma.payment.create({
       data: {
         userId: giver.id,
-        amount: event.data.amount / 100, // Convert from kobo to KES
+        amount: amountInKES, // Convert from kobo to KES
         paymentMethod: PaymentMethod.PAYSTACK,
         status: PaymentStatus.COMPLETED,
         checkoutRequestId: reference,
@@ -111,7 +118,7 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
       data: {
         userId: giver.id,
         requestId: requestId,
-        amount: event.data.amount / 100,
+        amount: amountInKES,
         payment: { connect: { id: payment.id } },
         status: PaymentStatus.COMPLETED,
         invoice: reference
@@ -121,18 +128,36 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
     console.log(`[${webhookId}] Created donation record: ${donation.id}`);
 
     // Update receiver's wallet if this is a donation to a request
-    if (request?.User) {
-      await handleDonationTransaction(
-        giver.id,
-        request.User.id,
-        event.data.amount / 100,
-        payment.id
-      );
+    // if (request?.User) {
+    //   await handleDonationTransaction(
+    //     giver.id,
+    //     request.User.id,
+    //     event.data.amount / 100,
+    //     payment.id
+    //   );
+    //   console.log(`[${webhookId}] Donation transaction processed for payment ${payment.id}`);
+    // }
+
+     // Update receiver's wallet
+     if (request?.User) {
+      await handleDonationTransaction(giver.id, request.User.id, amountInKES, payment.id);
       console.log(`[${webhookId}] Donation transaction processed for payment ${payment.id}`);
     }
 
+    // Update user donation stats **only if it's an existing user**
+    if (!isNewUser) {
+      await prisma.user.update({
+        where: { id: giver.id },
+        data: {
+          totalDonated: { increment: amountInKES },
+          donationCount: { increment: 1 },
+        },
+      });
+    } else {
+      console.log(`[${webhookId}] Skipped totalDonated update for new user to prevent double counting`);
+    }
+
     // Calculate points (1 point per 50 KES, minimum 1 point)
-    const amountInKES = event.data.amount / 100; // Convert from kobo to KES
     const pointsEarned = Math.max(1, Math.floor(amountInKES / 50));
     console.log(`[${webhookId}] Points calculation:`, {
       originalAmount: event.data.amount,
@@ -537,4 +562,288 @@ async function updateTransferStatus(reference: string, status: string, reason?: 
     where: { id: reference },
     data: { status: status as PaymentStatus },
   });
-}
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// async function handlePaystackWebhook(event: any, webhookId: string) {
+//   const reference = event.data.reference;
+//   const requestId = event.data.metadata?.request_id;
+//   const customerId = event.data.metadata?.userId;
+
+//   console.log(event.data.amount,"this is the data///////////////////////////////////////////////////////////////////////////::::::::::::::::::::::::::::::::")
+  
+//   console.log(`[${webhookId}] Processing Paystack charge.success for reference: ${reference}, requestId: ${requestId}, customerId: ${customerId}`);
+
+//   // Check in-memory cache first
+//   if (processedReferences.has(reference)) {
+//     console.log(`[${webhookId}] Payment already processed (in-memory): ${reference}`);
+//     return NextResponse.json({ status: "success", message: "Payment already processed" });
+//   }
+
+//   try {
+//     // Find the request and associated user (receiver)
+//     const request = await prisma.request.findUnique({
+//       where: { id: requestId },
+//       include: {
+//         User: true,
+//         Community: true
+//       }
+//     });
+
+//     if (!request) {
+//       console.error(`[${webhookId}] Request not found for requestId: ${requestId}`);
+//       return NextResponse.json({ 
+//         status: "error", 
+//         message: "Request not found",
+//         details: `Reference: ${reference}, RequestId: ${requestId}`
+//       }, { status: 404 });
+//     }
+
+//     // Find giver using multiple methods
+//     let giver = null;
+
+//     // 1. Try to find by customerId from metadata (Kinde ID)
+//     if (customerId) {
+//       giver = await prisma.user.findUnique({ 
+//         where: { id: customerId }
+//       });
+//       console.log(`[${webhookId}] Found user by Kinde ID:`, giver?.id);
+//     }
+
+//     // 2. If not found, try to find by email
+//     if (!giver && event.data.customer?.email) {
+//       giver = await prisma.user.findFirst({ 
+//         where: { email: event.data.customer.email }
+//       });
+//       console.log(`[${webhookId}] Found user by email:`, giver?.id);
+//     }
+
+//     // 3. If still not found, create a new user with available data
+//     if (!giver) {
+//       // Try to get Kinde user data if customerId exists
+//       let kindeUserData = null;
+//       if (customerId) {
+//         const { getUser } = getKindeServerSession();
+//         kindeUserData = await getUser();
+//       }
+
+//       giver = await prisma.user.create({
+//         data: {
+//           id: customerId || crypto.randomUUID(),
+//           email: event.data.customer?.email || '',
+//           firstName: kindeUserData?.given_name || event.data.customer?.first_name || '',
+//           lastName: kindeUserData?.family_name || event.data.customer?.last_name || '',
+//           imageUrl: kindeUserData?.picture || '',
+//           userName: `user_${Date.now()}`,
+//           level: 1,
+//           totalDonated: event.data.amount / 100, // Convert from kobo to KES
+//           donationCount: 1
+//         }
+//       });
+//       console.log(`[${webhookId}] Created new user:`, giver.id);
+//     }
+
+//     // Create payment record
+//     const payment = await prisma.payment.create({
+//       data: {
+//         userId: giver.id,
+//         amount: event.data.amount / 100, // Convert from kobo to KES
+//         paymentMethod: PaymentMethod.PAYSTACK,
+//         status: PaymentStatus.COMPLETED,
+//         checkoutRequestId: reference,
+//         merchantRequestId: event.data.id.toString(),
+//         resultCode: event.data.status,
+//         resultDesc: "Success",
+//         currency: event.data.currency,
+//         requestId: requestId,
+//         userts: new Date(event.data.paid_at),
+//         transactionDate: new Date()
+//       }
+//     });
+
+//     console.log(`[${webhookId}] Created payment record: ${payment.id}`);
+
+//     // Create donation record
+//     const donation = await prisma.donation.create({
+//       data: {
+//         userId: giver.id,
+//         requestId: requestId,
+//         amount: event.data.amount / 100,
+//         payment: { connect: { id: payment.id } },
+//         status: PaymentStatus.COMPLETED,
+//         invoice: reference
+//       }
+//     });
+
+//     console.log(`[${webhookId}] Created donation record: ${donation.id}`);
+
+//     // Update receiver's wallet if this is a donation to a request
+//     if (request?.User) {
+//       await handleDonationTransaction(
+//         giver.id,
+//         request.User.id,
+//         event.data.amount / 100,
+//         payment.id
+//       );
+//       console.log(`[${webhookId}] Donation transaction processed for payment ${payment.id}`);
+//     }
+
+//     // Calculate points (1 point per 50 KES, minimum 1 point)
+//     const amountInKES = event.data.amount / 100; // Convert from kobo to KES
+//     const pointsEarned = Math.max(1, Math.floor(amountInKES / 50));
+//     console.log(`[${webhookId}] Points calculation:`, {
+//       originalAmount: event.data.amount,
+//       amountInKES,
+//       pointsEarned,
+//       calculationDetails: `${amountInKES} KES / 50 = ${pointsEarned} points (minimum 1 point)`
+//     });
+
+//     // Create points record
+//     const points = await prisma.points.create({
+//       data: { 
+//         userId: giver.id, 
+//         amount: pointsEarned,
+//         paymentId: payment.id 
+//       }
+//     });
+
+//     console.log(`[${webhookId}] Created points record:`, {
+//       userId: giver.id,
+//       pointsEarned,
+//       paymentId: payment.id,
+//       pointsRecordId: points.id
+//     });
+
+//     // Calculate new level based on total points
+//     const userPoints = await prisma.points.findMany({
+//       where: { userId: giver.id }
+//     });
+//     const totalPoints = userPoints.reduce((sum, p) => sum + p.amount, 0);
+//     const newLevel = calculateLevel(totalPoints);
+
+//     // Update user profile with new stats
+//     await prisma.user.update({
+//       where: { id: giver.id },
+//       data: {
+//         level: newLevel,
+//         totalDonated: { increment: event.data.amount / 100 },
+//         donationCount: { increment: 1 }
+//       }
+//     });
+
+//     // Create notification for request creator
+//     await prisma.notification.create({
+//       data: {
+//         recipientId: request.userId,
+//         issuerId: giver.id,
+//         title: 'New Donation Received! 🎉',
+//         content: `${giver.firstName || 'Someone'} donated KES ${event.data.amount / 100} to your request. They earned ${pointsEarned} points and are now at Level ${newLevel}!`,
+//         type: 'DONATION',
+//         requestId: requestId,
+//         donationId: donation.id
+//       }
+//     });
+
+//     // Create notification for the donor
+//     await prisma.notification.create({
+//       data: {
+//         recipientId: giver.id,
+//         issuerId: request.userId,
+//         title: 'Thank You for Your Donation! ',
+//         content: `Your donation of KES ${event.data.amount / 100} was successful. You earned ${pointsEarned} points and are now at Level ${newLevel}. Keep making a difference!`,
+//         type: 'PAYMENT_COMPLETED',
+//         requestId: requestId,
+//         donationId: donation.id
+//       }
+//     });
+
+//     // Check if request is fully funded
+//     const totalDonations = await prisma.donation.aggregate({
+//       where: {
+//         requestId: requestId,
+//         status: PaymentStatus.COMPLETED
+//       },
+//       _sum: {
+//         amount: true
+//       }
+//     });
+
+//     if (request.amount && totalDonations._sum.amount && totalDonations._sum.amount >= request.amount) {
+//       await prisma.request.update({
+//         where: { id: requestId },
+//         data: { status: 'FUNDED' }
+//       });
+      
+//       // Create notification for request completion
+//       await prisma.notification.create({
+//         data: {
+//           recipientId: request.userId,
+//           issuerId: giver.id,
+//           title: 'Fundraising Goal Reached! ',
+//           content: `Congratulations! Your request has reached its fundraising goal of KES ${request.amount}. Total amount raised: KES ${totalDonations._sum.amount}`,
+//           type: 'PAYMENT_RECEIVED',
+//           requestId: requestId,
+//           donationId: donation.id
+//         }
+//       });
+//     }
+
+//     // Update community statistics if applicable
+//     if (request.Community?.id) {
+//       await prisma.community.update({
+//         where: { id: request.Community.id },
+//         data: {
+//           totalDonations: { increment: event.data.amount / 100 }
+//         }
+//       });
+//     }
+
+//     // Add to processed references
+//     processedReferences.add(reference);
+
+//     return NextResponse.json({ 
+//       status: "success", 
+//       message: "Payment processed successfully",
+//       data: {
+//         paymentId: payment.id,
+//         donationId: donation.id,
+//         pointsEarned,
+//         newLevel
+//       }
+//     });
+
+//   } catch (error) {
+//     console.error(`[${webhookId}] Error processing Paystack payment:`, error);
+//     return NextResponse.json({ 
+//       status: "error", 
+//       message: "Error processing payment",
+//       error: error instanceof Error ? error.message : 'Unknown error'
+//     }, { status: 500 });
+//   }
+// }
