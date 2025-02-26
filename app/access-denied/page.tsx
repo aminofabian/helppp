@@ -8,7 +8,7 @@ export default function NotFound() {
           <h2 className="mb-8 font-extrabold text-4xl text-red-600 dark:text-red-400">
             <span className="sr-only">Access</span>Access Denied
           </h2>
-          <p className="text-2xl font-semibold md:text-3xl text-gray-800 dark:text-gray-100">
+          <p className="text-3xl font-semibold md:text-3xl text-gray-800 dark:text-gray-100">
             Oops! Only Level 2 and Above Members Are Allowed to Post a Help Request
           </p>
           <p className="mt-4 mb-8 text-gray-600 dark:text-gray-300">

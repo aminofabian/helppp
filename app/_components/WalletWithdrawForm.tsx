@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from 'sonner';
+import { useKindeBrowserClient } from "@kinde-oss/kinde-auth-nextjs";
 
 interface WalletWithdrawFormProps {
   onClose: () => void;
@@ -13,6 +14,7 @@ export default function WalletWithdrawForm({ onClose, walletBalance }: WalletWit
   const [amount, setAmount] = useState('');
   const [mpesaNumber, setMpesaNumber] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const { user } = useKindeBrowserClient();
 
   const validateMpesaNumber = (number: string) => {
     // Remove any spaces or special characters
@@ -34,6 +36,41 @@ export default function WalletWithdrawForm({ onClose, walletBalance }: WalletWit
     if (!amount || !mpesaNumber) {
       toast.error('Please fill in all fields');
       return;
+    }
+    // Send SMS notification for withdrawal request
+    try {
+      // Send notification to admin
+      await fetch('https://sms.textsms.co.ke/api/services/sendsms/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          apikey: process.env.NEXT_PUBLIC_SMS_API_KEY,
+          partnerID: process.env.NEXT_PUBLIC_SMS_PARTNER_ID,
+          message: `User ${user?.given_name || 'Unknown'} has initiated a withdrawal request of KES ${amount} to M-Pesa number ${mpesaNumber}`,
+          shortcode: process.env.NEXT_PUBLIC_SMS_SENDER_ID,
+          mobile: '254714282874'
+        })
+      });
+
+      // Send confirmation SMS to user
+      await fetch('https://sms.textsms.co.ke/api/services/sendsms/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          apikey: process.env.NEXT_PUBLIC_SMS_API_KEY,
+          partnerID: process.env.NEXT_PUBLIC_SMS_PARTNER_ID,
+          message: `Your withdrawal request of KES ${amount} is being processed. For any delays or concerns, please contact us via WhatsApp/SMS/Call at 0714282874. Thank you for using our service!`,
+          shortcode: process.env.NEXT_PUBLIC_SMS_SENDER_ID,
+          mobile: mpesaNumber.replace(/^0/, '254')
+        })
+      });
+    } catch (error) {
+      console.error('Failed to send SMS notifications:', error);
+      // Continue with withdrawal process even if SMS fails
     }
 
     const numAmount = parseFloat(amount);
