@@ -189,9 +189,11 @@ export default function HomeNavRight({
 
     const fetchWalletData = async () => {
       try {
+        console.log('Fetching wallet data...');
         const response = await fetch(`/api/wallet?userId=${initialUser.id}`);
         if (response.ok) {
           const data = await response.json();
+          console.log('Received wallet data:', data);
           setWallet(data);
         }
       } catch (error) {
@@ -202,8 +204,8 @@ export default function HomeNavRight({
     // Initial fetch
     fetchWalletData();
 
-    // Poll every 10 seconds
-    const interval = setInterval(fetchWalletData, 10000);
+    // Poll every 5 seconds
+    const interval = setInterval(fetchWalletData, 5000);
 
     return () => clearInterval(interval);
   }, [initialUser?.id, isClient]);

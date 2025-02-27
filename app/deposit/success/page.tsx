@@ -14,6 +14,8 @@ export default function DepositSuccess() {
         const reference = localStorage.getItem('paystack_reference');
         const transactionType = localStorage.getItem('transaction_type');
 
+        console.log('Verifying payment:', { reference, transactionType });
+
         if (!reference || transactionType !== 'deposit') {
           throw new Error('Invalid transaction');
         }
@@ -27,14 +29,17 @@ export default function DepositSuccess() {
         });
 
         const data = await response.json();
+        console.log('Verification response:', data);
 
         if (data.success) {
           toast.success('Deposit successful!');
           // Clear the stored reference
           localStorage.removeItem('paystack_reference');
           localStorage.removeItem('transaction_type');
-          // Redirect to profile or dashboard
-          router.push('/dashboard');
+          // Redirect to dashboard with a small delay to ensure state updates
+          setTimeout(() => {
+            router.push('/dashboard');
+          }, 1000);
         } else {
           throw new Error(data.error || 'Failed to verify payment');
         }
