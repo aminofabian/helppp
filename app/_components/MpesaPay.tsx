@@ -115,7 +115,6 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
   const [error, setError] = useState<string | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('Paystack');
   const [isLoading, setIsLoading] = useState(false);
-  const [stkQueryLoading, setStkQueryLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [showPaystackButton, setShowPaystackButton] = useState(false);
   const [clientId, setClientId] = useState<string>("");

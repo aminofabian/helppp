@@ -14,6 +14,7 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
   const reference = event.data.reference;
   const requestId = event.data.metadata?.request_id;
   const customerId = event.data.metadata?.userId;
+  const amount = event.data.amount / 100; // Convert from kobo to KES
 
   console.log(`[${webhookId}] Processing Paystack charge.success for reference: ${reference}, requestId: ${requestId}, customerId: ${customerId}`);
 
@@ -55,7 +56,7 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
         data: {
           merchantRequestId: reference,
           checkoutRequestId: reference,
-          amount: event.data.amount / 100,
+          amount: amount,
           paymentMethod: PaymentMethod.PAYSTACK,
           status: PaymentStatus.COMPLETED,
           resultCode: "SUCCESS",
@@ -73,7 +74,7 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
         data: {
           userId: customerId,
           requestId: requestId,
-          amount: event.data.amount / 100,
+          amount: amount,
           payment: { connect: { id: payment.id } },
           status: PaymentStatus.COMPLETED,
           invoice: reference
@@ -86,16 +87,54 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
         data: { status: 'PAID' }
       });
 
+      // Update or create wallet
+      const wallet = await prisma.wallet.upsert({
+        where: { userId: customerId },
+        update: { balance: { increment: amount } },
+        create: { userId: customerId, balance: amount }
+      });
+
+      // Create transaction record
+      await prisma.transaction.create({
+        data: {
+          amount: amount,
+          giver: { connect: { id: customerId } },
+          receiver: { connect: { id: customerId } }
+        }
+      });
+
+      // Create points for the user (1 point per 50 KES)
+      const pointsEarned = Math.floor(amount / 50);
+      await prisma.points.create({
+        data: {
+          user: { connect: { id: customerId } },
+          amount: pointsEarned,
+          payment: { connect: { id: payment.id } }
+        }
+      });
+
+      // Create notification
+      await prisma.notification.create({
+        data: {
+          recipient: { connect: { id: customerId } },
+          issuer: { connect: { id: customerId } },
+          type: 'PAYMENT_COMPLETED',
+          title: 'Payment Successful',
+          content: `Your payment of ${event.data.currency} ${amount} has been processed successfully.`,
+          read: false
+        }
+      });
+
       // Update user stats atomically
       await prisma.user.update({
         where: { id: customerId },
         data: {
-          totalDonated: { increment: event.data.amount / 100 },
+          totalDonated: { increment: amount },
           donationCount: { increment: 1 }
         }
       });
 
-      return { status: "success", payment, donation };
+      return { status: "success", payment, donation, wallet };
     });
 
     // Add to processed references cache only if new payment was created
