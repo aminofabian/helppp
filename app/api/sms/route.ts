@@ -48,6 +48,14 @@ export async function POST(req: Request) {
       mpesaNumber = null
     } = await req.json();
 
+    // Debug: Log all environment variables (redacted)
+    console.log('Environment Variables Status:', {
+      SMS_API_KEY: process.env.SMS_API_KEY ? 'Set' : 'Not Set',
+      SMS_PARTNER_ID: process.env.SMS_PARTNER_ID ? 'Set' : 'Not Set',
+      SMS_SENDER_ID: process.env.SMS_SENDER_ID ? 'Set' : 'Not Set',
+      ADMIN_PHONE_NUMBER: process.env.ADMIN_PHONE_NUMBER || '254714282874 (default)'
+    });
+
     // Validate environment variables
     const apiKey = process.env.SMS_API_KEY;
     const partnerId = process.env.SMS_PARTNER_ID;
@@ -58,10 +66,17 @@ export async function POST(req: Request) {
       console.error('Missing SMS configuration:', {
         hasApiKey: !!apiKey,
         hasPartnerId: !!partnerId,
-        hasSenderId: !!senderId
+        hasSenderId: !!senderId,
+        envKeys: Object.keys(process.env).filter(key => key.includes('SMS')), // List all SMS-related env vars
       });
       return NextResponse.json(
-        { error: 'SMS service is not properly configured' },
+        { error: 'SMS service is not properly configured', details: {
+          missingVariables: {
+            SMS_API_KEY: !apiKey,
+            SMS_PARTNER_ID: !partnerId,
+            SMS_SENDER_ID: !senderId
+          }
+        }},
         { status: 500 }
       );
     }
