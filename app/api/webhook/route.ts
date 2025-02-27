@@ -13,14 +13,13 @@ const processedReferences = new Set<string>();
 async function handlePaystackWebhook(event: any, webhookId: string) {
   const reference = event.data.reference;
   const requestId = event.data.metadata?.request_id;
-  const customerId = event.data.metadata?.userId;
   const amount = event.data.amount / 100; // Convert from kobo to KES
+  const customerEmail = event.data.customer.email;
 
   console.log(`[${webhookId}] ============ PAYSTACK TRANSACTION START ============`);
   console.log(`[${webhookId}] Transaction Details:`, {
     reference,
     requestId,
-    customerId,
     amount,
     currency: event.data.currency,
     metadata: event.data.metadata,
@@ -35,6 +34,24 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
   }
 
   try {
+    // Get user ID from email
+    console.log(`[${webhookId}] Fetching user ID for email: ${customerEmail}`);
+    const user = await prisma.user.findUnique({
+      where: { email: customerEmail },
+      select: { id: true }
+    });
+
+    if (!user) {
+      console.error(`[${webhookId}] User not found for email: ${customerEmail}`);
+      return NextResponse.json({ 
+        status: "error", 
+        message: "User not found" 
+      }, { status: 404 });
+    }
+
+    const userId = user.id;
+    console.log(`[${webhookId}] Found user ID: ${userId}`);
+
     // Check for existing records before transaction
     console.log(`[${webhookId}] Checking for existing records...`);
     const preCheck = await Promise.all([
@@ -130,17 +147,17 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
 
       // Update or create wallet
       const wallet = await prisma.wallet.upsert({
-        where: { userId: customerId },
+        where: { userId: userId },
         update: { balance: { increment: amount } },
-        create: { userId: customerId, balance: amount }
+        create: { userId: userId, balance: amount }
       });
 
       // Create transaction record
       await prisma.transaction.create({
         data: {
           amount: amount,
-          giver: { connect: { id: customerId } },
-          receiver: { connect: { id: customerId } }
+          giver: { connect: { id: userId } },
+          receiver: { connect: { id: userId } }
         }
       });
 
@@ -148,7 +165,7 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
       const pointsEarned = Math.floor(amount / 50);
       await prisma.points.create({
         data: {
-          user: { connect: { id: customerId } },
+          user: { connect: { id: userId } },
           amount: pointsEarned,
           payment: { connect: { id: payment.id } }
         }
@@ -157,8 +174,8 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
       // Create notification
       await prisma.notification.create({
         data: {
-          recipient: { connect: { id: customerId } },
-          issuer: { connect: { id: customerId } },
+          recipient: { connect: { id: userId } },
+          issuer: { connect: { id: userId } },
           type: 'PAYMENT_COMPLETED',
           title: 'Payment Successful',
           content: `Your payment of ${event.data.currency} ${amount} has been processed successfully.`,
@@ -168,7 +185,7 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
 
       // Update user stats atomically
       await prisma.user.update({
-        where: { id: customerId },
+        where: { id: userId },
         data: {
           totalDonated: { increment: amount },
           donationCount: { increment: 1 }
