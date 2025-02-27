@@ -10,9 +10,10 @@ import { useKindeBrowserClient } from "@kinde-oss/kinde-auth-nextjs";
 interface WalletDepositFormProps {
   onClose?: () => void;
   onSuccess?: (newBalance: number) => void;
+  isDepositWallet?: boolean;
 }
 
-export default function WalletDepositForm({ onClose, onSuccess }: WalletDepositFormProps) {
+export default function WalletDepositForm({ onClose, onSuccess, isDepositWallet = false }: WalletDepositFormProps) {
   const [amount, setAmount] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { user } = useKindeBrowserClient();
@@ -30,16 +31,16 @@ export default function WalletDepositForm({ onClose, onSuccess }: WalletDepositF
         },
         body: JSON.stringify({
           email: user?.email,
-          amount: parseFloat(amount), // Send amount as is
-          reference: `wallet_deposit_${Date.now()}`,
-          callback_url: `${window.location.origin}/wallet/success`, // Redirect to success page
+          amount: parseFloat(amount),
+          reference: `${isDepositWallet ? 'deposit' : 'wallet'}_${Date.now()}`,
+          callback_url: `${window.location.origin}/${isDepositWallet ? 'deposit' : 'wallet'}/success`,
           metadata: {
-            type: 'wallet_deposit',
+            type: isDepositWallet ? 'deposit' : 'wallet_deposit',
             custom_fields: [
               {
                 display_name: "Transaction Type",
                 variable_name: "transaction_type",
-                value: "wallet_deposit"
+                value: isDepositWallet ? "deposit" : "wallet_deposit"
               }
             ]
           }
@@ -53,8 +54,9 @@ export default function WalletDepositForm({ onClose, onSuccess }: WalletDepositF
         throw new Error(data.message || 'Failed to initialize payment');
       }
 
-      // Store the reference in localStorage to verify on return
+      // Store the reference and type in localStorage to verify on return
       localStorage.setItem('paystack_reference', data.reference);
+      localStorage.setItem('transaction_type', isDepositWallet ? 'deposit' : 'wallet');
 
       // Redirect to Paystack checkout URL
       if (data.authorization_url) {
@@ -106,6 +108,17 @@ export default function WalletDepositForm({ onClose, onSuccess }: WalletDepositF
           className="text-lg"
         />
       </div>
+
+      {isDepositWallet && (
+        <div className="text-sm text-muted-foreground">
+          <p className="mb-2">⚠️ Note: Funds deposited to this wallet:</p>
+          <ul className="list-disc pl-5 space-y-1">
+            <li>Can only be used for donations</li>
+            <li>Cannot be withdrawn</li>
+            <li>Will be used exclusively for helping others</li>
+          </ul>
+        </div>
+      )}
 
       <div className="flex justify-end space-x-2 pt-4">
         <Button type="button" variant="outline" onClick={onClose}>
