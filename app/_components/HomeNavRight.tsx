@@ -176,6 +176,13 @@ export default function HomeNavRight({
     setIsClient(true);
   }, []);
 
+  // Log when modal state changes
+  useEffect(() => {
+    if (isClient) {
+      console.log('Modal state changed:', isWalletDepositOpen);
+    }
+  }, [isWalletDepositOpen, isClient]);
+
   // Add wallet polling
   useEffect(() => {
     if (!isClient || !initialUser?.id) return;
@@ -317,105 +324,92 @@ export default function HomeNavRight({
   return (
     <div className="flex flex-col gap-4">
       {/* Wallet Card */}
-      <Card className="p-4">
-        <div className="flex flex-col gap-4">
+      <Card className="p-4 border-2 border-primary/10 hover:border-primary/20 transition-colors">
+        <div className="flex justify-between items-start">
           {/* Regular Wallet */}
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold">Regular Wallet</h2>
+          <div className="flex-1 px-2">
+            <div className="mb-4">
               <span className="text-2xl font-bold">KES {wallet.balance.toLocaleString()}</span>
             </div>
-            <div className="flex gap-2">
-              <Button 
-                onClick={() => setIsWalletDepositOpen(true)} 
-                className="flex-1"
-                variant="default"
-              >
-                Deposit
-              </Button>
-              <Button 
-                onClick={() => setIsWalletWithdrawOpen(true)} 
-                className="flex-1"
-                variant="outline"
-                disabled={wallet.balance <= 0}
-              >
-                Withdraw
-              </Button>
-            </div>
+            <Button 
+              onClick={() => setIsWalletWithdrawOpen(true)} 
+              className="w-full bg-primary hover:bg-primary/90 text-white"
+              disabled={wallet.balance <= 0}
+            >
+              Withdraw
+            </Button>
           </div>
 
+          {/* Vertical Separator */}
+          <div className="w-px h-32 bg-primary/10 mx-2" />
+
           {/* Donation Pool */}
-          <div className="pt-4 border-t">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold">Donation Pool</h2>
+          <div className="flex-1 px-2">
+            <div className="mb-4">
               <span className="text-2xl font-bold">KES {(wallet.depositWallet?.balance || 0).toLocaleString()}</span>
             </div>
-            <div className="flex gap-2">
-              <Button 
-                onClick={() => setIsWalletDepositOpen(true)} 
-                className="flex-1 bg-[#0BA4DB] hover:bg-[#0BA4DB]/90"
-              >
-                Add Funds
-              </Button>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button 
-                      className="flex-1"
-                      variant="outline"
-                      disabled={true}
-                    >
-                      Locked
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Funds in the donation pool cannot be withdrawn</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
-            <p className="text-sm text-muted-foreground mt-2">
-              {wallet.depositWallet?.name || "Donation Pool"} - Funds here can only be used for donations
-            </p>
+            <Button 
+              onClick={() => {
+                console.log('Add Funds clicked, opening modal...');
+                setIsWalletDepositOpen(true);
+              }} 
+              className="w-full bg-primary hover:bg-primary/90 text-white"
+            >
+              Add Funds
+            </Button>
           </div>
         </div>
       </Card>
 
-      {/* Deposit Modal */}
-      <Dialog open={isWalletDepositOpen} onOpenChange={setIsWalletDepositOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Add Funds</DialogTitle>
-            <DialogDescription>
-              Choose where to add your funds
-            </DialogDescription>
-          </DialogHeader>
-          <WalletDepositForm 
-            onSuccess={(newBalance) => {
-              setWallet(prev => ({ ...prev, balance: newBalance }));
-              setIsWalletDepositOpen(false);
-            }}
-            onClose={() => setIsWalletDepositOpen(false)}
-            isDepositWallet={true}
-          />
-        </DialogContent>
-      </Dialog>
+      {isClient && (
+        <>
+          {/* Deposit Modal */}
+          <Dialog open={isWalletDepositOpen} onOpenChange={setIsWalletDepositOpen}>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Add to Donation Pool</DialogTitle>
+                <DialogDescription>
+                  Add funds to your donation pool - these can only be used for helping others
+                </DialogDescription>
+              </DialogHeader>
+              <WalletDepositForm 
+                onSuccess={(newBalance) => {
+                  console.log('Deposit success, new balance:', newBalance);
+                  setWallet(prev => ({
+                    ...prev,
+                    depositWallet: {
+                      balance: newBalance,
+                      name: prev.depositWallet?.name || "Donation Pool"
+                    }
+                  }));
+                  setIsWalletDepositOpen(false);
+                }}
+                onClose={() => {
+                  console.log('Closing deposit modal');
+                  setIsWalletDepositOpen(false);
+                }}
+                isDepositWallet={true}
+              />
+            </DialogContent>
+          </Dialog>
 
-      {/* Withdraw Modal */}
-      <Dialog open={isWalletWithdrawOpen} onOpenChange={setIsWalletWithdrawOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Withdraw from Wallet</DialogTitle>
-            <DialogDescription>
-              Withdraw funds to your M-Pesa account
-            </DialogDescription>
-          </DialogHeader>
-          <WalletWithdrawForm 
-            onClose={() => setIsWalletWithdrawOpen(false)} 
-            walletBalance={wallet.balance}
-          />
-        </DialogContent>
-      </Dialog>
+          {/* Withdraw Modal */}
+          <Dialog open={isWalletWithdrawOpen} onOpenChange={setIsWalletWithdrawOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Withdraw from Wallet</DialogTitle>
+                <DialogDescription>
+                  Withdraw funds to your M-Pesa account
+                </DialogDescription>
+              </DialogHeader>
+              <WalletWithdrawForm 
+                onClose={() => setIsWalletWithdrawOpen(false)} 
+                walletBalance={wallet.balance}
+              />
+            </DialogContent>
+          </Dialog>
+        </>
+      )}
 
       <div className="max-w-md mx-auto">
         <Card className="overflow-hidden bg-white dark:bg-gray-900
