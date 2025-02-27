@@ -40,6 +40,10 @@ interface UserStats {
 
 interface WalletData {
   balance: number;
+  depositWallet?: {
+    balance: number;
+    name: string;
+  };
 }
 
 type LevelNumber = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
@@ -314,26 +318,66 @@ export default function HomeNavRight({
     <div className="flex flex-col gap-4">
       {/* Wallet Card */}
       <Card className="p-4">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold">Wallet Balance</h2>
-          <span className="text-2xl font-bold">KES {wallet.balance.toLocaleString()}</span>
-        </div>
-        <div className="flex gap-2">
-          <Button 
-            onClick={() => setIsWalletDepositOpen(true)} 
-            className="flex-1"
-            variant="default"
-          >
-            Deposit
-          </Button>
-          <Button 
-            onClick={() => setIsWalletWithdrawOpen(true)} 
-            className="flex-1"
-            variant="outline"
-            disabled={wallet.balance <= 0}
-          >
-            Withdraw
-          </Button>
+        <div className="flex flex-col gap-4">
+          {/* Regular Wallet */}
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold">Regular Wallet</h2>
+              <span className="text-2xl font-bold">KES {wallet.balance.toLocaleString()}</span>
+            </div>
+            <div className="flex gap-2">
+              <Button 
+                onClick={() => setIsWalletDepositOpen(true)} 
+                className="flex-1"
+                variant="default"
+              >
+                Deposit
+              </Button>
+              <Button 
+                onClick={() => setIsWalletWithdrawOpen(true)} 
+                className="flex-1"
+                variant="outline"
+                disabled={wallet.balance <= 0}
+              >
+                Withdraw
+              </Button>
+            </div>
+          </div>
+
+          {/* Donation Pool */}
+          <div className="pt-4 border-t">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold">Donation Pool</h2>
+              <span className="text-2xl font-bold">KES {(wallet.depositWallet?.balance || 0).toLocaleString()}</span>
+            </div>
+            <div className="flex gap-2">
+              <Button 
+                onClick={() => setIsWalletDepositOpen(true)} 
+                className="flex-1 bg-[#0BA4DB] hover:bg-[#0BA4DB]/90"
+              >
+                Add Funds
+              </Button>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      className="flex-1"
+                      variant="outline"
+                      disabled={true}
+                    >
+                      Locked
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Funds in the donation pool cannot be withdrawn</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+            <p className="text-sm text-muted-foreground mt-2">
+              {wallet.depositWallet?.name || "Donation Pool"} - Funds here can only be used for donations
+            </p>
+          </div>
         </div>
       </Card>
 
@@ -341,9 +385,9 @@ export default function HomeNavRight({
       <Dialog open={isWalletDepositOpen} onOpenChange={setIsWalletDepositOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Deposit to Wallet</DialogTitle>
+            <DialogTitle>Add Funds</DialogTitle>
             <DialogDescription>
-              Add funds to your wallet using M-Pesa
+              Choose where to add your funds
             </DialogDescription>
           </DialogHeader>
           <WalletDepositForm 
@@ -352,6 +396,7 @@ export default function HomeNavRight({
               setIsWalletDepositOpen(false);
             }}
             onClose={() => setIsWalletDepositOpen(false)}
+            isDepositWallet={true}
           />
         </DialogContent>
       </Dialog>
