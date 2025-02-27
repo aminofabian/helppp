@@ -272,17 +272,20 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
   };
 
   // Function to check payment status
-  const checkPaymentStatus = async (paymentId: string): Promise<'SUCCESS' | 'FAILED' | 'PENDING'> => {
+  const checkPaymentStatus = async (paymentId: string): Promise<{ status: 'SUCCESS' | 'FAILED' | 'PENDING', isCompleted: boolean }> => {
     try {
       const response = await fetch(`/api/check-till-payment?paymentId=${paymentId}`);
       if (!response.ok) {
         throw new Error('Failed to check payment status');
       }
       const data = await response.json();
-      return data.status;
+      return {
+        status: data.status,
+        isCompleted: data.isCompleted || false
+      };
     } catch (error) {
       console.error('Error checking payment status:', error);
-      return 'FAILED';
+      return { status: 'FAILED', isCompleted: true };
     }
   };
 
@@ -296,46 +299,49 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
     let pollCount = 0;
     const maxPolls = 24; // 2 minutes with 5-second intervals
     let isProcessing = false; // Add state to prevent concurrent processing
+    let pollInterval: NodeJS.Timeout;
   
-    const pollInterval = setInterval(async () => {
+    const checkStatus = async () => {
       try {
         if (isProcessing) return; // Skip if already processing
         isProcessing = true;
         pollCount++;
         
-        const status = await checkPaymentStatus(paymentId);
+        const { status, isCompleted } = await checkPaymentStatus(paymentId);
   
-        if (status === "SUCCESS") {
+        // If payment is completed (success or failed) or max polls reached
+        if (isCompleted || pollCount >= maxPolls) {
           clearInterval(pollInterval);
-          setSuccess(true);
-          toast.success("✅ Payment successful!");
-          // Clear any existing error state
-          setError(null);
-          // Reset loading state
           setIsLoading(false);
-        } else if (status === "FAILED" || pollCount >= maxPolls) {
-          clearInterval(pollInterval);
-          if (status === "FAILED") {
+
+          if (status === "SUCCESS") {
+            setSuccess(true);
+            toast.success("✅ Payment successful!");
+            setError(null);
+          } else if (status === "FAILED") {
             toast.error("❌ Payment failed. Please try again.");
             setError("Payment failed");
-          } else {
+          } else if (pollCount >= maxPolls) {
             toast.error("⏳ Payment timeout. Please try again.");
             setError("Payment timeout");
           }
-          // Reset loading state
-          setIsLoading(false);
         }
       } catch (error) {
         console.error("⚠️ Error checking payment status:", error);
       } finally {
         isProcessing = false;
       }
-    }, 5000);
+    };
+
+    // Start polling
+    pollInterval = setInterval(checkStatus, 5000);
 
     // Cleanup function to prevent memory leaks
     return () => {
-      clearInterval(pollInterval);
-      setIsLoading(false);
+      if (pollInterval) {
+        clearInterval(pollInterval);
+        setIsLoading(false);
+      }
     };
   };
   

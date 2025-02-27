@@ -13,9 +13,12 @@ export async function GET(request: Request) {
       );
     }
 
-    // Get the payment from the database
+    // Get the payment from the database with related donation
     const payment = await prisma.payment.findUnique({
-      where: { id: paymentId }
+      where: { id: paymentId },
+      include: {
+        donation: true
+      }
     });
 
     if (!payment) {
@@ -25,9 +28,29 @@ export async function GET(request: Request) {
       );
     }
 
+    // If payment is already completed, return success immediately
+    if (payment.status === 'COMPLETED') {
+      return NextResponse.json({
+        status: 'SUCCESS',
+        message: 'Payment already completed',
+        isCompleted: true
+      });
+    }
+
+    // If payment has failed, return failed status
+    if (payment.status === 'FAILED') {
+      return NextResponse.json({
+        status: 'FAILED',
+        message: 'Payment failed',
+        isCompleted: true
+      });
+    }
+
+    // Return current payment status
     return NextResponse.json({
       status: payment.status,
-      message: 'Payment status retrieved successfully'
+      message: 'Payment status retrieved successfully',
+      isCompleted: false
     });
 
   } catch (error) {
