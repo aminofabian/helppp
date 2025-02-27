@@ -284,12 +284,24 @@ async function handleKopokopoWebhook(data: any, webhookId: string) {
 
 export async function POST(req: Request) {
   const webhookId = crypto.randomBytes(16).toString('hex');
+  
+  // Immediate logging to verify webhook reception
+  console.log('========================');
+  console.log('WEBHOOK RECEIVED - RAW');
+  console.log('Timestamp:', new Date().toISOString());
+  console.log('Method:', req.method);
+  console.log('URL:', req.url);
+  console.log('Headers:', Object.fromEntries(req.headers.entries()));
+  console.log('========================');
+
   console.log(`[${webhookId}] ============ PAYSTACK WEBHOOK START ============`);
   console.log(`[${webhookId}] Webhook received at ${new Date().toISOString()}`);
 
   try {
     const rawBody = await req.text();
-    console.log(`[${webhookId}] Raw webhook body:`, rawBody);
+    // Log the raw body immediately
+    console.log('Raw webhook body received:', rawBody);
+    
     console.log(`[${webhookId}] Headers:`, {
       signature: req.headers.get('x-paystack-signature'),
       contentType: req.headers.get('content-type'),
