@@ -38,19 +38,24 @@ export default function WalletWithdrawForm({ onClose, walletBalance }: WalletWit
       toast.error('Please fill in all fields');
       return;
     }
-    // Send SMS notification for withdrawal request
+
+    // Send SMS notifications for withdrawal request
     try {
-      // Send notification to admin
+      // Send notifications to both admin and user
       await fetch('/api/sms', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          message: `User ${user?.given_name || 'Unknown'} has initiated a withdrawal request of KES ${amount} to M-Pesa number ${mpesaNumber}`,
-          mobile: '254714282874'
+          amount: parseFloat(amount),
+          mobile: mpesaNumber,
+          userName: user?.given_name || 'Unknown',
+          mpesaNumber: mpesaNumber,
+          isSuccessful: false // Initial status is pending
         })
       });
+
       const numAmount = parseFloat(amount);
       if (isNaN(numAmount) || numAmount <= 0) {
         toast.error('Please enter a valid amount');
@@ -63,6 +68,7 @@ export default function WalletWithdrawForm({ onClose, walletBalance }: WalletWit
       if (!validateMpesaNumber(mpesaNumber)) {
         return;
       }
+
       setIsLoading(true);
       try {
         const response = await fetch('/api/initiate/withdraw', {
@@ -93,16 +99,25 @@ export default function WalletWithdrawForm({ onClose, walletBalance }: WalletWit
           }
           return;
         }
-        // Show success message including SMS notification status
-        if (data.smsStatus?.success) {
-          toast.success('Withdrawal Successful', {
-            description: `KES ${numAmount.toLocaleString()} has been sent to M-Pesa number ${mpesaNumber}. The transaction will be processed shortly.`
-          });
-        } else {
-          toast.success('Withdrawal Successful', {
-            description: `KES ${numAmount.toLocaleString()} has been sent to M-Pesa number ${mpesaNumber}. The transaction will be processed shortly. (SMS notification delayed)`
-          });
-        }
+
+        // Send success SMS after successful withdrawal
+        await fetch('/api/sms', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            amount: numAmount,
+            mobile: mpesaNumber,
+            userName: user?.given_name || 'Unknown',
+            mpesaNumber: mpesaNumber,
+            isSuccessful: true // Update status to successful
+          })
+        });
+
+        toast.success('Withdrawal Successful', {
+          description: `KES ${numAmount.toLocaleString()} has been sent to M-Pesa number ${mpesaNumber}. The transaction will be processed shortly.`
+        });
 
         onClose();
       } catch (error: any) {
@@ -113,7 +128,9 @@ export default function WalletWithdrawForm({ onClose, walletBalance }: WalletWit
         setIsLoading(false);
       }
     } catch (error:any){
-      toast.error('Failed to send sms')
+      toast.error('Failed to send notification', {
+        description: 'The withdrawal request was not processed. Please try again.'
+      });
     }
   };
 
