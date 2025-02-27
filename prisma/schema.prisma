@@ -460,15 +460,13 @@ model PushSubscription {
 }
 
 model DepositWallet {
-  id        String   @id @default(cuid())
-  user      User     @relation(fields: [userId], references: [id])
-  userId    String   @unique
-  balance   Float    @default(0)
-  name      String?  @default("Donation Pool")
-  description String? @default("Funds in this pool can only be used for donations and cannot be withdrawn")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  isLocked  Boolean  @default(true)  // Always true - funds can't be withdrawn
+  id          String   @id @default(cuid())
+  user        User     @relation(fields: [userId], references: [id])
+  userId      String   @unique
+  balance     Float    @default(0)
+  name        String?  @default("Donation Pool")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   @@index([userId])
 }

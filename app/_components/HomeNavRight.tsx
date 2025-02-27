@@ -144,6 +144,10 @@ const LEVEL_PERKS: Record<LevelNumber, LevelPerk> = {
   }
 };
 
+interface Point {
+  amount: number;
+}
+
 export default function HomeNavRight({ 
   initialUser, 
   initialStats, 
@@ -257,7 +261,7 @@ export default function HomeNavRight({
         const { amount, points } = event.detail;
         setStats(prevStats => {
           const newPoints = [...(prevStats.points || []), { amount: points }];
-          const totalPoints = newPoints.reduce((acc, point) => acc + (point?.amount || 0), 0);
+          const totalPoints = newPoints.reduce((acc: number, point: Point) => acc + (point?.amount || 0), 0);
           const newLevel = calculateLevel(totalPoints);
           
           return {
@@ -282,7 +286,7 @@ export default function HomeNavRight({
           const response = await fetch(`/api/user-stats?userId=${initialUser.id}`);
           if (response.ok) {
             const newStats = await response.json();
-            const totalPoints = newStats.points?.reduce((acc, point) => acc + (point?.amount || 0), 0) || 0;
+            const totalPoints = newStats.points?.reduce((acc: number, point: Point) => acc + (point?.amount || 0), 0) || 0;
             const calculatedLevel = calculateLevel(totalPoints);
             setStats({
               ...newStats,
@@ -302,7 +306,7 @@ export default function HomeNavRight({
           const response = await fetch(`/api/user-stats?userId=${initialUser.id}`);
           if (response.ok) {
             const newStats = await response.json();
-            const totalPoints = newStats.points?.reduce((acc, point) => acc + (point?.amount || 0), 0) || 0;
+            const totalPoints = newStats.points?.reduce((acc: number, point: Point) => acc + (point?.amount || 0), 0) || 0;
             const calculatedLevel = calculateLevel(totalPoints);
             setStats({
               ...newStats,
@@ -343,7 +347,7 @@ export default function HomeNavRight({
   }, [initialUser.id, isClient]);
 
   // Calculate total points with safety checks
-  const totalPoints = stats.points?.reduce((acc, point) => acc + (point?.amount || 0), 0) || 0;
+  const totalPoints = stats.points?.reduce((acc: number, point: Point) => acc + (point?.amount || 0), 0) || 0;
   const currentLevelPoints = LEVEL_THRESHOLDS.find((t: { level: number }) => t.level === (stats.level || 1))?.points || 0;
   const nextLevelPoints = LEVEL_THRESHOLDS.find((t: { level: number }) => t.level === (stats.level || 1) + 1)?.points || LEVEL_THRESHOLDS[0].points;
   const pointsToNextLevel = Math.max(0, nextLevelPoints - totalPoints);
