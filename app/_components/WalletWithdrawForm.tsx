@@ -39,8 +39,13 @@ export default function WalletWithdrawForm({ onClose, walletBalance }: WalletWit
     }
     // Send SMS notification for withdrawal request
     try {
-      // Send notification to admin
-      await fetch('https://sms.textsms.co.ke/api/services/sendsms/', {
+      // Format messages with proper templates
+      const adminMessage = `Withdrawal Request Alert:\nUser: ${user?.given_name || 'Unknown'}\nAmount: KES ${parseFloat(amount).toLocaleString()}\nM-Pesa: ${mpesaNumber}\nTime: ${new Date().toLocaleString()}`;
+      
+      const userMessage = `Dear ${user?.given_name || 'User'},\n\nYour withdrawal request of KES ${parseFloat(amount).toLocaleString()} is being processed.\n\nFor support:\nWhatsApp/SMS/Call: 0714282874\n\nThank you for using our service!`;
+
+      // Send notification to admin with proper error handling
+      const adminSmsResponse = await fetch('https://sms.textsms.co.ke/api/services/sendsms/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -48,14 +53,18 @@ export default function WalletWithdrawForm({ onClose, walletBalance }: WalletWit
         body: JSON.stringify({
           apikey: process.env.NEXT_PUBLIC_SMS_API_KEY,
           partnerID: process.env.NEXT_PUBLIC_SMS_PARTNER_ID,
-          message: `User ${user?.given_name || 'Unknown'} has initiated a withdrawal request of KES ${amount} to M-Pesa number ${mpesaNumber}`,
+          message: adminMessage,
           shortcode: process.env.NEXT_PUBLIC_SMS_SENDER_ID,
           mobile: '254714282874'
         })
       });
 
-      // Send confirmation SMS to user
-      await fetch('https://sms.textsms.co.ke/api/services/sendsms/', {
+      if (!adminSmsResponse.ok) {
+        console.error('Failed to send admin notification:', await adminSmsResponse.text());
+      }
+
+      // Send confirmation SMS to user with proper error handling
+      const userSmsResponse = await fetch('https://sms.textsms.co.ke/api/services/sendsms/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -63,14 +72,21 @@ export default function WalletWithdrawForm({ onClose, walletBalance }: WalletWit
         body: JSON.stringify({
           apikey: process.env.NEXT_PUBLIC_SMS_API_KEY,
           partnerID: process.env.NEXT_PUBLIC_SMS_PARTNER_ID,
-          message: `Your withdrawal request of KES ${amount} is being processed. For any delays or concerns, please contact us via WhatsApp/SMS/Call at 0714282874. Thank you for using our service!`,
+          message: userMessage,
           shortcode: process.env.NEXT_PUBLIC_SMS_SENDER_ID,
           mobile: mpesaNumber.replace(/^0/, '254')
         })
       });
+
+      if (!userSmsResponse.ok) {
+        console.error('Failed to send user notification:', await userSmsResponse.text());
+      }
     } catch (error) {
       console.error('Failed to send SMS notifications:', error);
-      // Continue with withdrawal process even if SMS fails
+      // Show a warning toast but continue with withdrawal process
+      toast.warning('SMS notification might be delayed', {
+        description: 'Your withdrawal will still be processed'
+      });
     }
 
     const numAmount = parseFloat(amount);
