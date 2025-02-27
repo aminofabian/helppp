@@ -201,13 +201,33 @@ export default function HomeNavRight({
       }
     };
 
+    // Handle wallet update events
+    const handleWalletUpdate = (event: CustomEvent) => {
+      console.log('Wallet update event received:', event.detail);
+      if (event.detail.type === 'deposit') {
+        setWallet(prev => ({
+          ...prev,
+          depositWallet: {
+            balance: event.detail.balance,
+            name: prev.depositWallet?.name || "Donation Pool"
+          }
+        }));
+      }
+    };
+
+    // Add event listener
+    window.addEventListener('wallet-updated', handleWalletUpdate as EventListener);
+
     // Initial fetch
     fetchWalletData();
 
     // Poll every 5 seconds
     const interval = setInterval(fetchWalletData, 5000);
 
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('wallet-updated', handleWalletUpdate as EventListener);
+    };
   }, [initialUser?.id, isClient]);
 
   useEffect(() => {

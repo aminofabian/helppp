@@ -36,6 +36,13 @@ export default function DepositSuccess() {
           // Clear the stored reference
           localStorage.removeItem('paystack_reference');
           localStorage.removeItem('transaction_type');
+          
+          // Dispatch custom event to trigger wallet update
+          const event = new CustomEvent('wallet-updated', {
+            detail: { type: 'deposit', balance: data.newBalance }
+          });
+          window.dispatchEvent(event);
+          
           // Redirect to dashboard with a small delay to ensure state updates
           setTimeout(() => {
             router.push('/dashboard');
