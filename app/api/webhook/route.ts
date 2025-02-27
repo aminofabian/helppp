@@ -12,19 +12,20 @@ const processedReferences = new Set<string>();
 
 async function handlePaystackWebhook(event: any, webhookId: string) {
   const reference = event.data.reference;
-  const requestId = event.data.metadata?.request_id;
+  const metadata = event.data.metadata;
   const amount = event.data.amount / 100; // Convert from kobo to KES
   const customerEmail = event.data.customer.email;
+  const transactionType = metadata?.type || '';
 
   console.log(`[${webhookId}] ============ PAYSTACK TRANSACTION START ============`);
   console.log(`[${webhookId}] Transaction Details:`, {
     reference,
-    requestId,
     amount,
     currency: event.data.currency,
-    metadata: event.data.metadata,
+    metadata,
     customer: event.data.customer,
-    paidAt: event.data.paid_at
+    paidAt: event.data.paid_at,
+    transactionType
   });
 
   // Check in-memory cache first
@@ -51,6 +52,83 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
 
     const userId = user.id;
     console.log(`[${webhookId}] Found user ID: ${userId}`);
+
+    // Handle wallet deposits
+    if (transactionType === 'deposit' || transactionType === 'wallet_deposit') {
+      console.log(`[${webhookId}] Processing ${transactionType} transaction...`);
+      
+      // Create payment record
+      const payment = await prisma.payment.create({
+        data: {
+          merchantRequestId: reference,
+          checkoutRequestId: reference,
+          amount: amount,
+          paymentMethod: PaymentMethod.PAYSTACK,
+          status: PaymentStatus.COMPLETED,
+          resultCode: "SUCCESS",
+          resultDesc: "Paystack payment successful",
+          currency: event.data.currency,
+          sender: {
+            connect: {
+              email: customerEmail
+            }
+          },
+          userts: new Date(event.data.paid_at),
+          transactionDate: new Date()
+        }
+      });
+
+      // Update the appropriate wallet
+      if (transactionType === 'deposit') {
+        await prisma.depositWallet.upsert({
+          where: { userId: userId },
+          update: { balance: { increment: amount } },
+          create: { userId: userId, balance: amount }
+        });
+        console.log(`[${webhookId}] Updated deposit wallet balance for user ${userId}`);
+      } else {
+        await prisma.wallet.upsert({
+          where: { userId: userId },
+          update: { balance: { increment: amount } },
+          create: { userId: userId, balance: amount }
+        });
+        console.log(`[${webhookId}] Updated regular wallet balance for user ${userId}`);
+      }
+
+      // Create points for the deposit
+      const pointsEarned = Math.floor(amount);
+      if (pointsEarned > 0) {
+        await prisma.points.create({
+          data: {
+            amount: pointsEarned,
+            userId: userId,
+            paymentId: payment.id
+          }
+        });
+        console.log(`[${webhookId}] Created ${pointsEarned} points for wallet deposit`);
+      }
+
+      // Create notification
+      await prisma.notification.create({
+        data: {
+          recipient: { connect: { id: userId } },
+          issuer: { connect: { id: userId } },
+          type: 'PAYMENT_COMPLETED',
+          title: 'Wallet Deposit Successful',
+          content: `Your deposit of ${event.data.currency} ${amount} has been processed successfully.`,
+          read: false
+        }
+      });
+
+      // Add to processed references cache
+      processedReferences.add(reference);
+
+      return NextResponse.json({
+        status: "success",
+        message: "Wallet deposit processed successfully",
+        data: { payment }
+      });
+    }
 
     // Check for existing records before transaction
     console.log(`[${webhookId}] Checking for existing records...`);
@@ -104,7 +182,7 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
           },
           request: {
             connect: {
-              id: requestId
+              id: metadata.request_id
             }
           },
           userts: new Date(event.data.paid_at),
@@ -123,7 +201,7 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
           },
           Request: {
             connect: {
-              id: requestId
+              id: metadata.request_id
             }
           },
           amount: amount,
@@ -141,7 +219,7 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
 
       // Update request status
       await prisma.request.update({
-        where: { id: requestId },
+        where: { id: metadata.request_id },
         data: { status: 'PAID' }
       });
 
@@ -152,13 +230,6 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
     if (result.status === "success" && result.payment) {
       console.log(`[${webhookId}] Processing non-critical operations...`);
       try {
-        // Update or create wallet
-        const wallet = await prisma.wallet.upsert({
-          where: { userId: userId },
-          update: { balance: { increment: amount } },
-          create: { userId: userId, balance: amount }
-        });
-
         // Create transaction record
         await prisma.transaction.create({
           data: {
@@ -167,20 +238,6 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
             receiver: { connect: { id: userId } }
           }
         });
-
-        // Create points (1 point per 1 KES)
-        const pointsEarned = Math.floor(amount);
-        if (pointsEarned > 0) {
-          console.log(`[${webhookId}] Creating ${pointsEarned} points for user ${userId}`);
-          await prisma.points.create({
-            data: {
-              amount: pointsEarned,
-              userId: userId,
-              paymentId: result.payment.id
-            }
-          });
-          console.log(`[${webhookId}] Points created successfully`);
-        }
 
         // Create notification
         await prisma.notification.create({
