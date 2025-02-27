@@ -80,8 +80,16 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
           resultCode: "SUCCESS",
           resultDesc: "Paystack payment successful",
           currency: event.data.currency,
-          userId: customerId,
-          requestId: requestId,
+          sender: {
+            connect: {
+              email: event.data.customer.email
+            }
+          },
+          request: {
+            connect: {
+              id: requestId
+            }
+          },
           userts: new Date(event.data.paid_at),
           transactionDate: new Date()
         }
@@ -91,12 +99,25 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
       console.log(`[${webhookId}] Creating donation record...`);
       const donation = await prisma.donation.create({
         data: {
-          userId: customerId,
-          requestId: requestId,
+          User: {
+            connect: {
+              email: event.data.customer.email
+            }
+          },
+          Request: {
+            connect: {
+              id: requestId
+            }
+          },
           amount: amount,
-          payment: { connect: { id: payment.id } },
+          payment: {
+            connect: {
+              id: payment.id
+            }
+          },
           status: PaymentStatus.COMPLETED,
-          invoice: reference
+          invoice: reference,
+          transactionDate: new Date(event.data.paid_at)
         }
       });
       console.log(`[${webhookId}] Donation record created:`, donation.id);
