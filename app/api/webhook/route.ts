@@ -23,87 +23,62 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
     return NextResponse.json({ status: "success", message: "Payment already processed" });
   }
 
-  // Check database for existing completed payment
-  const existingPayment = await prisma.payment.findFirst({
-    where: {
-      OR: [
-        { merchantRequestId: reference },
-        { checkoutRequestId: reference }
-      ],
-      status: PaymentStatus.COMPLETED
-    }
-  });
-
-  if (existingPayment) {
-    console.log(`[${webhookId}] Payment already processed (database): ${reference}`);
-    processedReferences.add(reference); // Add to in-memory cache
-    return NextResponse.json({ status: "success", message: "Payment already processed" });
-  }
-
   try {
-    // Use a transaction to ensure atomicity
+    // Use a transaction to ensure atomicity and prevent duplicate records
     const result = await prisma.$transaction(async (prisma) => {
-      // Find existing payment or create new one
-      let payment = await prisma.payment.findFirst({
-        where: {
-          OR: [
-            { merchantRequestId: reference },
-            { checkoutRequestId: reference }
-          ]
+      // Check for existing completed payment or donation
+      const [existingPayment, existingDonation] = await Promise.all([
+        prisma.payment.findFirst({
+          where: {
+            OR: [
+              { merchantRequestId: reference },
+              { checkoutRequestId: reference }
+            ],
+            status: PaymentStatus.COMPLETED
+          }
+        }),
+        prisma.donation.findFirst({
+          where: {
+            invoice: reference,
+            status: PaymentStatus.COMPLETED
+          }
+        })
+      ]);
+
+      if (existingPayment || existingDonation) {
+        console.log(`[${webhookId}] Payment/Donation already processed: ${reference}`);
+        return { status: "already_processed", payment: existingPayment, donation: existingDonation };
+      }
+
+      // Create payment record
+      const payment = await prisma.payment.create({
+        data: {
+          merchantRequestId: reference,
+          checkoutRequestId: reference,
+          amount: event.data.amount / 100,
+          paymentMethod: PaymentMethod.PAYSTACK,
+          status: PaymentStatus.COMPLETED,
+          resultCode: "SUCCESS",
+          resultDesc: "Paystack payment successful",
+          currency: event.data.currency,
+          userId: customerId,
+          requestId: requestId,
+          userts: new Date(event.data.paid_at),
+          transactionDate: new Date()
         }
       });
 
-      if (payment) {
-        // Update existing payment
-        payment = await prisma.payment.update({
-          where: { id: payment.id },
-          data: {
-            status: PaymentStatus.COMPLETED,
-            resultCode: "SUCCESS",
-            resultDesc: "Paystack payment successful",
-            transactionDate: new Date()
-          }
-        });
-      } else {
-        // Create new payment
-        payment = await prisma.payment.create({
-          data: {
-            merchantRequestId: reference,
-            checkoutRequestId: reference,
-            amount: event.data.amount / 100,
-            paymentMethod: PaymentMethod.PAYSTACK,
-            status: PaymentStatus.COMPLETED,
-            resultCode: "SUCCESS",
-            resultDesc: "Paystack payment successful",
-            currency: "NGN",
-            userId: customerId,
-            requestId: requestId,
-            userts: new Date(),
-            transactionDate: new Date()
-          }
-        });
-      }
-
-      // Create donation record only if it doesn't exist
-      const existingDonation = await prisma.donation.findFirst({
-        where: {
-          invoice: reference,
-          status: PaymentStatus.COMPLETED
+      // Create donation record
+      const donation = await prisma.donation.create({
+        data: {
+          userId: customerId,
+          requestId: requestId,
+          amount: event.data.amount / 100,
+          payment: { connect: { id: payment.id } },
+          status: PaymentStatus.COMPLETED,
+          invoice: reference
         }
       });
-
-      if (!existingDonation) {
-        await prisma.donation.create({
-          data: {
-            userId: customerId,
-            requestId: requestId,
-            amount: event.data.amount / 100,
-            payment: { connect: { id: payment.id } },
-            status: PaymentStatus.COMPLETED,
-            invoice: reference
-          }
-        });
-      }
 
       // Update request status
       await prisma.request.update({
@@ -111,23 +86,34 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
         data: { status: 'PAID' }
       });
 
-      return payment;
+      // Update user stats atomically
+      await prisma.user.update({
+        where: { id: customerId },
+        data: {
+          totalDonated: { increment: event.data.amount / 100 },
+          donationCount: { increment: 1 }
+        }
+      });
+
+      return { status: "success", payment, donation };
     });
 
-    // Add to processed references cache
-    processedReferences.add(reference);
+    // Add to processed references cache only if new payment was created
+    if (result.status === "success") {
+      processedReferences.add(reference);
+    }
 
-    return NextResponse.json({ 
-      status: "success", 
-      message: "Payment processed successfully",
+    return NextResponse.json({
+      status: "success",
+      message: result.status === "already_processed" ? "Payment already processed" : "Payment processed successfully",
       data: result
     });
 
   } catch (error) {
     console.error(`[${webhookId}] Error processing payment:`, error);
     return NextResponse.json(
-      { 
-        status: "error", 
+      {
+        status: "error",
         message: "Failed to process payment",
         error: error instanceof Error ? error.message : 'Unknown error'
       },
