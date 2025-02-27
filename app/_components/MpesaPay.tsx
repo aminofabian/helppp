@@ -295,16 +295,24 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
   
     let pollCount = 0;
     const maxPolls = 24; // 2 minutes with 5-second intervals
+    let isProcessing = false; // Add state to prevent concurrent processing
   
     const pollInterval = setInterval(async () => {
       try {
+        if (isProcessing) return; // Skip if already processing
+        isProcessing = true;
         pollCount++;
+        
         const status = await checkPaymentStatus(paymentId);
   
         if (status === "SUCCESS") {
           clearInterval(pollInterval);
           setSuccess(true);
           toast.success("✅ Payment successful!");
+          // Clear any existing error state
+          setError(null);
+          // Reset loading state
+          setIsLoading(false);
         } else if (status === "FAILED" || pollCount >= maxPolls) {
           clearInterval(pollInterval);
           if (status === "FAILED") {
@@ -314,11 +322,21 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
             toast.error("⏳ Payment timeout. Please try again.");
             setError("Payment timeout");
           }
+          // Reset loading state
+          setIsLoading(false);
         }
       } catch (error) {
         console.error("⚠️ Error checking payment status:", error);
+      } finally {
+        isProcessing = false;
       }
     }, 5000);
+
+    // Cleanup function to prevent memory leaks
+    return () => {
+      clearInterval(pollInterval);
+      setIsLoading(false);
+    };
   };
   
   const handleSubmit = async () => {

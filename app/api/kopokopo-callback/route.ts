@@ -182,137 +182,100 @@ async function handleBuyGoodsTransaction(event: any) {
   }
 
   try {
-    // Find the request and associated user (receiver)
-    const request = await prisma.request.findUnique({ 
-      where: { id: requestId },
-      include: { 
-        User: true,
-        Community: true
+    // Try to find existing payment first
+    const existingPayment = await prisma.payment.findFirst({
+      where: {
+        merchantRequestId: resource.reference,
+        status: PaymentStatus.COMPLETED
+      },
+      include: {
+        donation: true
       }
     });
 
-    if (!request) {
-      console.error('Request not found for requestId:', requestId);
-      return NextResponse.json({ message: "Request not found" }, { status: 404 });
-    }
-
-    console.log('Found request:', { 
-      id: request.id, 
-      userId: request.userId,
-      amount: amount
-    });
-
-    // Find giver using multiple methods
-    let giver = null;
-
-    // 1. Try to find by customerId from metadata (Kinde ID)
-    if (customerId) {
-      giver = await prisma.user.findUnique({ 
-        where: { id: customerId }
-      });
-      console.log('Found user by Kinde ID:', giver?.id);
-    }
-
-    // 2. If not found, try to find by phone number
-    if (!giver) {
-      giver = await prisma.user.findFirst({ 
-        where: { phone: phone }
-      });
-      console.log('Found user by phone:', giver?.id);
-    }
-
-    // 3. If still not found, create a new user with available data
-    if (!giver) {
-      // Try to get Kinde user data if customerId exists
-      let kindeUserData = null;
-      if (customerId) {
-        const { getUser } = getKindeServerSession();
-        kindeUserData = await getUser();
-      }
-
-      giver = await prisma.user.create({
-        data: {
-          id: customerId || crypto.randomUUID(),
-          phone: phone,
-          email: kindeUserData?.email || '',
-          firstName: kindeUserData?.given_name || '',
-          lastName: kindeUserData?.family_name || '',
-          imageUrl: kindeUserData?.picture || '',
-          userName: `user_${Date.now()}`, // Generate a temporary username
-          level: 1,
-          totalDonated: amount,
-          donationCount: 1
+    // If payment exists and is completed, return early
+    if (existingPayment) {
+      console.log(`Payment already processed: ${resource.reference}`);
+      return NextResponse.json({ 
+        status: 'success',
+        message: 'Payment already processed',
+        data: { 
+          paymentId: existingPayment.id,
+          donationId: existingPayment.donationId
         }
       });
-      console.log('Created new user:', giver.id);
     }
 
-    // Create payment record
-    const payment = await prisma.payment.create({
-      data: {
-        userId: giver.id,
-        amount: amount,
-        status: PaymentStatus.COMPLETED,
-        paymentMethod: PaymentMethod.MPESA,
-        mpesaReceiptNumber: resource.reference,
-        currency: "KES",
-        requestId: requestId,
-        userts: new Date(),
-        phoneNumber: phone,
-        transactionDate: new Date()
-      },
-    });
-    console.log(`Payment recorded successfully for user: ${giver.id} and requestId: ${requestId}`);
+    // Use a transaction to ensure atomicity
+    const result = await prisma.$transaction(async (prisma) => {
+      // Create payment record with unique merchantRequestId
+      const payment = await prisma.payment.create({
+        data: {
+          amount,
+          paymentMethod: PaymentMethod.MPESA,
+          status: PaymentStatus.COMPLETED,
+          checkoutRequestId: resource.reference,
+          merchantRequestId: resource.reference,
+          resultCode: 'SUCCESS',
+          resultDesc: 'Payment received',
+          currency: 'KES',
+          userId: customerId,
+          requestId: requestId,
+          phoneNumber: phone,
+          userts: new Date(),
+          transactionDate: new Date()
+        }
+      });
 
-    // Create donation record
-    const donation = await prisma.donation.create({
-      data: {
-        userId: giver.id,
-        requestId: requestId,
-        amount: amount,
-        payment: { connect: { id: payment.id } },
-        status: PaymentStatus.COMPLETED,
-        invoice: resource.reference,
-        phoneNumber: phone
-      },
+      // Update request status
+      const request = await prisma.request.update({
+        where: { id: requestId },
+        data: { status: 'PAID' },
+        include: {
+          User: true,
+          Community: true
+        }
+      });
+
+      // Create donation record
+      const donation = await prisma.donation.create({
+        data: {
+          userId: customerId,
+          requestId: requestId,
+          amount: amount,
+          payment: { connect: { id: payment.id } },
+          status: "COMPLETED",
+          invoice: resource.reference,
+        }
+      });
+
+      return { payment, request, donation };
     });
-    console.log(`Donation recorded successfully: ${donation.id}`);
+
+    const { payment, request, donation } = result;
 
     // Calculate points (1 point per 50 KES, minimum 1 point)
     const pointsEarned = Math.max(1, Math.floor(amount / 50));
-    console.log('Points calculation:', {
-      amount,
-      pointsEarned,
-      calculationDetails: `${amount} KES / 50 = ${pointsEarned} points (minimum 1 point)`,
-      userId: giver.id
-    });
 
     // Create points record
     const points = await prisma.points.create({
       data: { 
-        userId: giver.id, 
+        userId: customerId, 
         amount: pointsEarned,
         paymentId: payment.id 
       }
     });
 
-    console.log('Created points record:', {
-      userId: giver.id,
-      pointsEarned,
-      paymentId: payment.id,
-      pointsRecordId: points.id
-    });
-
     // Calculate new level based on total points
     const userPoints = await prisma.points.findMany({
-      where: { userId: giver.id }
+      where: { userId: customerId }
     });
     const totalPoints = userPoints.reduce((sum, p) => sum + p.amount, 0);
-    const newLevel = calculateLevel(totalPoints);
+    const newLevel = Math.floor(totalPoints / 100) + 1;
 
     // Update user profile with new stats
     await prisma.user.update({
-      where: { id: giver.id },
+      where: { id: customerId },
       data: {
         level: newLevel,
         totalDonated: { increment: amount },
@@ -320,41 +283,36 @@ async function handleBuyGoodsTransaction(event: any) {
       }
     });
 
-    // Create notification for request creator
+    // Create notifications
     await prisma.notification.create({
       data: {
         recipientId: request.userId,
-        issuerId: giver.id,
+        issuerId: customerId,
         title: 'New Donation Received! 🎉',
-        content: `${giver.firstName || 'Someone'} donated KES ${amount} to your request. They earned ${pointsEarned} points and are now at Level ${newLevel}!`,
+        content: `Someone donated KES ${amount} to your request. They earned ${pointsEarned} points and are now at Level ${newLevel}!`,
         type: 'DONATION',
         requestId: requestId,
         donationId: donation.id
       }
     });
 
-    // Create notification for the donor
+    // Send thank you notification to donor
     await prisma.notification.create({
       data: {
-        recipientId: giver.id,
+        recipientId: customerId,
         issuerId: request.userId,
         title: 'Thank You for Your Donation! 🌟',
-        content: `Your donation of KES ${amount} was successful. You earned ${pointsEarned} points and are now at Level ${newLevel}. Keep making a difference!`,
-        type: 'PAYMENT_COMPLETED',
+        content: `Your donation of KES ${amount} has been received. You earned ${pointsEarned} points and are now at Level ${newLevel}!`,
+        type: 'DONATION',
         requestId: requestId,
         donationId: donation.id
       }
     });
 
-    // Update request status if fully funded
+    // Check if request is now fully funded
     const totalDonations = await prisma.donation.aggregate({
-      where: {
-        requestId: requestId,
-        status: PaymentStatus.COMPLETED
-      },
-      _sum: {
-        amount: true
-      }
+      where: { requestId: requestId },
+      _sum: { amount: true }
     });
 
     if (request.amount && totalDonations._sum.amount && totalDonations._sum.amount >= request.amount) {
@@ -363,11 +321,10 @@ async function handleBuyGoodsTransaction(event: any) {
         data: { status: 'FUNDED' }
       });
       
-      // Create notification for request completion
       await prisma.notification.create({
         data: {
           recipientId: request.userId,
-          issuerId: giver.id,
+          issuerId: customerId,
           title: 'Fundraising Goal Reached! 🎊',
           content: `Congratulations! Your request has reached its fundraising goal of KES ${request.amount}. Total amount raised: KES ${totalDonations._sum.amount}`,
           type: 'PAYMENT_RECEIVED',
@@ -387,17 +344,6 @@ async function handleBuyGoodsTransaction(event: any) {
       });
     }
 
-    // Update receiver's wallet
-    if (request?.User) {
-      await handleDonationTransaction(
-        payment.userId!,
-        request.User.id,
-        payment.amount,
-        payment.id
-      );
-      console.log(`Donation transaction processed for payment ${payment.id}`);
-    }
-
     return NextResponse.json({ 
       status: 'success',
       message: "Payment processed successfully",
@@ -409,8 +355,16 @@ async function handleBuyGoodsTransaction(event: any) {
       }
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error processing transaction:', error);
+    if (error.code === 'P2002' && error.meta?.target?.includes('merchantRequestId')) {
+      // Handle duplicate payment attempt
+      return NextResponse.json({ 
+        status: 'success',
+        message: 'Payment already processed',
+        data: { reference: resource.reference }
+      });
+    }
     return NextResponse.json({ 
       status: 'error',
       message: 'Error processing transaction',

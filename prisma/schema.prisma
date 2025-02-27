@@ -283,7 +283,7 @@ enum PaymentStatus {
 
 model Payment {
   id                 String   @id @default(cuid())
-  merchantRequestId   String?
+  merchantRequestId   String?  @unique
   checkoutRequestId   String?
   resultCode         String?
   resultDesc         String?
