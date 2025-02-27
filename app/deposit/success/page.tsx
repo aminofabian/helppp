@@ -16,7 +16,7 @@ export default function DepositSuccess() {
 
         console.log('Verifying payment:', { reference, transactionType });
 
-        if (!reference || transactionType !== 'deposit') {
+        if (!reference) {
           throw new Error('Invalid transaction');
         }
 
@@ -39,9 +39,13 @@ export default function DepositSuccess() {
           
           // Dispatch custom event to trigger wallet update
           const event = new CustomEvent('wallet-updated', {
-            detail: { type: 'deposit', balance: data.newBalance }
+            detail: { 
+              type: 'deposit',
+              balance: data.newBalance 
+            }
           });
           window.dispatchEvent(event);
+          console.log('Dispatched wallet-updated event:', event.detail);
           
           // Redirect to dashboard with a small delay to ensure state updates
           setTimeout(() => {

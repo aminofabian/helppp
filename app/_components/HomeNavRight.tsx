@@ -204,19 +204,27 @@ export default function HomeNavRight({
     // Handle wallet update events
     const handleWalletUpdate = (event: CustomEvent) => {
       console.log('Wallet update event received:', event.detail);
-      if (event.detail.type === 'deposit') {
-        setWallet(prev => ({
-          ...prev,
-          depositWallet: {
-            balance: event.detail.balance,
-            name: prev.depositWallet?.name || "Donation Pool"
-          }
-        }));
+      const { type, balance } = event.detail;
+      
+      if (type === 'deposit') {
+        console.log('Updating deposit wallet balance to:', balance);
+        setWallet(prev => {
+          const newWallet = {
+            ...prev,
+            depositWallet: {
+              balance: balance,
+              name: prev.depositWallet?.name || "Donation Pool"
+            }
+          };
+          console.log('New wallet state:', newWallet);
+          return newWallet;
+        });
       }
     };
 
     // Add event listener
     window.addEventListener('wallet-updated', handleWalletUpdate as EventListener);
+    console.log('Added wallet-updated event listener');
 
     // Initial fetch
     fetchWalletData();
