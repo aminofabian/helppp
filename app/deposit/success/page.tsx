@@ -45,7 +45,7 @@ export default function DepositSuccess() {
           
           // Redirect to dashboard with a small delay to ensure state updates
           setTimeout(() => {
-            router.push('/dashboard');
+            router.push('/');
           }, 1000);
         } else {
           throw new Error(data.error || 'Failed to verify payment');
@@ -53,7 +53,7 @@ export default function DepositSuccess() {
       } catch (error) {
         console.error('Error verifying payment:', error);
         toast.error('Failed to verify payment');
-        router.push('/dashboard');
+        router.push('/');
       } finally {
         setIsVerifying(false);
       }
