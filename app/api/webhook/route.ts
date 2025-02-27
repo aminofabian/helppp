@@ -168,15 +168,19 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
           }
         });
 
-        // Create points for the user (1 point per 50 KES)
-        const pointsEarned = Math.floor(amount / 50);
-        await prisma.points.create({
-          data: {
-            user: { connect: { id: userId } },
-            amount: pointsEarned,
-            payment: { connect: { id: result.payment.id } }
-          }
-        });
+        // Create points (1 point per 1 KES)
+        const pointsEarned = Math.floor(amount);
+        if (pointsEarned > 0) {
+          console.log(`[${webhookId}] Creating ${pointsEarned} points for user ${userId}`);
+          await prisma.points.create({
+            data: {
+              amount: pointsEarned,
+              userId: userId,
+              paymentId: result.payment.id
+            }
+          });
+          console.log(`[${webhookId}] Points created successfully`);
+        }
 
         // Create notification
         await prisma.notification.create({
