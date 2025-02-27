@@ -40,12 +40,19 @@ async function sendSMS(apiKey: string, partnerId: string, senderId: string, mess
 
 export async function POST(req: Request) {
   try {
-    const { message, mobile, sendConfirmation = false, amount = null } = await req.json();
+    const { 
+      amount = null,
+      mobile,
+      userName = 'User',
+      isSuccessful = false,
+      mpesaNumber = null
+    } = await req.json();
 
     // Validate environment variables
     const apiKey = process.env.SMS_API_KEY;
     const partnerId = process.env.SMS_PARTNER_ID;
     const senderId = process.env.SMS_SENDER_ID;
+    const adminPhone = process.env.ADMIN_PHONE_NUMBER || '254714282874';
 
     if (!apiKey || !partnerId || !senderId) {
       console.error('Missing SMS configuration:', {
@@ -60,35 +67,37 @@ export async function POST(req: Request) {
     }
 
     // Validate input
-    if (!message || !mobile) {
+    if (!amount || !mobile) {
       return NextResponse.json(
-        { error: 'Message and mobile number are required' },
+        { error: 'Amount and mobile number are required' },
         { status: 400 }
       );
     }
 
-    // Send the initial SMS
-    const mainResult = await sendSMS(apiKey, partnerId, senderId, message, mobile);
-
-    // If confirmation message is requested, send it
-    let confirmationResult = null;
-    if (sendConfirmation) {
-      const formattedAmount = amount ? `KES ${Number(amount).toLocaleString()}` : 'your requested amount';
-      const confirmationMessage = `You've withdrawn ${formattedAmount}. We're processing your transaction. For any delays, please contact us via:\nEmail: support@fitrii.com\nPhone: +254714282874 (Call/Text/WhatsApp)`;
-      try {
-        confirmationResult = await sendSMS(apiKey, partnerId, senderId, confirmationMessage, mobile);
-      } catch (error) {
-        console.error('Failed to send confirmation SMS:', error);
-        // We don't throw here as the main message was sent successfully
-      }
+    const formattedAmount = `KES ${Number(amount).toLocaleString()}`;
+    
+    // Prepare messages for both admin and user
+    const adminMessage = `Withdrawal Request:\n${userName} has initiated a withdrawal of ${formattedAmount}${mpesaNumber ? ` to M-Pesa number ${mpesaNumber}` : ''}\nStatus: ${isSuccessful ? 'Successful' : 'Pending'}`;
+    
+    let userMessage;
+    if (isSuccessful) {
+      userMessage = `Your withdrawal of ${formattedAmount} has been processed successfully. The funds will be sent to your M-Pesa shortly.\n\nNeed help?\n📧 Email: support@fitrii.com\n📞 Phone: +254714282874 (Call/Text/WhatsApp)`;
+    } else {
+      userMessage = `Your withdrawal request of ${formattedAmount} has been received and is being processed. You'll receive a confirmation once completed.\n\nNeed help?\n📧 Email: support@fitrii.com\n📞 Phone: +254714282874 (Call/Text/WhatsApp)`;
     }
+
+    // Send SMS to admin
+    const adminResult = await sendSMS(apiKey, partnerId, senderId, adminMessage, adminPhone);
+
+    // Send SMS to user
+    const userResult = await sendSMS(apiKey, partnerId, senderId, userMessage, mobile);
 
     return NextResponse.json({
       success: true,
-      message: 'SMS sent successfully',
+      message: 'SMS notifications sent successfully',
       data: {
-        main: { ...mainResult, apikey: undefined },
-        confirmation: confirmationResult ? { ...confirmationResult, apikey: undefined } : null
+        admin: { ...adminResult, apikey: undefined },
+        user: { ...userResult, apikey: undefined }
       }
     });
   } catch (error: any) {
