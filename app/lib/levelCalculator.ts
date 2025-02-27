@@ -11,9 +11,9 @@ export const LEVEL_THRESHOLDS: LevelThreshold[] = [
   { level: 8, points: 2000 },
   { level: 7, points: 1200 },
   { level: 6, points: 500 },
-  { level: 5, points: 120 },
-  { level: 4, points: 30 },
-  { level: 3, points: 70 },
+  { level: 5, points: 250 },
+  { level: 4, points: 120 },
+  { level: 3, points: 50 },
   { level: 2, points: 12 },
   { level: 1, points: 0 }
 ];

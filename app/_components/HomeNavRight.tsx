@@ -255,25 +255,64 @@ export default function HomeNavRight({
     if (isClient) {
       const handleDonationEvent = (event: CustomEvent) => {
         const { amount, points } = event.detail;
-        setStats(prevStats => ({
-          ...prevStats,
-          totalDonated: (prevStats.totalDonated || 0) + amount,
-          donationCount: (prevStats.donationCount || 0) + 1,
-          calculatedTotalDonated: (prevStats.calculatedTotalDonated || 0) + amount,
-          calculatedDonationCount: (prevStats.calculatedDonationCount || 0) + 1,
-          points: [...(prevStats.points || []), { amount: points }]
-        }));
+        setStats(prevStats => {
+          const newPoints = [...(prevStats.points || []), { amount: points }];
+          const totalPoints = newPoints.reduce((acc, point) => acc + (point?.amount || 0), 0);
+          const newLevel = calculateLevel(totalPoints);
+          
+          return {
+            ...prevStats,
+            totalDonated: (prevStats.totalDonated || 0) + amount,
+            donationCount: (prevStats.donationCount || 0) + 1,
+            calculatedTotalDonated: (prevStats.calculatedTotalDonated || 0) + amount,
+            calculatedDonationCount: (prevStats.calculatedDonationCount || 0) + 1,
+            points: newPoints,
+            level: newLevel
+          };
+        });
         
         fetchUpdatedStats();
       };
 
       window.addEventListener('donation-made', handleDonationEvent as EventListener);
 
-      // Initial fetch
-      fetchUpdatedStats();
+      // Initial fetch and calculate level
+      const initialFetch = async () => {
+        try {
+          const response = await fetch(`/api/user-stats?userId=${initialUser.id}`);
+          if (response.ok) {
+            const newStats = await response.json();
+            const totalPoints = newStats.points?.reduce((acc, point) => acc + (point?.amount || 0), 0) || 0;
+            const calculatedLevel = calculateLevel(totalPoints);
+            setStats({
+              ...newStats,
+              level: calculatedLevel
+            });
+          }
+        } catch (error) {
+          console.error('Error fetching updated stats:', error);
+        }
+      };
 
-      // Poll for updates
-      const interval = setInterval(fetchUpdatedStats, 10000);
+      initialFetch();
+
+      // Poll for updates and recalculate level
+      const interval = setInterval(async () => {
+        try {
+          const response = await fetch(`/api/user-stats?userId=${initialUser.id}`);
+          if (response.ok) {
+            const newStats = await response.json();
+            const totalPoints = newStats.points?.reduce((acc, point) => acc + (point?.amount || 0), 0) || 0;
+            const calculatedLevel = calculateLevel(totalPoints);
+            setStats({
+              ...newStats,
+              level: calculatedLevel
+            });
+          }
+        } catch (error) {
+          console.error('Error fetching updated stats:', error);
+        }
+      }, 10000);
 
       return () => {
         clearInterval(interval);
