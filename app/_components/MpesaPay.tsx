@@ -1,15 +1,12 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { handleMpesa, handleTillPayment } from '../actions';
-import { CreditCard, Phone, Mail, Loader2, Building2 } from 'lucide-react';
+import { handleTillPayment } from '../actions';
+import { Phone, Loader2 } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 import { stkPushQuery } from '../(actions)/stkPushQuery';
-import PaymentSuccess from './Success';
-import dynamic from 'next/dynamic';
 import { useKindeBrowserClient } from "@kinde-oss/kinde-auth-nextjs";
 import { LoginLink } from "@kinde-oss/kinde-auth-nextjs/components";
-import Link from 'next/link';
 import { PayPalScriptProvider } from '@paypal/react-paypal-js';
 import PayPalButtonWrapper from './PayPalButtonWrapper';
 
