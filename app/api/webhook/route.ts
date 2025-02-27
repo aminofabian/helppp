@@ -76,8 +76,8 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
       existingDonation: preCheck[1] ? 'Found' : 'Not found'
     });
 
-    // Use a transaction to ensure atomicity
-    console.log(`[${webhookId}] Starting database transaction...`);
+    // Use a transaction for critical operations only
+    console.log(`[${webhookId}] Starting critical operations transaction...`);
     const result = await prisma.$transaction(async (prisma) => {
       // Check for existing completed payment or donation
       if (preCheck[0] || preCheck[1]) {
@@ -145,55 +145,66 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
         data: { status: 'PAID' }
       });
 
-      // Update or create wallet
-      const wallet = await prisma.wallet.upsert({
-        where: { userId: userId },
-        update: { balance: { increment: amount } },
-        create: { userId: userId, balance: amount }
-      });
-
-      // Create transaction record
-      await prisma.transaction.create({
-        data: {
-          amount: amount,
-          giver: { connect: { id: userId } },
-          receiver: { connect: { id: userId } }
-        }
-      });
-
-      // Create points for the user (1 point per 50 KES)
-      const pointsEarned = Math.floor(amount / 50);
-      await prisma.points.create({
-        data: {
-          user: { connect: { id: userId } },
-          amount: pointsEarned,
-          payment: { connect: { id: payment.id } }
-        }
-      });
-
-      // Create notification
-      await prisma.notification.create({
-        data: {
-          recipient: { connect: { id: userId } },
-          issuer: { connect: { id: userId } },
-          type: 'PAYMENT_COMPLETED',
-          title: 'Payment Successful',
-          content: `Your payment of ${event.data.currency} ${amount} has been processed successfully.`,
-          read: false
-        }
-      });
-
-      // Update user stats atomically
-      await prisma.user.update({
-        where: { id: userId },
-        data: {
-          totalDonated: { increment: amount },
-          donationCount: { increment: 1 }
-        }
-      });
-
-      return { status: "success", payment, donation, wallet };
+      return { status: "success", payment, donation };
     });
+
+    // Process non-critical operations separately
+    if (result.status === "success" && result.payment) {
+      console.log(`[${webhookId}] Processing non-critical operations...`);
+      try {
+        // Update or create wallet
+        const wallet = await prisma.wallet.upsert({
+          where: { userId: userId },
+          update: { balance: { increment: amount } },
+          create: { userId: userId, balance: amount }
+        });
+
+        // Create transaction record
+        await prisma.transaction.create({
+          data: {
+            amount: amount,
+            giver: { connect: { id: userId } },
+            receiver: { connect: { id: userId } }
+          }
+        });
+
+        // Create points for the user (1 point per 50 KES)
+        const pointsEarned = Math.floor(amount / 50);
+        await prisma.points.create({
+          data: {
+            user: { connect: { id: userId } },
+            amount: pointsEarned,
+            payment: { connect: { id: result.payment.id } }
+          }
+        });
+
+        // Create notification
+        await prisma.notification.create({
+          data: {
+            recipient: { connect: { id: userId } },
+            issuer: { connect: { id: userId } },
+            type: 'PAYMENT_COMPLETED',
+            title: 'Payment Successful',
+            content: `Your payment of ${event.data.currency} ${amount} has been processed successfully.`,
+            read: false
+          }
+        });
+
+        // Update user stats atomically
+        await prisma.user.update({
+          where: { id: userId },
+          data: {
+            totalDonated: { increment: amount },
+            donationCount: { increment: 1 }
+          }
+        });
+
+        console.log(`[${webhookId}] Non-critical operations completed successfully`);
+      } catch (error) {
+        // Log but don't fail the webhook for non-critical operations
+        console.error(`[${webhookId}] Error in non-critical operations:`, error);
+      }
+    }
 
     console.log(`[${webhookId}] Transaction completed successfully:`, {
       paymentId: result.payment?.id,
