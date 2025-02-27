@@ -4,6 +4,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from 'sonner';
 import { useKindeBrowserClient } from "@kinde-oss/kinde-auth-nextjs";
+import { Card } from "@/components/ui/card";
+import { Icons } from "@/components/ui/icons";
 
 interface WalletWithdrawFormProps {
   onClose: () => void;
@@ -128,42 +130,87 @@ export default function WalletWithdrawForm({ onClose, walletBalance }: WalletWit
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="mpesaNumber">M-Pesa Number</Label>
-        <Input
-          id="mpesaNumber"
-          type="text"
-          placeholder="07XXXXXXXX"
-          value={mpesaNumber}
-          onChange={handleMpesaNumberChange}
-          maxLength={10}
-          required
-        />
-        <p className="text-xs text-gray-500">Format: 07XXXXXXXX (10 digits)</p>
+    <Card className="w-full max-w-md mx-auto p-6 shadow-lg rounded-xl">
+      <div className="mb-6">
+        <h2 className="text-2xl font-semibold text-center mb-2">Withdraw Funds</h2>
+        <p className="text-center text-muted-foreground">
+          Available balance: <span className="font-medium text-primary">KES {walletBalance.toLocaleString()}</span>
+        </p>
       </div>
-      <div className="space-y-2">
-        <Label htmlFor="amount">Amount (KES)</Label>
-        <Input
-          id="amount"
-          type="number"
-          placeholder="Enter amount"
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-          min="1"
-          max={walletBalance}
-          required
-        />
-        <p className="text-sm text-gray-500">Available balance: KES {walletBalance.toLocaleString()}</p>
-      </div>
-      <div className="flex justify-end space-x-2 pt-4">
-        <Button type="button" variant="outline" onClick={onClose}>
-          Cancel
-        </Button>
-        <Button type="submit" disabled={isLoading}>
-          {isLoading ? 'Processing...' : 'Withdraw'}
-        </Button>
-      </div>
-    </form>
+      
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="space-y-2">
+          <Label htmlFor="mpesaNumber" className="text-sm font-medium">M-Pesa Number</Label>
+          <div className="relative">
+            <Input
+              id="mpesaNumber"
+              type="text"
+              placeholder="07XXXXXXXX"
+              value={mpesaNumber}
+              onChange={handleMpesaNumberChange}
+              maxLength={10}
+              required
+              className="pl-10 transition-all duration-200 border-input hover:border-primary"
+            />
+            <div className="absolute left-3 top-1/2 -translate-y-1/2">
+              <Icons.phone className="h-4 w-4 text-muted-foreground" />
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground">Format: 07XXXXXXXX (10 digits)</p>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="amount" className="text-sm font-medium">Amount (KES)</Label>
+          <div className="relative">
+            <Input
+              id="amount"
+              type="number"
+              placeholder="Enter amount"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              min="1"
+              max={walletBalance}
+              required
+              className="pl-10 transition-all duration-200 border-input hover:border-primary"
+            />
+            <div className="absolute left-3 top-1/2 -translate-y-1/2">
+              <Icons.wallet className="h-4 w-4 text-muted-foreground" />
+            </div>
+          </div>
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-muted-foreground">Min: KES 1</p>
+            <p className="text-xs text-muted-foreground">Max: KES {walletBalance.toLocaleString()}</p>
+          </div>
+        </div>
+
+        <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-2 pt-6">
+          <Button 
+            type="button" 
+            variant="outline" 
+            onClick={onClose}
+            className="w-full sm:w-auto"
+          >
+            Cancel
+          </Button>
+          <Button 
+            type="submit" 
+            disabled={isLoading}
+            className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-primary-foreground"
+          >
+            {isLoading ? (
+              <>
+                <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
+                Processing...
+              </>
+            ) : (
+              <>
+                <Icons.arrowRight className="mr-2 h-4 w-4" />
+                Withdraw
+              </>
+            )}
+          </Button>
+        </div>
+      </form>
+    </Card>
   );
 }
