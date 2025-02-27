@@ -166,7 +166,7 @@ export function RequestCard({
             <div className="mt-1">
               <div>
                 <div className="text-sm sm:text-base
-                              p-3 sm:p-4 rounded-lg
+                              p-3 sm:p-4 rounded-xl
                               bg-secondary/20 dark:bg-gray-800
                               border border-secondary dark:border-gray-700">
                   <div className={`leading-relaxed text-slate-700 dark:text-gray-200 ${!isExpanded ? "line-clamp-3" : ""}`}>
