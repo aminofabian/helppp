@@ -223,23 +223,27 @@ export default function HomeNavRight({
     const pollInterval = setInterval(async () => {
       if (pollCount >= maxPolls) {
         clearInterval(pollInterval);
+        console.log('Ending aggressive polling');
         return;
       }
       
       try {
-        console.log('Polling wallet data...');
+        console.log(`Polling wallet data... (${pollCount + 1}/${maxPolls})`);
         const response = await fetch(`/api/wallet?userId=${initialUser.id}`);
         if (response.ok) {
           const data = await response.json();
           console.log('Received wallet data:', data);
-          setWallet(prev => ({
-            ...prev,
-            ...data,
-            depositWallet: {
-              ...prev.depositWallet,
-              ...data.depositWallet
-            }
-          }));
+          if (data.balance !== undefined) {
+            setWallet(prev => ({
+              ...prev,
+              balance: Number(data.balance),
+              depositWallet: {
+                ...prev.depositWallet,
+                ...data.depositWallet,
+                balance: Number(data.depositWallet?.balance || 0)
+              }
+            }));
+          }
         }
       } catch (error) {
         console.error('Error polling wallet data:', error);
@@ -268,10 +272,11 @@ export default function HomeNavRight({
           console.log('Received wallet data:', data);
           setWallet(prev => ({
             ...prev,
-            ...data,
+            balance: Number(data.balance || 0),
             depositWallet: {
               ...prev.depositWallet,
-              ...data.depositWallet
+              balance: Number(data.depositWallet?.balance || 0),
+              name: data.depositWallet?.name || "Donation Pool"
             }
           }));
         }
