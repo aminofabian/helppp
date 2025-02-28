@@ -13,7 +13,7 @@ const processedReferences = new Set<string>();
 async function handlePaystackWebhook(event: any, webhookId: string) {
   const reference = event.data.reference;
   const metadata = event.data.metadata || {};
-  const amount = event.data.amount; // Remove division by 100 since amount is already in KES
+  const amount = event.data.amount / 100; // Convert from kobo to KES
   const customerEmail = event.data.customer.email;
   const requestId = metadata.request_id || metadata.requestId; // Handle both formats
   const paidAt = event.data.paid_at;
@@ -120,7 +120,7 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
         prisma.points.create({
           data: {
             user: { connect: { id: user.id } },
-            amount: 1,
+            amount: 1, // Always award 1 point per donation
             payment: { connect: { id: payment.id } }
           }
         }),
