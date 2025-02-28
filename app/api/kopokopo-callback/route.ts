@@ -249,6 +249,27 @@ async function handleBuyGoodsTransaction(event: any) {
         }
       });
 
+      if (!request.User) {
+        throw new Error('Request user not found');
+      }
+
+      // Update receiver's wallet
+      const updatedWallet = await prisma.wallet.upsert({
+        where: { userId: request.User.id },
+        create: { userId: request.User.id, balance: amount },
+        update: { balance: { increment: amount } }
+      });
+      console.log(`Receiver's wallet updated: ${request.User.id}, New balance: ${updatedWallet.balance}`);
+
+      // Create transaction record
+      await prisma.transaction.create({
+        data: {
+          amount,
+          giver: { connect: { id: customerId } },
+          receiver: { connect: { id: request.User.id } }
+        }
+      });
+
       return { payment, request, donation };
     });
 
