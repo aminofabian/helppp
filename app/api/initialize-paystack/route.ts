@@ -24,7 +24,7 @@ export async function POST(req: Request) {
         amount: Math.round(amount * 100), // Convert KES to cents for Paystack
         reference,
         callback_url,
-        channels: ['card', 'mpesa'],
+        channels: ['card', 'mobile_money'],
         metadata,
         currency: 'KES', // Kenyan Shillings
       }),
