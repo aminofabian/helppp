@@ -1,66 +1,54 @@
 import { NextResponse } from 'next/server';
-import prisma from '@/app/lib/db';
+import { prisma } from '@/app/lib/db';
+import { getKindeServerSession } from '@kinde-oss/kinde-auth-nextjs/server';
 
 export async function POST(req: Request) {
   try {
     const { reference } = await req.json();
+    const { getUser } = getKindeServerSession();
+    const user = await getUser();
 
-    if (!reference) {
-      return NextResponse.json(
-        { error: 'Reference is required' },
-        { status: 400 }
-      );
+    if (!user?.id) {
+      return NextResponse.json({ success: false, error: 'User not authenticated' }, { status: 401 });
     }
 
-    // Verify payment with Paystack
-    const verifyUrl = `https://api.paystack.co/transaction/verify/${reference}`;
-    const response = await fetch(verifyUrl, {
-      headers: {
-        Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
-      },
-    });
-
-    const data = await response.json();
-
-    if (!response.ok || !data.status) {
-      throw new Error(data.message || 'Failed to verify payment');
-    }
-
-    const amountInKES = data.data.amount / 100; // Convert from kobo to KES
-    const email = data.data.customer.email.toLowerCase();
-
-    // Find user
-    const user = await prisma.user.findUnique({
-      where: { email }
-    });
-
-    if (!user) {
-      throw new Error('User not found');
-    }
-
-    // Update or create deposit wallet
-    const depositWallet = await prisma.depositWallet.upsert({
-      where: { userId: user.id },
-      update: {
-        balance: { increment: amountInKES }
-      },
-      create: {
-        userId: user.id,
-        balance: amountInKES,
-        name: "Donation Pool"
+    // Verify the payment with Paystack
+    const verifyResponse = await fetch(
+      `https://api.paystack.co/transaction/verify/${reference}`,
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+        },
       }
-    });
+    );
+
+    const verifyData = await verifyResponse.json();
+    
+    if (!verifyData.status || verifyData.data.status !== 'success') {
+      return NextResponse.json({ success: false, error: 'Payment verification failed' });
+    }
+
+    // Get both wallet balances
+    const [wallet, depositWallet] = await Promise.all([
+      prisma.wallet.findUnique({
+        where: { userId: user.id }
+      }),
+      prisma.depositWallet.findUnique({
+        where: { userId: user.id }
+      })
+    ]);
 
     return NextResponse.json({
       success: true,
-      message: 'Payment verified and deposit pool updated',
-      newBalance: depositWallet.balance
+      walletBalance: wallet?.balance || 0,
+      depositWalletBalance: depositWallet?.balance || 0,
+      transactionType: verifyData.data.metadata?.type || 'regular'
     });
 
   } catch (error) {
-    console.error('Error verifying payment:', error);
+    console.error('Error verifying deposit:', error);
     return NextResponse.json(
-      { error: 'Failed to verify payment' },
+      { success: false, error: 'Failed to verify deposit' },
       { status: 500 }
     );
   }

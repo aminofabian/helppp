@@ -32,20 +32,31 @@ export default function DepositSuccess() {
         console.log('Verification response:', data);
 
         if (data.success) {
-          toast.success('Deposit successful!');
+          toast.success('Payment successful!');
           // Clear the stored reference
           localStorage.removeItem('paystack_reference');
           localStorage.removeItem('transaction_type');
           
-          // Dispatch custom event to trigger wallet update
-          const event = new CustomEvent('wallet-updated', {
-            detail: { 
-              type: 'deposit',
-              balance: data.newBalance 
-            }
-          });
-          window.dispatchEvent(event);
-          console.log('Dispatched wallet-updated event:', event.detail);
+          // Dispatch wallet update events based on transaction type
+          if (data.transactionType === 'deposit') {
+            const depositEvent = new CustomEvent('wallet-updated', {
+              detail: { 
+                type: 'deposit',
+                balance: data.depositWalletBalance 
+              }
+            });
+            window.dispatchEvent(depositEvent);
+            console.log('Dispatched deposit wallet update event:', depositEvent.detail);
+          } else {
+            const walletEvent = new CustomEvent('wallet-updated', {
+              detail: { 
+                type: 'regular',
+                balance: data.walletBalance 
+              }
+            });
+            window.dispatchEvent(walletEvent);
+            console.log('Dispatched regular wallet update event:', walletEvent.detail);
+          }
           
           // Redirect to dashboard with a small delay to ensure state updates
           setTimeout(() => {
@@ -55,9 +66,8 @@ export default function DepositSuccess() {
           throw new Error(data.error || 'Failed to verify payment');
         }
       } catch (error) {
-        console.error('Error verifying payment:', error);
+        console.error('Payment verification error:', error);
         toast.error('Failed to verify payment');
-        router.push('/');
       } finally {
         setIsVerifying(false);
       }
@@ -66,18 +76,16 @@ export default function DepositSuccess() {
     verifyPayment();
   }, [router]);
 
-  return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="text-center">
-        {isVerifying ? (
-          <>
-            <h1 className="text-2xl font-bold mb-4">Verifying your deposit...</h1>
-            <p className="text-muted-foreground">Please wait while we confirm your payment.</p>
-          </>
-        ) : (
-          <h1 className="text-2xl font-bold">Redirecting...</h1>
-        )}
+  if (isVerifying) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Verifying Payment...</h1>
+          <p>Please wait while we confirm your payment.</p>
+        </div>
       </div>
-    </div>
-  );
+    );
+  }
+
+  return null;
 } 

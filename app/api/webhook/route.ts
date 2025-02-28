@@ -80,19 +80,41 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
 
       // Update the appropriate wallet
       if (transactionType === 'deposit') {
-        await prisma.depositWallet.upsert({
+        const updatedWallet = await prisma.depositWallet.upsert({
           where: { userId: userId },
           update: { balance: { increment: amount } },
           create: { userId: userId, balance: amount }
         });
         console.log(`[${webhookId}] Updated deposit wallet balance for user ${userId}`);
+
+        // Dispatch wallet update event
+        const event = new CustomEvent('wallet-updated', {
+          detail: { 
+            type: 'deposit',
+            balance: updatedWallet.balance 
+          }
+        });
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(event);
+        }
       } else {
-        await prisma.wallet.upsert({
+        const updatedWallet = await prisma.wallet.upsert({
           where: { userId: userId },
           update: { balance: { increment: amount } },
           create: { userId: userId, balance: amount }
         });
         console.log(`[${webhookId}] Updated regular wallet balance for user ${userId}`);
+
+        // Dispatch wallet update event
+        const event = new CustomEvent('wallet-updated', {
+          detail: { 
+            type: 'regular',
+            balance: updatedWallet.balance 
+          }
+        });
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(event);
+        }
       }
 
       // Create points for the deposit
