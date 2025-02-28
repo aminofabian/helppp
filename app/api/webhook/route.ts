@@ -86,7 +86,7 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
             resultCode: "00",
             resultDesc: "Success",
             sender: { connect: { id: user.id } },
-            requestId,
+            request: { connect: { id: requestId } },
             userts: new Date(paidAt)
           }
         });
