@@ -127,14 +127,14 @@ export default function Donate() {
                     {selectedAmount} to $name via {selectedCategory}{' '}
                     {selectedCategory === 'Mpesa' ? (
                       <>
-                        You&apos;ll Earn <span className="text-[#3bb44a] text-lg font-bold border border-primary px-3 w-fit rounded-md">{Math.floor(selectedAmount / 50)}</span> Points for this
+                        You&apos;ll Earn <span className="text-[#3bb44a] text-lg font-bold border border-primary px-3 w-fit rounded-md">1</span> Point for this
                       </>
                     ) : (
                       ''
                     )}
                     {selectedCategory === 'PayPal' ? (
                       <>
-                        You&apos;ll Earn <span className="text-[#019cde] text-lg font-bold border border-blue-500 px-3 w-fit rounded-md">{Math.floor(selectedAmount / 0.5)}</span> Points for this
+                        You&apos;ll Earn <span className="text-[#019cde] text-lg font-bold border border-blue-500 px-3 w-fit rounded-md">1</span> Point for this
                       </>
                     ) : (
                       ''

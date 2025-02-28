@@ -90,8 +90,8 @@ export async function POST(req: Request) {
         }
       });
 
-      // Create points
-      const pointsEarned = Math.floor((amount / 100) / 50);
+      // Create points - 1 point per donation
+      const pointsEarned = 1;
       await tx.points.create({
         data: {
           user: { connect: { id: user.id } },

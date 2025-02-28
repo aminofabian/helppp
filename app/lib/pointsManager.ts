@@ -37,9 +37,9 @@ const POINTS_MULTIPLIERS = {
 export async function calculateDonationPoints(amount: number, userId: string): Promise<number> {
   console.log(`Calculating points for donation of KES ${amount} by user ${userId}`);
   
-  // Base points calculation (1 point per 50 KES)
-  let totalPoints = Math.floor(amount / 50);
-  console.log(`Base points from amount: ${totalPoints}`);
+  // Base points calculation (1 point per donation)
+  let totalPoints = 1;
+  console.log(`Base points for donation: ${totalPoints}`);
 
   // Get user's donation history
   const completedDonations = await prisma.donation.count({

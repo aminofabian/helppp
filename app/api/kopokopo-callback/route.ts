@@ -254,8 +254,8 @@ async function handleBuyGoodsTransaction(event: any) {
 
     const { payment, request, donation } = result;
 
-    // Calculate points (1 point per 50 KES, minimum 1 point)
-    const pointsEarned = Math.max(1, Math.floor(amount / 50));
+    // Award 1 point per donation
+    const pointsEarned = 1;
 
     // Create points record
     const points = await prisma.points.create({

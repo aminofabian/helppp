@@ -618,7 +618,7 @@ export async function handlePayPalWebhook(paymentData: {
     });
 
     // Calculate and award points using pointsManager
-    const points = await calculateDonationPoints(amountKES, giver.id);
+    const points = amountKES; // 1:1 ratio
     console.log(`Calculated points for donation ${donation.id}: ${points}`);
 
     // Process points transaction
