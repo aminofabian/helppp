@@ -50,34 +50,10 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
 
     console.log(`[${webhookId}] Found user:`, user);
 
-    // Start a transaction
-    console.log(`[${webhookId}] Starting database transaction`);
-    const result = await prisma.$transaction(async (tx) => {
-      let payment;
-
-      if (requestId) {
-        // Handle donation
-        console.log(`[${webhookId}] Processing donation for request: ${requestId}`);
-        
-        // Get request details
-        const request = await tx.request.findUnique({
-          where: { id: requestId },
-          include: { User: true }
-        });
-
-        if (!request) {
-          console.error(`[${webhookId}] Request not found: ${requestId}`);
-          throw new Error('Request not found');
-        }
-
-        if (!request.User) {
-          console.error(`[${webhookId}] Request user not found for request: ${requestId}`);
-          throw new Error('Request user not found');
-        }
-
-        console.log(`[${webhookId}] Found request:`, request);
-
-        payment = await tx.payment.create({
+    try {
+      // First transaction: Create payment and donation
+      const { payment, donation } = await prisma.$transaction(async (tx) => {
+        const payment = await tx.payment.create({
           data: {
             amount,
             paymentMethod: PaymentMethod.PAYSTACK,
@@ -92,7 +68,6 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
         });
         console.log(`[${webhookId}] Payment created:`, payment);
 
-        // Create donation record
         const donation = await tx.donation.create({
           data: {
             userId: user.id,
@@ -105,112 +80,93 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
         });
         console.log(`[${webhookId}] Donation created:`, donation);
 
-        // Update request status
-        await tx.request.update({
+        return { payment, donation };
+      });
+
+      // Second transaction: Update request and wallet
+      if (requestId) {
+        const request = await prisma.request.findUnique({
           where: { id: requestId },
-          data: { status: 'PAID' }
+          include: { User: true }
         });
-        console.log(`[${webhookId}] Request status updated to PAID`);
 
-        // Update receiver's wallet
-        const updatedWallet = await tx.wallet.upsert({
-          where: { userId: request.User.id },
-          create: { userId: request.User.id, balance: amount },
-          update: { balance: { increment: amount } }
-        });
-        console.log(`[${webhookId}] Receiver's wallet updated:`, updatedWallet);
+        if (!request?.User) {
+          throw new Error('Request or user not found');
+        }
 
-        // Create transaction record
-        await tx.transaction.create({
-          data: {
-            amount,
-            giver: { connect: { id: user.id } },
-            receiver: { connect: { id: request.User.id } }
-          }
-        });
-        console.log(`[${webhookId}] Transaction record created`);
-      } else {
-        // Handle wallet deposit
-        console.log(`[${webhookId}] Processing wallet deposit for amount: ${amount}`);
-        const wallet = await tx.wallet.upsert({
-          where: { userId: user.id },
-          update: { balance: { increment: amount } },
-          create: { userId: user.id, balance: amount }
-        });
-        console.log(`[${webhookId}] Wallet updated:`, wallet);
-
-        payment = await tx.payment.create({
-          data: {
-            amount,
-            paymentMethod: PaymentMethod.PAYSTACK,
-            status: PaymentStatus.COMPLETED,
-            merchantRequestId: reference,
-            resultCode: "00",
-            resultDesc: "Success",
-            sender: { connect: { id: user.id } },
-            userts: new Date(paidAt)
-          }
-        });
-        console.log(`[${webhookId}] Payment created:`, payment);
-
-        await tx.transaction.create({
-          data: {
-            amount,
-            giver: { connect: { id: user.id } },
-            receiver: { connect: { id: user.id } }
-          }
-        });
-        console.log(`[${webhookId}] Transaction record created`);
+        await prisma.$transaction([
+          prisma.request.update({
+            where: { id: requestId },
+            data: { status: 'PAID' }
+          }),
+          prisma.wallet.upsert({
+            where: { userId: request.User.id },
+            create: { userId: request.User.id, balance: amount },
+            update: { balance: { increment: amount } }
+          }),
+          prisma.transaction.create({
+            data: {
+              amount,
+              giver: { connect: { id: user.id } },
+              receiver: { connect: { id: request.User.id } }
+            }
+          })
+        ]);
+        console.log(`[${webhookId}] Updated request status and wallet`);
       }
 
-      // Create points (1 point per transaction)
-      console.log(`[${webhookId}] Creating points for user: ${user.id}`);
-      const points = await tx.points.create({
-        data: {
-          user: { connect: { id: user.id } },
-          amount: 1,
-          payment: { connect: { id: payment.id } }
-        }
-      });
-      console.log(`[${webhookId}] Points created:`, points);
+      // Third transaction: Create points and update user stats
+      const [points, updatedUser] = await prisma.$transaction([
+        prisma.points.create({
+          data: {
+            user: { connect: { id: user.id } },
+            amount: 1,
+            payment: { connect: { id: payment.id } }
+          }
+        }),
+        prisma.user.update({
+          where: { id: user.id },
+          data: {
+            totalDonated: { increment: amount },
+            donationCount: { increment: 1 }
+          }
+        })
+      ]);
 
-      // Update user stats
-      const updatedUser = await tx.user.update({
-        where: { id: user.id },
-        data: {
-          totalDonated: { increment: amount },
-          donationCount: { increment: 1 }
+      console.log(`[${webhookId}] Created points and updated user stats:`, {
+        points,
+        userStats: {
+          totalDonated: updatedUser.totalDonated,
+          donationCount: updatedUser.donationCount
         }
-      });
-      console.log(`[${webhookId}] User stats updated:`, {
-        totalDonated: updatedUser.totalDonated,
-        donationCount: updatedUser.donationCount
       });
 
       // Add reference to processed set
       processedReferences.add(reference);
 
-      return { payment, points };
-    });
+      return NextResponse.json({
+        status: "success",
+        message: "Payment processed successfully",
+        data: {
+          paymentId: payment.id,
+          pointsId: points.id,
+          reference,
+          transactionType: requestId ? 'donation' : 'wallet_deposit'
+        }
+      });
 
-    console.log(`[${webhookId}] Transaction processed successfully:`, {
-      paymentId: result.payment.id,
-      pointsId: result.points.id,
-      reference,
-      transactionType: requestId ? 'donation' : 'wallet_deposit'
-    });
-
-    return NextResponse.json({
-      status: "success",
-      message: "Payment processed successfully",
-      data: {
-        paymentId: result.payment.id,
-        pointsId: result.points.id,
-        reference,
-        transactionType: requestId ? 'donation' : 'wallet_deposit'
-      }
-    });
-
+    } catch (error) {
+      console.error(`[${webhookId}] Error processing transaction:`, error);
+      console.error(`[${webhookId}] Error stack:`, error instanceof Error ? error.stack : 'No stack trace');
+      return NextResponse.json(
+        { 
+          status: 'error',
+          message: 'Failed to process transaction',
+          error: error instanceof Error ? error.message : 'Unknown error'
+        },
+        { status: 500 }
+      );
+    }
   } catch (error) {
     console.error(`[${webhookId}] Error processing transaction:`, error);
     console.error(`[${webhookId}] Error stack:`, error instanceof Error ? error.stack : 'No stack trace');
