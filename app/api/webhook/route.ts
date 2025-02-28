@@ -16,6 +16,7 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
   const amount = event.data.amount / 100; // Convert from kobo to KES
   const customerEmail = event.data.customer.email;
   const transactionType = metadata?.type || '';
+  const paidAt = event.data.paid_at;
 
   console.log(`[${webhookId}] ============ PAYSTACK TRANSACTION START ============`);
   console.log(`[${webhookId}] Transaction Details:`, {
@@ -24,7 +25,7 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
     currency: event.data.currency,
     metadata,
     customer: event.data.customer,
-    paidAt: event.data.paid_at,
+    paidAt,
     transactionType
   });
 
@@ -43,258 +44,109 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
     });
 
     if (!user) {
-      console.error(`[${webhookId}] User not found for email: ${customerEmail}`);
-      return NextResponse.json({ 
-        status: "error", 
-        message: "User not found" 
-      }, { status: 404 });
+      throw new Error('User not found');
     }
 
-    const userId = user.id;
-    console.log(`[${webhookId}] Found user ID: ${userId}`);
+    // Start a transaction
+    const result = await prisma.$transaction(async (tx) => {
+      let payment;
 
-    // Handle wallet deposits
-    if (transactionType === 'deposit' || transactionType === 'wallet_deposit') {
-      console.log(`[${webhookId}] Processing ${transactionType} transaction...`);
-      
-      // Create payment record
-      const payment = await prisma.payment.create({
-        data: {
-          merchantRequestId: reference,
-          checkoutRequestId: reference,
-          amount: amount,
-          paymentMethod: PaymentMethod.PAYSTACK,
-          status: PaymentStatus.COMPLETED,
-          resultCode: "SUCCESS",
-          resultDesc: "Paystack payment successful",
-          currency: event.data.currency,
-          sender: {
-            connect: {
-              email: customerEmail
-            }
-          },
-          userts: new Date(event.data.paid_at),
-          transactionDate: new Date()
-        }
-      });
-
-      // Update the appropriate wallet
-      if (transactionType === 'deposit') {
-        const updatedWallet = await prisma.depositWallet.upsert({
-          where: { userId: userId },
+      if (transactionType === 'wallet_deposit') {
+        // Handle wallet deposit
+        const wallet = await tx.wallet.upsert({
+          where: { userId: user.id },
           update: { balance: { increment: amount } },
-          create: { userId: userId, balance: amount }
+          create: { userId: user.id, balance: amount }
         });
-        console.log(`[${webhookId}] Updated deposit wallet balance for user ${userId} to ${updatedWallet.balance}`);
+
+        payment = await tx.payment.create({
+          data: {
+            amount,
+            paymentMethod: PaymentMethod.PAYSTACK,
+            status: PaymentStatus.COMPLETED,
+            merchantRequestId: reference,
+            resultCode: "00",
+            resultDesc: "Success",
+            sender: { connect: { id: user.id } },
+            userts: new Date(paidAt)
+          }
+        });
+
+        await tx.transaction.create({
+          data: {
+            amount,
+            giver: { connect: { id: user.id } },
+            receiver: { connect: { id: user.id } }
+          }
+        });
       } else {
-        const updatedWallet = await prisma.wallet.upsert({
-          where: { userId: userId },
-          update: { balance: { increment: amount } },
-          create: { userId: userId, balance: amount }
-        });
-        console.log(`[${webhookId}] Updated regular wallet balance for user ${userId} to ${updatedWallet.balance}`);
-      }
+        // Handle donation
+        const requestId = metadata?.requestId;
+        if (!requestId) {
+          throw new Error('Request ID not found in metadata');
+        }
 
-      // Create points for the deposit
-      const pointsEarned = Math.floor(amount);
-      if (pointsEarned > 0) {
-        await prisma.points.create({
+        payment = await tx.payment.create({
           data: {
-            amount: pointsEarned,
-            userId: userId,
-            paymentId: payment.id
+            amount,
+            paymentMethod: PaymentMethod.PAYSTACK,
+            status: PaymentStatus.COMPLETED,
+            merchantRequestId: reference,
+            resultCode: "00",
+            resultDesc: "Success",
+            sender: { connect: { id: user.id } },
+            requestId,
+            userts: new Date(paidAt)
           }
         });
-        console.log(`[${webhookId}] Created ${pointsEarned} points for wallet deposit`);
+
+        await tx.donation.create({
+          data: {
+            userId: user.id,
+            requestId,
+            amount,
+            payment: { connect: { id: payment.id } },
+            status: PaymentStatus.COMPLETED,
+            invoice: reference
+          }
+        });
+
+        // Update request status
+        await tx.request.update({
+          where: { id: requestId },
+          data: { status: 'PAID' }
+        });
       }
 
-      // Create notification
-      await prisma.notification.create({
+      // Create points (1 point per transaction)
+      const points = await tx.points.create({
         data: {
-          recipient: { connect: { id: userId } },
-          issuer: { connect: { id: userId } },
-          type: 'PAYMENT_COMPLETED',
-          title: 'Wallet Deposit Successful',
-          content: `Your deposit of ${event.data.currency} ${amount} has been processed successfully.`,
-          read: false
+          user: { connect: { id: user.id } },
+          amount: 1,
+          payment: { connect: { id: payment.id } }
         }
       });
 
-      // Add to processed references cache
+      // Add reference to processed set
       processedReferences.add(reference);
 
-      return NextResponse.json({
-        status: "success",
-        message: "Wallet deposit processed successfully",
-        data: { payment }
-      });
-    }
-
-    // Check for existing records before transaction
-    console.log(`[${webhookId}] Checking for existing records...`);
-    const preCheck = await Promise.all([
-      prisma.payment.findFirst({
-        where: {
-          OR: [
-            { merchantRequestId: reference },
-            { checkoutRequestId: reference }
-          ],
-          status: PaymentStatus.COMPLETED
-        }
-      }),
-      prisma.donation.findFirst({
-        where: {
-          invoice: reference,
-          status: PaymentStatus.COMPLETED
-        }
-      })
-    ]);
-    console.log(`[${webhookId}] Pre-check results:`, {
-      existingPayment: preCheck[0] ? 'Found' : 'Not found',
-      existingDonation: preCheck[1] ? 'Found' : 'Not found'
+      return { payment };
     });
 
-    // Use a transaction for critical operations only
-    console.log(`[${webhookId}] Starting critical operations transaction...`);
-    const result = await prisma.$transaction(async (prisma) => {
-      // Check for existing completed payment or donation
-      if (preCheck[0] || preCheck[1]) {
-        console.log(`[${webhookId}] Payment/Donation already processed: ${reference}`);
-        return { status: "already_processed", payment: preCheck[0], donation: preCheck[1] };
-      }
-
-      // Add logging for each operation
-      console.log(`[${webhookId}] Creating payment record...`);
-      const payment = await prisma.payment.create({
-        data: {
-          merchantRequestId: reference,
-          checkoutRequestId: reference,
-          amount: amount,
-          paymentMethod: PaymentMethod.PAYSTACK,
-          status: PaymentStatus.COMPLETED,
-          resultCode: "SUCCESS",
-          resultDesc: "Paystack payment successful",
-          currency: event.data.currency,
-          sender: {
-            connect: {
-              email: event.data.customer.email
-            }
-          },
-          request: {
-            connect: {
-              id: metadata.request_id
-            }
-          },
-          userts: new Date(event.data.paid_at),
-          transactionDate: new Date()
-        }
-      });
-      console.log(`[${webhookId}] Payment record created:`, payment.id);
-
-      console.log(`[${webhookId}] Creating donation record...`);
-      const donation = await prisma.donation.create({
-        data: {
-          User: {
-            connect: {
-              email: event.data.customer.email
-            }
-          },
-          Request: {
-            connect: {
-              id: metadata.request_id
-            }
-          },
-          amount: amount,
-          payment: {
-            connect: {
-              id: payment.id
-            }
-          },
-          status: PaymentStatus.COMPLETED,
-          invoice: reference,
-          transactionDate: new Date(event.data.paid_at)
-        }
-      });
-      console.log(`[${webhookId}] Donation record created:`, donation.id);
-
-      // Update request status
-      await prisma.request.update({
-        where: { id: metadata.request_id },
-        data: { status: 'PAID' }
-      });
-
-      return { status: "success", payment, donation };
+    console.log(`[${webhookId}] Transaction processed successfully:`, {
+      paymentId: result.payment.id,
+      reference
     });
 
-    // Process non-critical operations separately
-    if (result.status === "success" && result.payment) {
-      console.log(`[${webhookId}] Processing non-critical operations...`);
-      try {
-        // Create transaction record
-        await prisma.transaction.create({
-          data: {
-            amount: amount,
-            giver: { connect: { id: userId } },
-            receiver: { connect: { id: userId } }
-          }
-        });
-
-        // Create notification
-        await prisma.notification.create({
-          data: {
-            recipient: { connect: { id: userId } },
-            issuer: { connect: { id: userId } },
-            type: 'PAYMENT_COMPLETED',
-            title: 'Payment Successful',
-            content: `Your payment of ${event.data.currency} ${amount} has been processed successfully.`,
-            read: false
-          }
-        });
-
-        // Update user stats atomically
-        await prisma.user.update({
-          where: { id: userId },
-          data: {
-            totalDonated: { increment: amount },
-            donationCount: { increment: 1 }
-          }
-        });
-
-        console.log(`[${webhookId}] Non-critical operations completed successfully`);
-      } catch (error) {
-        // Log but don't fail the webhook for non-critical operations
-        console.error(`[${webhookId}] Error in non-critical operations:`, error);
-      }
-    }
-
-    console.log(`[${webhookId}] Transaction completed successfully:`, {
-      paymentId: result.payment?.id,
-      donationId: result.donation?.id
-    });
-
-    // Add to processed references cache
-    if (result.status === "success") {
-      processedReferences.add(reference);
-      console.log(`[${webhookId}] Added reference to processed cache:`, reference);
-    }
-
-    console.log(`[${webhookId}] ============ PAYSTACK TRANSACTION END ============`);
     return NextResponse.json({
       status: "success",
-      message: result.status === "already_processed" ? "Payment already processed" : "Payment processed successfully",
-      data: result
+      message: "Payment processed successfully"
     });
 
   } catch (error) {
-    console.error(`[${webhookId}] Transaction error:`, error);
-    console.error(`[${webhookId}] Error stack:`, error instanceof Error ? error.stack : 'No stack trace');
-    console.error(`[${webhookId}] ============ PAYSTACK TRANSACTION ERROR ============`);
+    console.error(`[${webhookId}] Error processing transaction:`, error);
     return NextResponse.json(
-      {
-        status: "error",
-        message: "Failed to process payment",
-        error: error instanceof Error ? error.message : 'Unknown error'
-      },
+      { error: 'Failed to process transaction' },
       { status: 500 }
     );
   }
