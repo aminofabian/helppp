@@ -187,7 +187,31 @@ export default function HomeNavRight({
     }
   }, [isWalletDepositOpen, isClient]);
 
-  // Add wallet polling
+  // Handle wallet update events
+  const handleWalletUpdate = (event: CustomEvent) => {
+    console.log('Wallet update event received:', event.detail);
+    const { type, balance, newBalance } = event.detail;
+    
+    if (type === 'deposit') {
+      console.log('Updating deposit wallet balance to:', newBalance || balance);
+      setWallet(prev => ({
+        ...prev,
+        depositWallet: {
+          ...prev.depositWallet,
+          balance: Number(newBalance || balance),
+          name: prev.depositWallet?.name || "Donation Pool"
+        }
+      }));
+    } else {
+      console.log('Updating regular wallet balance to:', newBalance || balance);
+      setWallet(prev => ({
+        ...prev,
+        balance: Number(newBalance || balance)
+      }));
+    }
+  };
+
+  // Add event listener
   useEffect(() => {
     if (!isClient || !initialUser?.id) return;
 
@@ -198,35 +222,20 @@ export default function HomeNavRight({
         if (response.ok) {
           const data = await response.json();
           console.log('Received wallet data:', data);
-          setWallet(data);
+          setWallet(prev => ({
+            ...prev,
+            ...data,
+            depositWallet: {
+              ...prev.depositWallet,
+              ...data.depositWallet
+            }
+          }));
         }
       } catch (error) {
         console.error('Error fetching wallet data:', error);
       }
     };
 
-    // Handle wallet update events
-    const handleWalletUpdate = (event: CustomEvent) => {
-      console.log('Wallet update event received:', event.detail);
-      const { type, balance } = event.detail;
-      
-      if (type === 'deposit') {
-        console.log('Updating deposit wallet balance to:', balance);
-        setWallet(prev => {
-          const newWallet = {
-            ...prev,
-            depositWallet: {
-              balance: balance,
-              name: prev.depositWallet?.name || "Donation Pool"
-            }
-          };
-          console.log('New wallet state:', newWallet);
-          return newWallet;
-        });
-      }
-    };
-
-    // Add event listener
     window.addEventListener('wallet-updated', handleWalletUpdate as EventListener);
     console.log('Added wallet-updated event listener');
 
