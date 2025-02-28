@@ -12,11 +12,12 @@ const processedReferences = new Set<string>();
 
 async function handlePaystackWebhook(event: any, webhookId: string) {
   const reference = event.data.reference;
-  const metadata = event.data.metadata;
+  const metadata = event.data.metadata || {};
   const amount = event.data.amount / 100; // Convert from kobo to KES
   const customerEmail = event.data.customer.email;
-  const transactionType = metadata?.type || '';
+  const transactionType = metadata.type || '';
   const paidAt = event.data.paid_at;
+  const requestId = metadata.requestId;
 
   console.log(`[${webhookId}] ============ PAYSTACK TRANSACTION START ============`);
   console.log(`[${webhookId}] Transaction Details:`, {
@@ -26,7 +27,8 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
     metadata,
     customer: event.data.customer,
     paidAt,
-    transactionType
+    transactionType,
+    requestId
   });
 
   // Check in-memory cache first
@@ -53,6 +55,7 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
 
       if (transactionType === 'wallet_deposit') {
         // Handle wallet deposit
+        console.log(`[${webhookId}] Processing wallet deposit`);
         const wallet = await tx.wallet.upsert({
           where: { userId: user.id },
           update: { balance: { increment: amount } },
@@ -79,11 +82,18 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
             receiver: { connect: { id: user.id } }
           }
         });
-      } else {
+      } else if (requestId) {
         // Handle donation
-        const requestId = metadata?.requestId;
-        if (!requestId) {
-          throw new Error('Request ID not found in metadata');
+        console.log(`[${webhookId}] Processing donation for request: ${requestId}`);
+        
+        // Get request details
+        const request = await tx.request.findUnique({
+          where: { id: requestId },
+          include: { User: true }
+        });
+
+        if (!request) {
+          throw new Error('Request not found');
         }
 
         payment = await tx.payment.create({
@@ -100,7 +110,8 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
           }
         });
 
-        await tx.donation.create({
+        // Create donation record
+        const donation = await tx.donation.create({
           data: {
             userId: user.id,
             requestId,
@@ -116,9 +127,28 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
           where: { id: requestId },
           data: { status: 'PAID' }
         });
+
+        // Update receiver's wallet
+        await tx.wallet.upsert({
+          where: { userId: request.userId },
+          create: { userId: request.userId, balance: amount },
+          update: { balance: { increment: amount } }
+        });
+
+        // Create transaction record
+        await tx.transaction.create({
+          data: {
+            amount,
+            giver: { connect: { id: user.id } },
+            receiver: { connect: { id: request.userId } }
+          }
+        });
+      } else {
+        throw new Error('Invalid transaction type: neither wallet deposit nor donation');
       }
 
       // Create points (1 point per transaction)
+      console.log(`[${webhookId}] Creating points for user: ${user.id}`);
       const points = await tx.points.create({
         data: {
           user: { connect: { id: user.id } },
@@ -127,14 +157,24 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
         }
       });
 
+      // Update user stats
+      await tx.user.update({
+        where: { id: user.id },
+        data: {
+          totalDonated: { increment: amount },
+          donationCount: { increment: 1 }
+        }
+      });
+
       // Add reference to processed set
       processedReferences.add(reference);
 
-      return { payment };
+      return { payment, points };
     });
 
     console.log(`[${webhookId}] Transaction processed successfully:`, {
       paymentId: result.payment.id,
+      pointsId: result.points.id,
       reference
     });
 
