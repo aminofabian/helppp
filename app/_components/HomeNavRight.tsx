@@ -190,25 +190,69 @@ export default function HomeNavRight({
   // Handle wallet update events
   const handleWalletUpdate = (event: CustomEvent) => {
     console.log('Wallet update event received:', event.detail);
-    const { type, balance, newBalance } = event.detail;
+    const { type, balance } = event.detail;
     
     if (type === 'deposit') {
-      console.log('Updating deposit wallet balance to:', newBalance || balance);
+      console.log('Updating deposit wallet balance to:', balance);
       setWallet(prev => ({
         ...prev,
         depositWallet: {
           ...prev.depositWallet,
-          balance: Number(newBalance || balance),
+          balance: Number(balance),
           name: prev.depositWallet?.name || "Donation Pool"
         }
       }));
     } else {
-      console.log('Updating regular wallet balance to:', newBalance || balance);
+      console.log('Updating regular wallet balance to:', balance);
       setWallet(prev => ({
         ...prev,
-        balance: Number(newBalance || balance)
+        balance: Number(balance)
       }));
     }
+
+    // Start aggressive polling after a wallet update event
+    startAggressivePolling();
+  };
+
+  const startAggressivePolling = () => {
+    console.log('Starting aggressive polling for wallet updates...');
+    // Poll every second for 10 seconds
+    let pollCount = 0;
+    const maxPolls = 10;
+    
+    const pollInterval = setInterval(async () => {
+      if (pollCount >= maxPolls) {
+        clearInterval(pollInterval);
+        return;
+      }
+      
+      try {
+        console.log('Polling wallet data...');
+        const response = await fetch(`/api/wallet?userId=${initialUser.id}`);
+        if (response.ok) {
+          const data = await response.json();
+          console.log('Received wallet data:', data);
+          setWallet(prev => ({
+            ...prev,
+            ...data,
+            depositWallet: {
+              ...prev.depositWallet,
+              ...data.depositWallet
+            }
+          }));
+        }
+      } catch (error) {
+        console.error('Error polling wallet data:', error);
+      }
+      
+      pollCount++;
+    }, 1000);
+
+    // Cleanup after 10 seconds
+    setTimeout(() => {
+      clearInterval(pollInterval);
+      console.log('Ending aggressive polling');
+    }, 10000);
   };
 
   // Add event listener
@@ -242,7 +286,7 @@ export default function HomeNavRight({
     // Initial fetch
     fetchWalletData();
 
-    // Poll every 5 seconds
+    // Regular polling every 5 seconds
     const interval = setInterval(fetchWalletData, 5000);
 
     return () => {
