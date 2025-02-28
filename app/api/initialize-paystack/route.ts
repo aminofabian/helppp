@@ -21,9 +21,10 @@ export async function POST(req: Request) {
       },
       body: JSON.stringify({
         email,
-        amount: Math.round(amount), // Amount should be in KES cents already
+        amount: Math.round(amount * 100), // Convert KES to cents for Paystack
         reference,
         callback_url,
+        channels: ['card', 'mpesa'],
         metadata,
         currency: 'KES', // Kenyan Shillings
       }),

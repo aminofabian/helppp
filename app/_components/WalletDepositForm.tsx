@@ -34,6 +34,7 @@ export default function WalletDepositForm({ onClose, onSuccess, isDepositWallet 
           amount: parseFloat(amount),
           reference: `${isDepositWallet ? 'deposit' : 'wallet'}_${Date.now()}`,
           callback_url: `${window.location.origin}/${isDepositWallet ? 'deposit' : 'wallet'}/success`,
+          channels: ['card', 'mpesa'],
           metadata: {
             type: isDepositWallet ? 'deposit' : 'wallet_deposit',
             custom_fields: [
