@@ -36,32 +36,58 @@ export async function GET(req: NextRequest) {
 
       if (kindeUser && kindeUser.id === userId) {
         try {
-          user = await prisma.user.create({
-            data: {
-              id: kindeUser.id,
-              email: kindeUser.email ?? "",
-              firstName: kindeUser.given_name ?? "",
-              lastName: kindeUser.family_name ?? "",
-              imageUrl: kindeUser.picture,
-              userName: generateUsername("-", 3, 15),
-              level: 1,
-              totalDonated: 0,
-              donationCount: 0,
-              points: {
-                create: []
-              }
-            },
-            include: {
-              points: true,
-              donations: {
-                where: { status: 'COMPLETED' }
-              }
-            }
+          // First check if user exists with the same email
+          const existingUser = await prisma.user.findUnique({
+            where: { email: kindeUser.email ?? "" }
           });
-          console.log(`Created new user ${userId} with default stats`);
+
+          if (existingUser) {
+            // Update the existing user with the Kinde ID
+            user = await prisma.user.update({
+              where: { id: existingUser.id },
+              data: {
+                id: kindeUser.id,
+                firstName: kindeUser.given_name ?? existingUser.firstName,
+                lastName: kindeUser.family_name ?? existingUser.lastName,
+                imageUrl: kindeUser.picture ?? existingUser.imageUrl
+              },
+              include: {
+                points: true,
+                donations: {
+                  where: { status: 'COMPLETED' }
+                }
+              }
+            });
+            console.log(`Updated existing user with Kinde ID ${userId}`);
+          } else {
+            // Create new user if no existing user found
+            user = await prisma.user.create({
+              data: {
+                id: kindeUser.id,
+                email: kindeUser.email ?? "",
+                firstName: kindeUser.given_name ?? "",
+                lastName: kindeUser.family_name ?? "",
+                imageUrl: kindeUser.picture,
+                userName: generateUsername("-", 3, 15),
+                level: 1,
+                totalDonated: 0,
+                donationCount: 0,
+                points: {
+                  create: []
+                }
+              },
+              include: {
+                points: true,
+                donations: {
+                  where: { status: 'COMPLETED' }
+                }
+              }
+            });
+            console.log(`Created new user ${userId} with default stats`);
+          }
         } catch (createError) {
-          console.error(`Failed to create user ${userId}:`, createError);
-          return NextResponse.json({ error: 'Failed to create user' }, { status: 500 });
+          console.error(`Failed to create/update user ${userId}:`, createError);
+          return NextResponse.json({ error: 'Failed to create/update user' }, { status: 500 });
         }
       } else {
         console.log(`No Kinde data found for user ${userId}`);
