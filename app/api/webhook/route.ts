@@ -13,11 +13,10 @@ const processedReferences = new Set<string>();
 async function handlePaystackWebhook(event: any, webhookId: string) {
   const reference = event.data.reference;
   const metadata = event.data.metadata || {};
-  const amount = event.data.amount / 100; // Convert from kobo to KES
+  const amount = event.data.amount; // Remove division by 100 since amount is already in KES
   const customerEmail = event.data.customer.email;
-  const transactionType = metadata.type || '';
+  const requestId = metadata.request_id || metadata.requestId; // Handle both formats
   const paidAt = event.data.paid_at;
-  const requestId = metadata.requestId;
 
   console.log(`[${webhookId}] ============ PAYSTACK TRANSACTION START ============`);
   console.log(`[${webhookId}] Transaction Details:`, {
@@ -27,7 +26,6 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
     metadata,
     customer: event.data.customer,
     paidAt,
-    transactionType,
     requestId
   });
 
@@ -46,45 +44,18 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
     });
 
     if (!user) {
+      console.error(`[${webhookId}] User not found for email: ${customerEmail}`);
       throw new Error('User not found');
     }
 
+    console.log(`[${webhookId}] Found user:`, user);
+
     // Start a transaction
+    console.log(`[${webhookId}] Starting database transaction`);
     const result = await prisma.$transaction(async (tx) => {
       let payment;
 
-      if (transactionType === 'wallet_deposit') {
-        // Handle wallet deposit
-        console.log(`[${webhookId}] Processing wallet deposit`);
-        const wallet = await tx.wallet.upsert({
-          where: { userId: user.id },
-          update: { balance: { increment: amount } },
-          create: { userId: user.id, balance: amount }
-        });
-
-        payment = await tx.payment.create({
-          data: {
-            amount,
-            paymentMethod: PaymentMethod.PAYSTACK,
-            status: PaymentStatus.COMPLETED,
-            merchantRequestId: reference,
-            resultCode: "00",
-            resultDesc: "Success",
-            sender: { connect: { id: user.id } },
-            userts: new Date(paidAt)
-          }
-        });
-
-        await tx.transaction.create({
-          data: {
-            amount,
-            giver: { connect: { id: user.id } },
-            receiver: { connect: { id: user.id } }
-          }
-        });
-
-        console.log(`[${webhookId}] Wallet deposit processed. New balance: ${wallet.balance}`);
-      } else if (requestId) {
+      if (requestId) {
         // Handle donation
         console.log(`[${webhookId}] Processing donation for request: ${requestId}`);
         
@@ -95,12 +66,16 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
         });
 
         if (!request) {
+          console.error(`[${webhookId}] Request not found: ${requestId}`);
           throw new Error('Request not found');
         }
 
         if (!request.User) {
+          console.error(`[${webhookId}] Request user not found for request: ${requestId}`);
           throw new Error('Request user not found');
         }
+
+        console.log(`[${webhookId}] Found request:`, request);
 
         payment = await tx.payment.create({
           data: {
@@ -115,6 +90,7 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
             userts: new Date(paidAt)
           }
         });
+        console.log(`[${webhookId}] Payment created:`, payment);
 
         // Create donation record
         const donation = await tx.donation.create({
@@ -127,12 +103,14 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
             invoice: reference
           }
         });
+        console.log(`[${webhookId}] Donation created:`, donation);
 
         // Update request status
         await tx.request.update({
           where: { id: requestId },
           data: { status: 'PAID' }
         });
+        console.log(`[${webhookId}] Request status updated to PAID`);
 
         // Update receiver's wallet
         const updatedWallet = await tx.wallet.upsert({
@@ -140,7 +118,7 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
           create: { userId: request.User.id, balance: amount },
           update: { balance: { increment: amount } }
         });
-        console.log(`[${webhookId}] Receiver's wallet updated. New balance: ${updatedWallet.balance}`);
+        console.log(`[${webhookId}] Receiver's wallet updated:`, updatedWallet);
 
         // Create transaction record
         await tx.transaction.create({
@@ -150,8 +128,39 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
             receiver: { connect: { id: request.User.id } }
           }
         });
+        console.log(`[${webhookId}] Transaction record created`);
       } else {
-        throw new Error('Invalid transaction type: neither wallet deposit nor donation');
+        // Handle wallet deposit
+        console.log(`[${webhookId}] Processing wallet deposit for amount: ${amount}`);
+        const wallet = await tx.wallet.upsert({
+          where: { userId: user.id },
+          update: { balance: { increment: amount } },
+          create: { userId: user.id, balance: amount }
+        });
+        console.log(`[${webhookId}] Wallet updated:`, wallet);
+
+        payment = await tx.payment.create({
+          data: {
+            amount,
+            paymentMethod: PaymentMethod.PAYSTACK,
+            status: PaymentStatus.COMPLETED,
+            merchantRequestId: reference,
+            resultCode: "00",
+            resultDesc: "Success",
+            sender: { connect: { id: user.id } },
+            userts: new Date(paidAt)
+          }
+        });
+        console.log(`[${webhookId}] Payment created:`, payment);
+
+        await tx.transaction.create({
+          data: {
+            amount,
+            giver: { connect: { id: user.id } },
+            receiver: { connect: { id: user.id } }
+          }
+        });
+        console.log(`[${webhookId}] Transaction record created`);
       }
 
       // Create points (1 point per transaction)
@@ -163,14 +172,19 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
           payment: { connect: { id: payment.id } }
         }
       });
+      console.log(`[${webhookId}] Points created:`, points);
 
       // Update user stats
-      await tx.user.update({
+      const updatedUser = await tx.user.update({
         where: { id: user.id },
         data: {
           totalDonated: { increment: amount },
           donationCount: { increment: 1 }
         }
+      });
+      console.log(`[${webhookId}] User stats updated:`, {
+        totalDonated: updatedUser.totalDonated,
+        donationCount: updatedUser.donationCount
       });
 
       // Add reference to processed set
@@ -183,18 +197,29 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
       paymentId: result.payment.id,
       pointsId: result.points.id,
       reference,
-      transactionType
+      transactionType: requestId ? 'donation' : 'wallet_deposit'
     });
 
     return NextResponse.json({
       status: "success",
-      message: "Payment processed successfully"
+      message: "Payment processed successfully",
+      data: {
+        paymentId: result.payment.id,
+        pointsId: result.points.id,
+        reference,
+        transactionType: requestId ? 'donation' : 'wallet_deposit'
+      }
     });
 
   } catch (error) {
     console.error(`[${webhookId}] Error processing transaction:`, error);
+    console.error(`[${webhookId}] Error stack:`, error instanceof Error ? error.stack : 'No stack trace');
     return NextResponse.json(
-      { error: 'Failed to process transaction' },
+      { 
+        status: 'error',
+        message: 'Failed to process transaction',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      },
       { status: 500 }
     );
   }
@@ -311,6 +336,7 @@ export async function POST(req: Request) {
     const rawBody = await req.text();
     // Log the raw body immediately
     console.log('Raw webhook body received:', rawBody);
+    console.log('Content length:', rawBody.length);
     
     console.log(`[${webhookId}] Headers:`, {
       signature: req.headers.get('x-paystack-signature'),
@@ -322,6 +348,13 @@ export async function POST(req: Request) {
     try {
       event = JSON.parse(rawBody);
       console.log(`[${webhookId}] Parsed event:`, JSON.stringify(event, null, 2));
+      console.log(`[${webhookId}] Event type:`, event.event);
+      console.log(`[${webhookId}] Data:`, {
+        reference: event.data?.reference,
+        amount: event.data?.amount,
+        metadata: event.data?.metadata,
+        customer: event.data?.customer
+      });
     } catch (error) {
       console.error(`[${webhookId}] Error parsing JSON:`, error);
       return NextResponse.json({ status: 'error', message: 'Invalid JSON' }, { status: 400 });
@@ -367,7 +400,9 @@ export async function POST(req: Request) {
     switch (event.event) {
       case 'charge.success':
         console.log(`[${webhookId}] Processing charge.success event`);
-        return handlePaystackWebhook(event, webhookId);
+        const result = await handlePaystackWebhook(event, webhookId);
+        console.log(`[${webhookId}] Webhook handler result:`, result);
+        return result;
 
       case 'transfer.success':
       case 'transfer.failed':
