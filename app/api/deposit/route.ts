@@ -6,6 +6,7 @@ import { PaymentMethod, PaymentStatus } from '@prisma/client';
 export async function POST(request: NextRequest) {
   const secretKey = process.env.PAYSTACK_SECRET_KEY;
   const sig = request.headers.get('x-paystack-signature');
+  console.log("its here: deposittttttttttttttttttttttttttttttttttttttttttttttttttt")
 
   if (!secretKey || !sig) {
     console.error('Missing secret key or signature');
@@ -36,6 +37,9 @@ export async function POST(request: NextRequest) {
 
   if (event.event === 'charge.success') {
     console.log('Deposit payment successful:', event.data);
+
+  console.log("its here: deposittttttttttttttttttttttttttttttttttttttttttttttttttt")
+
     try {
       const email = event.data.customer.email?.toLowerCase().trim();
       const amount = event.data.amount / 100; // Convert from kobo to KES

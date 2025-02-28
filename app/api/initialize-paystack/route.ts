@@ -4,6 +4,7 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     const { email, amount, reference, callback_url, metadata } = body;
+    console.log('meta amefikaaaaaaaaaaaaaaaaaa', metadata)
 
     if (!process.env.PAYSTACK_SECRET_KEY) {
       return NextResponse.json(

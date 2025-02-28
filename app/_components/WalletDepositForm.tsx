@@ -36,7 +36,8 @@ export default function WalletDepositForm({ onClose, onSuccess, isDepositWallet 
           callback_url: `${window.location.origin}/${isDepositWallet ? 'deposit' : 'wallet'}/success`,
           channels: ['card', 'mobile_money'],
           metadata: {
-            type: isDepositWallet ? 'deposit' : 'wallet_deposit',
+            type: 'deposit',
+            // type: isDepositWallet ? 'deposit' : 'wallet_deposit',
             custom_fields: [
               {
                 display_name: "Transaction Type",

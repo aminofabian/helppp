@@ -440,6 +440,7 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
           callback_url: `${window.location.origin}/api/paystack-callback`,
           metadata: {
             request_id: requestId,
+            type: 'donation',
             custom_fields: [
               {
                 display_name: "Request ID",

@@ -10,6 +10,7 @@ import { handleDonationTransaction } from "@/app/(actions)/handleDonationTransac
 // Keep track of processed references in memory
 const processedReferences = new Set<string>();
 
+
 async function handlePaystackWebhook(event: any, webhookId: string) {
   const reference = event.data.reference;
   const metadata = event.data.metadata || {};
@@ -17,6 +18,9 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
   const customerEmail = event.data.customer.email;
   const requestId = metadata.request_id || metadata.requestId; // Handle both formats
   const paidAt = event.data.paid_at;
+  const transactionType = metadata.type; // 'donation' or 'deposit'
+  console.log("its here: deposittttttttttttttttttttttttttttttttttttttttttttttttttt")
+  console.log(transactionType, 'leo ni leoooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo[o')
 
   console.log(`[${webhookId}] ============ PAYSTACK TRANSACTION START ============`);
   console.log(`[${webhookId}] Transaction Details:`, {
@@ -26,7 +30,8 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
     metadata,
     customer: event.data.customer,
     paidAt,
-    requestId
+    requestId,
+    transactionType,
   });
 
   // Check in-memory cache first
@@ -40,7 +45,7 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
     console.log(`[${webhookId}] Fetching user ID for email: ${customerEmail}`);
     const user = await prisma.user.findUnique({
       where: { email: customerEmail },
-      select: { id: true }
+      select: { id: true },
     });
 
     if (!user) {
@@ -50,7 +55,43 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
 
     console.log(`[${webhookId}] Found user:`, user);
 
-    try {
+    // Handle deposits
+    if (transactionType === 'deposit') {
+      console.log(`[${webhookId}] Processing deposit for user:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::: ${user.id}`);
+    
+      // Update the user's deposit wallet balance
+      const depositWallet = await prisma.depositWallet.upsert({
+        where: { userId: user.id },
+        create: {
+          userId: user.id,
+          balance: amount, // Set initial balance for new wallets
+          name: "Donation Pool", // Default name
+        },
+        update: {
+          balance: { increment: amount }, // Increment balance for existing wallets
+        },
+      });
+    
+      console.log(`[${webhookId}] Updated deposit wallet balance:`, depositWallet);
+    
+      // Add reference to processed set
+      processedReferences.add(reference);
+    
+      return NextResponse.json({
+        status: "success",
+        message: "Deposit processed successfully",
+        data: {
+          depositWalletId: depositWallet.id,
+          newBalance: depositWallet.balance,
+          reference,
+        },
+      });
+    }
+
+    // Handle donations
+    if (transactionType === 'donation') {
+      console.log(`[${webhookId}] Processing donation for request: ${requestId}`);
+
       // First transaction: Create payment and donation
       const { payment, donation } = await prisma.$transaction(async (tx) => {
         const payment = await tx.payment.create({
@@ -63,8 +104,8 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
             resultDesc: "Success",
             sender: { connect: { id: user.id } },
             request: { connect: { id: requestId } },
-            userts: new Date(paidAt)
-          }
+            userts: new Date(paidAt),
+          },
         });
         console.log(`[${webhookId}] Payment created:`, payment);
 
@@ -75,8 +116,8 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
             amount,
             payment: { connect: { id: payment.id } },
             status: PaymentStatus.COMPLETED,
-            invoice: reference
-          }
+            invoice: reference,
+          },
         });
         console.log(`[${webhookId}] Donation created:`, donation);
 
@@ -87,7 +128,7 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
       if (requestId) {
         const request = await prisma.request.findUnique({
           where: { id: requestId },
-          include: { User: true }
+          include: { User: true },
         });
 
         if (!request?.User) {
@@ -97,20 +138,20 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
         await prisma.$transaction([
           prisma.request.update({
             where: { id: requestId },
-            data: { status: 'PAID' }
+            data: { status: 'PAID' },
           }),
           prisma.wallet.upsert({
             where: { userId: request.User.id },
             create: { userId: request.User.id, balance: amount },
-            update: { balance: { increment: amount } }
+            update: { balance: { increment: amount } },
           }),
           prisma.transaction.create({
             data: {
               amount,
               giver: { connect: { id: user.id } },
-              receiver: { connect: { id: request.User.id } }
-            }
-          })
+              receiver: { connect: { id: request.User.id } },
+            },
+          }),
         ]);
         console.log(`[${webhookId}] Updated request status and wallet`);
       }
@@ -121,24 +162,24 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
           data: {
             user: { connect: { id: user.id } },
             amount: 1, // Always award 1 point per donation
-            payment: { connect: { id: payment.id } }
-          }
+            payment: { connect: { id: payment.id } },
+          },
         }),
         prisma.user.update({
           where: { id: user.id },
           data: {
             totalDonated: { increment: amount },
-            donationCount: { increment: 1 }
-          }
-        })
+            donationCount: { increment: 1 },
+          },
+        }),
       ]);
 
       console.log(`[${webhookId}] Created points and updated user stats:`, {
         points,
         userStats: {
           totalDonated: updatedUser.totalDonated,
-          donationCount: updatedUser.donationCount
-        }
+          donationCount: updatedUser.donationCount,
+        },
       });
 
       // Add reference to processed set
@@ -146,40 +187,206 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
 
       return NextResponse.json({
         status: "success",
-        message: "Payment processed successfully",
+        message: "Donation processed successfully",
         data: {
           paymentId: payment.id,
           pointsId: points.id,
           reference,
-          transactionType: requestId ? 'donation' : 'wallet_deposit'
-        }
-      });
-
-    } catch (error) {
-      console.error(`[${webhookId}] Error processing transaction:`, error);
-      console.error(`[${webhookId}] Error stack:`, error instanceof Error ? error.stack : 'No stack trace');
-      return NextResponse.json(
-        { 
-          status: 'error',
-          message: 'Failed to process transaction',
-          error: error instanceof Error ? error.message : 'Unknown error'
         },
-        { status: 500 }
-      );
+      });
     }
+
+    // If transaction type is neither 'deposit' nor 'donation'
+    console.error(`[${webhookId}] Unknown transaction type: ${transactionType}`);
+    return NextResponse.json(
+      { status: "error", message: "Unknown transaction type" },
+      { status: 400 }
+    );
   } catch (error) {
     console.error(`[${webhookId}] Error processing transaction:`, error);
     console.error(`[${webhookId}] Error stack:`, error instanceof Error ? error.stack : 'No stack trace');
     return NextResponse.json(
-      { 
-        status: 'error',
-        message: 'Failed to process transaction',
-        error: error instanceof Error ? error.message : 'Unknown error'
+      {
+        status: "error",
+        message: "Failed to process transaction",
+        error: error instanceof Error ? error.message : "Unknown error",
       },
       { status: 500 }
     );
   }
 }
+
+// async function handlePaystackWebhook(event: any, webhookId: string) {
+//   const reference = event.data.reference;
+//   const metadata = event.data.metadata || {};
+//   const amount = event.data.amount / 100; // Convert from kobo to KES
+//   const customerEmail = event.data.customer.email;
+//   const requestId = metadata.request_id || metadata.requestId; // Handle both formats
+//   const paidAt = event.data.paid_at;
+
+ 
+//   console.log(`[${webhookId}] ============ PAYSTACK TRANSACTION START ============`);
+//   console.log(`[${webhookId}] Transaction Details:`, {
+//     reference,
+//     amount,
+//     currency: event.data.currency,
+//     metadata,
+//     customer: event.data.customer,
+//     paidAt,
+//     requestId
+//   });
+
+//   // Check in-memory cache first
+//   if (processedReferences.has(reference)) {
+//     console.log(`[${webhookId}] Payment already processed (in-memory): ${reference}`);
+//     return NextResponse.json({ status: "success", message: "Payment already processed" });
+//   }
+
+//   try {
+//     // Get user ID from email
+//     console.log(`[${webhookId}] Fetching user ID for email: ${customerEmail}`);
+//     const user = await prisma.user.findUnique({
+//       where: { email: customerEmail },
+//       select: { id: true }
+//     });
+
+//     if (!user) {
+//       console.error(`[${webhookId}] User not found for email: ${customerEmail}`);
+//       throw new Error('User not found');
+//     }
+
+//     console.log(`[${webhookId}] Found user:`, user);
+
+//     try {
+//       // First transaction: Create payment and donation
+//       const { payment, donation } = await prisma.$transaction(async (tx) => {
+//         const payment = await tx.payment.create({
+//           data: {
+//             amount,
+//             paymentMethod: PaymentMethod.PAYSTACK,
+//             status: PaymentStatus.COMPLETED,
+//             merchantRequestId: reference,
+//             resultCode: "00",
+//             resultDesc: "Success",
+//             sender: { connect: { id: user.id } },
+//             request: { connect: { id: requestId } },
+//             userts: new Date(paidAt)
+//           }
+//         });
+//         console.log(`[${webhookId}] Payment created:`, payment);
+
+//         const donation = await tx.donation.create({
+//           data: {
+//             userId: user.id,
+//             requestId,
+//             amount,
+//             payment: { connect: { id: payment.id } },
+//             status: PaymentStatus.COMPLETED,
+//             invoice: reference
+//           }
+//         });
+//         console.log(`[${webhookId}] Donation created:`, donation);
+
+//         return { payment, donation };
+//       });
+
+//       // Second transaction: Update request and wallet
+//       if (requestId) {
+//         const request = await prisma.request.findUnique({
+//           where: { id: requestId },
+//           include: { User: true }
+//         });
+
+//         if (!request?.User) {
+//           throw new Error('Request or user not found');
+//         }
+
+//         await prisma.$transaction([
+//           prisma.request.update({
+//             where: { id: requestId },
+//             data: { status: 'PAID' }
+//           }),
+//           prisma.wallet.upsert({
+//             where: { userId: request.User.id },
+//             create: { userId: request.User.id, balance: amount },
+//             update: { balance: { increment: amount } }
+//           }),
+//           prisma.transaction.create({
+//             data: {
+//               amount,
+//               giver: { connect: { id: user.id } },
+//               receiver: { connect: { id: request.User.id } }
+//             }
+//           })
+//         ]);
+//         console.log(`[${webhookId}] Updated request status and wallet`);
+//       }
+
+//       // Third transaction: Create points and update user stats
+//       const [points, updatedUser] = await prisma.$transaction([
+//         prisma.points.create({
+//           data: {
+//             user: { connect: { id: user.id } },
+//             amount: 1, // Always award 1 point per donation
+//             payment: { connect: { id: payment.id } }
+//           }
+//         }),
+//         prisma.user.update({
+//           where: { id: user.id },
+//           data: {
+//             totalDonated: { increment: amount },
+//             donationCount: { increment: 1 }
+//           }
+//         })
+//       ]);
+
+//       console.log(`[${webhookId}] Created points and updated user stats:`, {
+//         points,
+//         userStats: {
+//           totalDonated: updatedUser.totalDonated,
+//           donationCount: updatedUser.donationCount
+//         }
+//       });
+
+//       // Add reference to processed set
+//       processedReferences.add(reference);
+
+//       return NextResponse.json({
+//         status: "success",
+//         message: "Payment processed successfully",
+//         data: {
+//           paymentId: payment.id,
+//           pointsId: points.id,
+//           reference,
+//           transactionType: requestId ? 'donation' : 'wallet_deposit'
+//         }
+//       });
+
+//     } catch (error) {
+//       console.error(`[${webhookId}] Error processing transaction:`, error);
+//       console.error(`[${webhookId}] Error stack:`, error instanceof Error ? error.stack : 'No stack trace');
+//       return NextResponse.json(
+//         { 
+//           status: 'error',
+//           message: 'Failed to process transaction',
+//           error: error instanceof Error ? error.message : 'Unknown error'
+//         },
+//         { status: 500 }
+//       );
+//     }
+//   } catch (error) {
+//     console.error(`[${webhookId}] Error processing transaction:`, error);
+//     console.error(`[${webhookId}] Error stack:`, error instanceof Error ? error.stack : 'No stack trace');
+//     return NextResponse.json(
+//       { 
+//         status: 'error',
+//         message: 'Failed to process transaction',
+//         error: error instanceof Error ? error.message : 'Unknown error'
+//       },
+//       { status: 500 }
+//     );
+//   }
+// }
 
 async function handleKopokopoWebhook(data: any, webhookId: string) {
   console.log(`[${webhookId}] Processing Kopokopo webhook:`, data);
@@ -311,6 +518,9 @@ export async function POST(req: Request) {
         metadata: event.data?.metadata,
         customer: event.data?.customer
       });
+
+      
+     
     } catch (error) {
       console.error(`[${webhookId}] Error parsing JSON:`, error);
       return NextResponse.json({ status: 'error', message: 'Invalid JSON' }, { status: 400 });
@@ -356,8 +566,10 @@ export async function POST(req: Request) {
     switch (event.event) {
       case 'charge.success':
         console.log(`[${webhookId}] Processing charge.success event`);
+        
         const result = await handlePaystackWebhook(event, webhookId);
         console.log(`[${webhookId}] Webhook handler result:`, result);
+        
         return result;
 
       case 'transfer.success':
