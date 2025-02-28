@@ -82,6 +82,8 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
             receiver: { connect: { id: user.id } }
           }
         });
+
+        console.log(`[${webhookId}] Wallet deposit processed. New balance: ${wallet.balance}`);
       } else if (requestId) {
         // Handle donation
         console.log(`[${webhookId}] Processing donation for request: ${requestId}`);
@@ -94,6 +96,10 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
 
         if (!request) {
           throw new Error('Request not found');
+        }
+
+        if (!request.User) {
+          throw new Error('Request user not found');
         }
 
         payment = await tx.payment.create({
@@ -129,18 +135,19 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
         });
 
         // Update receiver's wallet
-        await tx.wallet.upsert({
-          where: { userId: request.userId },
-          create: { userId: request.userId, balance: amount },
+        const updatedWallet = await tx.wallet.upsert({
+          where: { userId: request.User.id },
+          create: { userId: request.User.id, balance: amount },
           update: { balance: { increment: amount } }
         });
+        console.log(`[${webhookId}] Receiver's wallet updated. New balance: ${updatedWallet.balance}`);
 
         // Create transaction record
         await tx.transaction.create({
           data: {
             amount,
             giver: { connect: { id: user.id } },
-            receiver: { connect: { id: request.userId } }
+            receiver: { connect: { id: request.User.id } }
           }
         });
       } else {
@@ -175,7 +182,8 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
     console.log(`[${webhookId}] Transaction processed successfully:`, {
       paymentId: result.payment.id,
       pointsId: result.points.id,
-      reference
+      reference,
+      transactionType
     });
 
     return NextResponse.json({

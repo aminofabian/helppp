@@ -38,11 +38,21 @@ export async function POST(req: Request) {
       })
     ]);
 
+    // Determine transaction type
+    const transactionType = verifyData.data.metadata?.type === 'wallet_deposit' ? 'deposit' : 'regular';
+    console.log('Transaction verification:', {
+      reference,
+      transactionType,
+      metadata: verifyData.data.metadata,
+      walletBalance: wallet?.balance || 0,
+      depositWalletBalance: depositWallet?.balance || 0
+    });
+
     return NextResponse.json({
       success: true,
       walletBalance: wallet?.balance || 0,
       depositWalletBalance: depositWallet?.balance || 0,
-      transactionType: verifyData.data.metadata?.type || 'regular'
+      transactionType
     });
 
   } catch (error) {
