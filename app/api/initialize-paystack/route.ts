@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import prisma from "../../lib/db";
+import { getKindeServerSession } from '@kinde-oss/kinde-auth-nextjs/server';
 
 // import { NextResponse } from 'next/server';
 
@@ -9,6 +10,8 @@ export async function POST(req: Request) {
     const { email, amount, reference, callback_url, metadata } = body;
     console.log('Metadata received:', metadata);
 
+    
+
     if (!process.env.PAYSTACK_SECRET_KEY) {
       return NextResponse.json(
         { message: 'Paystack secret key is not configured' },
@@ -16,10 +19,13 @@ export async function POST(req: Request) {
       );
     }
 
+
+    const { getUser } = getKindeServerSession();
+    const user = await getUser();
     // Handle donations
     if (metadata.type === 'donation') {
       const requestId = metadata.request_id || metadata.requestId;
-      const userId = metadata.userId; // ID of the user making the donation
+      const userId = user.id; // ID of the user making the donation
 
       if (!requestId || !userId) {
         return NextResponse.json(
