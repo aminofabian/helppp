@@ -451,6 +451,7 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
           }
         }),
       });
+      
 
       const data = await response.json();
       console.log('Paystack initialization response:', data);
