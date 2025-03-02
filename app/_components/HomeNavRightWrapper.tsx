@@ -29,7 +29,7 @@ async function getUserStats(userId: string) {
       createdAt: true
     }
   });
-  console.log('All donations in system:', allDonationsInSystem);
+  // console.log('All donations in system:', allDonationsInSystem);
 
   // Get the base user stats
   const stats = await prisma.user.findUnique({
@@ -101,7 +101,7 @@ async function getUserStats(userId: string) {
     console.log('Updated user stats to match calculated values');
   }
 
-  console.log('Enriched user stats:', enrichedStats);
+  // console.log('Enriched user stats:', enrichedStats);
   return enrichedStats;
 }
 
@@ -144,7 +144,7 @@ export default async function HomeNavRightWrapper() {
   try {
     const wallet = await getWalletData(user.id);
     const stats = await getUserStats(user.id);
-    console.log('Initial stats being passed to HomeNavRight:', stats);
+    // console.log('Initial stats being passed to HomeNavRight:', stats);
 
     // Ensure we have default values for all required fields
     const safeStats = {

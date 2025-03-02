@@ -81,12 +81,12 @@ export async function POST(request: Request) {
       const totalGiven = givenTransactions._sum.amount || 0;
       const calculatedBalance = totalReceived - totalGiven;
 
-      console.log(`User ${userId} calculations:`, {
-        receivedFromDonations: receivedDonations._sum.amount || 0,
-        receivedFromTransactions: receivedTransactions._sum.amount || 0,
-        totalGiven,
-        calculatedBalance
-      });
+      // console.log(`User ${userId} calculations:`, {
+      //   receivedFromDonations: receivedDonations._sum.amount || 0,
+      //   receivedFromTransactions: receivedTransactions._sum.amount || 0,
+      //   totalGiven,
+      //   calculatedBalance
+      // });
 
       if (calculatedBalance > 0) {
         // Update or create wallet with correct balance

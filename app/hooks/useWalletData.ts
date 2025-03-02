@@ -23,7 +23,7 @@ export const useWalletData = (userId: string | null, interval: number = 10000) =
         console.log('Wallet data fetched:', data); // Log to debug
         setWallet(data);
       } catch (error) {
-        console.error('Failed to fetch wallet data:', error);
+        // console.error('Failed to fetch wallet data:', error);
         setIsError(true);
       } finally {
         setIsLoading(false);

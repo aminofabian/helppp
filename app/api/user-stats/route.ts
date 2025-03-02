@@ -147,7 +147,7 @@ export async function GET(req: NextRequest) {
       totalReceived: received._sum.amount || 0
     };
 
-    console.log(`Returning stats for user ${userId}:`, donationStats);
+    // console.log(`Returning stats for user ${userId}:`, donationStats);
 
     return NextResponse.json(donationStats);
   } catch (error) {

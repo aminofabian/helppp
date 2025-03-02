@@ -27,8 +27,7 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const event = await req.json();
-    console.log('Paystack webhook event:', event);
-
+    
     // Verify the event is a successful charge
     if (event.event !== 'charge.success') {
       return NextResponse.json({ message: 'Event not handled' }, { status: 200 });

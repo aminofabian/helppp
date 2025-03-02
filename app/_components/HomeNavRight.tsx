@@ -232,7 +232,7 @@ export default function HomeNavRight({
         const response = await fetch(`/api/wallet?userId=${initialUser.id}`);
         if (response.ok) {
           const data = await response.json();
-          console.log('Received wallet data:', data);
+          // console.log('Received wallet data:', data);
           if (data.balance !== undefined) {
             setWallet(prev => ({
               ...prev,
@@ -269,7 +269,7 @@ export default function HomeNavRight({
         const response = await fetch(`/api/wallet?userId=${initialUser.id}`);
         if (response.ok) {
           const data = await response.json();
-          console.log('Received wallet data:', data);
+          // console.log('Received wallet data:', data);
           setWallet(prev => ({
             ...prev,
             balance: Number(data.balance || 0),

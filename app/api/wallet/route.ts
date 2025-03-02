@@ -10,7 +10,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'userId is required' }, { status: 400 });
     }
 
-    console.log('Fetching wallet data for user:', userId);
+    // console.log('Fetching wallet data for user:', userId);
 
     // Get both wallets in parallel
     const [wallet, depositWallet] = await Promise.all([
@@ -22,7 +22,7 @@ export async function GET(request: Request) {
       })
     ]);
 
-    console.log('Wallet data:', { wallet, depositWallet });
+    // console.log('Wallet data:', { wallet, depositWallet });
 
     return NextResponse.json({
       balance: wallet?.balance || 0,
