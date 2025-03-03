@@ -72,7 +72,7 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
         },
       });
     
-      console.log(`[${webhookId}] Updated deposit wallet balanceeeeeeeeeeee:`, depositWallet);
+      console.log(`[${webhookId}] Updated deposit wallet balance:`, depositWallet);
     
       // Add reference to processed set
       processedReferences.add(reference);
@@ -91,7 +91,6 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
     // Handle donations
     if (transactionType === 'donation') {
       console.log(`[${webhookId}] Processing donation for request: ${requestId}`);
-      console.log(transactionType, 'angelinaaaanaaaaaaaaaaaaaaaaaaaaaanaaaaaaaaaaaaaaaannnnnnnnnnnnaaaaaaaaaaaaaaaaaaaaaa');
 
       // First transaction: Create payment and donation
       const { payment, donation } = await prisma.$transaction(async (tx) => {

@@ -33,6 +33,7 @@ export default function WalletDepositForm({ onClose, onSuccess, isDepositWallet 
           email: user?.email,
           amount: parseFloat(amount),
           reference: `${isDepositWallet ? 'deposit' : 'wallet'}_${Date.now()}`,
+          transactionType: 'donation',
           callback_url: `${window.location.origin}/${isDepositWallet ? 'deposit' : 'wallet'}/success`,
           channels: ['card', 'mobile_money'],
           metadata: {

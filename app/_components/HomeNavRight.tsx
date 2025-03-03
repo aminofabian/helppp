@@ -688,13 +688,13 @@ export default function HomeNavRight({
               {(() => {
                 const totalDonated = stats.calculatedTotalDonated || stats.totalDonated || 0;
                 const totalReceived = stats.totalReceived || 0;
-                console.log('Stats values:', {
-                  calculatedTotalDonated: stats.calculatedTotalDonated,
-                  totalDonated: stats.totalDonated,
-                  totalReceived: stats.totalReceived,
-                  finalTotalDonated: totalDonated,
-                  finalTotalReceived: totalReceived
-                });
+                // console.log('Stats values:', {
+                //   calculatedTotalDonated: stats.calculatedTotalDonated,
+                //   totalDonated: stats.totalDonated,
+                //   totalReceived: stats.totalReceived,
+                //   finalTotalDonated: totalDonated,
+                //   finalTotalReceived: totalReceived
+                // });
                 const requestAmount = calculateRequestAmount(totalDonated, totalReceived);
                 const netAmount = totalDonated - totalReceived;
                 return (

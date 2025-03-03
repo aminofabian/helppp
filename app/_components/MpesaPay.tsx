@@ -436,6 +436,7 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
         body: JSON.stringify({
           email: user?.email,
           amount: parseFloat(customAmount),
+          transactionType: 'donation',
           reference: `${requestId}_${Date.now()}`,
           callback_url: `${window.location.origin}/api/paystack-callback`,
           metadata: {
@@ -463,6 +464,14 @@ const MpesaPay = ({ requestId }: { requestId: string }) => {
           data
         });
         throw new Error(data.message || 'Failed to initialize payment');
+      }
+
+      if (data.redirect_url) {
+        toast.success(data.message);
+        setTimeout(() => {
+          window.location.href = data.redirect_url;
+        }, 2000); // Redirect after 2 seconds
+        return;
       }
 
       // Redirect to Paystack checkout URL
