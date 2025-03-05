@@ -175,7 +175,7 @@ const totalAmount = holdAmount + amount;
           }),
         ]);
         console.log(`[${webhookId}] Updated request status and wallet`);
-      }
+      };
 
       // Third transaction: Create points and update user stats
       const [points, updatedUser] = await prisma.$transaction([

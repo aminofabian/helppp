@@ -96,22 +96,51 @@ export async function POST(req: Request) {
         });
 
         // Create transaction between donor and receiver
-        const request = await prisma.request.findUnique({
-          where: { id: requestId },
-          include: { User: true },
-        });
-
-        if (request && request.User) {
-          await prisma.transaction.create({
-            data: {
-              giverId: user.id,
-              receiverId: request.User.id,
-              amount,
-            },
+        if (requestId) {
+          const request = await prisma.request.findUnique({
+            where: { id: requestId },
+            include: { User: true },
           });
-        };
+  
+          if (!request?.User) {
+            throw new Error('Request or user not found');
+          }
+        await prisma.$transaction([
+          prisma.request.update({
+            where: { id: requestId },
+            data: { status: 'PAID' },
+          }),
+          prisma.wallet.upsert({
+            where: { userId: request.User.id },
+            create: { userId: request.User.id, balance: amount },
+            update: { balance: { increment: amount } },
+          }),
+          prisma.transaction.create({
+            data: {
+              amount: amount,
+              giver: { connect: { id: user.id } },
+              receiver: { connect: { id: request.User.id } },
+            },
+          }),
+        ]);
+      }
+        // console.log(`[${webhookId}] Updated request status and wallet`);
+        // const request = await prisma.request.findUnique({
+        //   where: { id: requestId },
+        //   include: { User: true },
+        // });
 
-        console.log('requestttttt', request)
+        // if (request && request.User) {
+        //   await prisma.transaction.create({
+        //     data: {
+        //       giverId: user.id,
+        //       receiverId: request.User.id,
+        //       amount,
+        //     },
+        //   });
+        // };
+
+        // console.log('requestttttt', request)
 
         // Award points & update stats
         await prisma.$transaction([
