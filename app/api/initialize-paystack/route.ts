@@ -137,30 +137,25 @@ export async function POST(req: Request) {
           redirect_url: 'https://fitrii.com/',
         });
         
-      } else if (depositWallet.balance > 0) {
+      } else if (depositWallet.balance >= 0) {
         // Partial payment from DepositWallet, remaining via Paystack
         const fullDonationAmount = amount; // 10 KES
-        const depositWalletBalance = depositWallet.balance; // 6 KES
+        const depositWalletBalance = depositWallet.balance; 
         remainingAmount = fullDonationAmount - depositWallet.balance;
 
-       
-       
-
-
-        await prisma.depositWallet.update({
-          where: { userId: user.id },
-          data: { balance: { decrement: depositWallet.balance } },
+        await prisma.hold.create({
+          data: {
+            userId: user.id,
+            amount: depositWalletBalance,
+            reference: reference, // Use the provided reference
+            status: 'PENDING', // Default status
+          }
         });
 
-        // const donation = await prisma.donation.create({
-        //   data: {
-        //     userId: user.id,
-        //     requestId,
-        //     amount: fullDonationAmount, // 10 KES
-        //     status: 'PENDING', // Set to PENDING until Paystack confirms
-        //     invoice: reference,
-        //   },
-        // });
+        console.log(depositWalletBalance, reference, 'yeeeeeeeeeeeeeeeeeeeeeeeeey!!!!!!!!!!!!!!!!!!!!!!!!!!!wallet created')
+      
+        console.log(`[Donation] Partial deduction: ${depositWalletBalance}. Remaining: ${remainingAmount} via Paystack.`);
+      
 
         console.log(`[Donation] Partial deduction: ${depositWallet.balance}. Remaining: ${remainingAmount} via Paystack.`);
       }
@@ -201,7 +196,7 @@ export async function POST(req: Request) {
     console.error('Payment initialization error:', error);
     return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
   }
-}
+};
 
 
 
