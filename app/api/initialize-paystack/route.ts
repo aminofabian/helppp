@@ -40,7 +40,7 @@ export async function POST(req: Request) {
       }
     });
     
-    console.log(depositWallet, 'depositWalletDetails');
+    // console.log(depositWallet, 'depositWalletDetails');
 
     let remainingAmount = amount;
     let shouldUsePaystack = true;
