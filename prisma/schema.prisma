@@ -1,105 +1,100 @@
-datasource db {
-  provider          = "postgresql"
-  url               = env("DATABASE_URL")
-  directUrl         = env("DIRECT_URL")
-  relationMode      = "prisma"
-}
-
 generator client {
   provider = "prisma-client-js"
 }
 
-model User {
-  id                String @id @default(cuid())
-  email             String @unique
-  firstName         String
-  lastName          String
-  phone             String? 
-  imageUrl          String?
-  userName          String @unique
-  createdCommunities Community[]
-  memberships       CommunityMember[]
-  Comment           Comment[]
-  giverTransactions     Transaction[] @relation("GiverRelation")
-  receiverTransactions  Transaction[] @relation("ReceiverRelation")
-  wallet            Wallet?
-  depositWallet     DepositWallet?
-  payments          Payment[]
-  donations         Donation[]
-  requests          Request[]
-  love              Vote[]
-  points            Points[]
-  level             Int      @default(1)
-  recievedNotifications Notification[] @relation("Recepient")
-  issuedNotifications   Notification[] @relation("Issuer")
-  notificationSettings NotificationSettings?
-  createdAt         DateTime @default(now())
-  totalDonated      Float @default(0)
-  donationCount     Int @default(0)
-  Circle            Circle[]
-  CircleMember      CircleMember[]
-  CircleContribution CircleContribution[]
-  CircleHelpRequest CircleHelpRequest[]
-  testimonies      Testimony[]
-  prayers         Prayer[]  
-  answers         Answer[]  
-  commentReactions CommentReaction[]
-  leaderboard Leaderboard[] @relation("UserLeaderboard")
-  pushSubscriptions PushSubscription[]
-  
-  @@map("users")
-  @@index([id])
+datasource db {
+  provider     = "postgresql"
+  url          = env("DATABASE_URL")
+  directUrl    = env("DIRECT_URL")
+  relationMode = "prisma"
 }
 
-enum PrayerStatus {
-  PENDING
-  ANSWERED
-  CLOSED
+model User {
+  id                    String                @id @default(cuid())
+  email                 String                @unique
+  firstName             String
+  lastName              String
+  phone                 String?
+  imageUrl              String?
+  userName              String                @unique
+  level                 Int                   @default(1)
+  createdAt             DateTime              @default(now())
+  totalDonated          Float                 @default(0)
+  donationCount         Int                   @default(0)
+  createdCommunities    Community[]
+  memberships           CommunityMember[]
+  Comment               Comment[]
+  giverTransactions     Transaction[]         @relation("GiverRelation")
+  receiverTransactions  Transaction[]         @relation("ReceiverRelation")
+  wallet                Wallet?
+  depositWallet         DepositWallet?
+  payments              Payment[]
+  donations             Donation[]
+  requests              Request[]
+  love                  Vote[]
+  points                Points[]
+  recievedNotifications Notification[]        @relation("Recepient")
+  issuedNotifications   Notification[]        @relation("Issuer")
+  notificationSettings  NotificationSettings?
+  Circle                Circle[]
+  CircleMember          CircleMember[]
+  CircleContribution    CircleContribution[]
+  CircleHelpRequest     CircleHelpRequest[]
+  testimonies           Testimony[]
+  prayers               Prayer[]
+  answers               Answer[]
+  commentReactions      CommentReaction[]
+  leaderboard           Leaderboard[]         @relation("UserLeaderboard")
+  pushSubscriptions     PushSubscription[]
+  holds                 Hold[]
+
+  @@index([id])
+  @@map("users")
 }
 
 model Prayer {
-  id        String   @id @default(uuid())  
-  user      User     @relation(fields: [userId], references: [id])  
-  userId    String   
-  title     String   // Optional: Can be hidden initially  
-  content   String   
+  id        String       @id @default(uuid())
+  userId    String
+  title     String
+  content   String
+  status    PrayerStatus @default(PENDING)
+  createdAt DateTime     @default(now())
+  user      User         @relation(fields: [userId], references: [id])
   testimony Testimony?
-  status    PrayerStatus @default(PENDING)  
-  createdAt DateTime @default(now())  
-  answer    Answer? @relation("PrayerAnswer")
+  answer    Answer?      @relation("PrayerAnswer")
 
   @@index([userId])
 }
 
 model Testimony {
-  id        String   @id @default(uuid())  
-  user      User     @relation(fields: [userId], references: [id])  
-  userId    String   
-  prayer    Prayer   @relation(fields: [prayerId], references: [id])  
+  id        String   @id @default(uuid())
+  userId    String
   prayerId  String   @unique
-  response  String   
+  response  String
   createdAt DateTime @default(now())
-  answer    Answer?  @relation("TestimonyAnswer", fields: [answerId], references: [id])
   answerId  String?  @unique
+  user      User     @relation(fields: [userId], references: [id])
+  prayer    Prayer   @relation(fields: [prayerId], references: [id])
+  answer    Answer?  @relation("TestimonyAnswer", fields: [answerId], references: [id])
 
-  @@map("testimony")
   @@index([userId])
   @@index([answerId])
+  @@map("testimony")
 }
 
 model Answer {
-  id        String   @id @default(uuid())  
-  user      User     @relation(fields: [userId], references: [id])  
-  userId    String   
-  prayer    Prayer   @relation("PrayerAnswer", fields: [prayerId], references: [id])  
-  prayerId  String   @unique
-  response  String   
-  testimony Testimony? @relation("TestimonyAnswer")
-  donation  Donation? @relation("AnswerDonation", fields: [donationId], references: [id])
-  donationId String? @unique
-  payment   Payment?  @relation("AnswerPayment", fields: [paymentId], references: [id])
-  paymentId String? @unique
-  createdAt DateTime @default(now())  
+  id         String     @id @default(uuid())
+  userId     String
+  prayerId   String     @unique
+  response   String
+  donationId String?    @unique
+  paymentId  String?    @unique
+  createdAt  DateTime   @default(now())
+  user       User       @relation(fields: [userId], references: [id])
+  prayer     Prayer     @relation("PrayerAnswer", fields: [prayerId], references: [id])
+  testimony  Testimony? @relation("TestimonyAnswer")
+  donation   Donation?  @relation("AnswerDonation", fields: [donationId], references: [id])
+  payment    Payment?   @relation("AnswerPayment", fields: [paymentId], references: [id])
 
   @@index([userId])
   @@index([donationId])
@@ -107,102 +102,94 @@ model Answer {
 }
 
 model Leaderboard {
-  id        String   @id @default(uuid())  
-  user      User     @relation("UserLeaderboard", fields: [userId], references: [id])  
-  userId    String   
-  prayersAnswered Int @default(0)  
+  id              String @id @default(uuid())
+  userId          String
+  prayersAnswered Int    @default(0)
+  user            User   @relation("UserLeaderboard", fields: [userId], references: [id])
 
   @@index([userId])
 }
 
 model Community {
-  id          String @id @default(uuid())
-  name        String @unique
-  description String?
-  creatorId String?
-  User                User?     @relation(fields: [userId], references: [id])  
-  userId              String?
-  requests     Request[]
-  memberships CommunityMember[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  totalDonations Float @default(0) 
-  successfulRequests Int @default(0) 
+  id                 String            @id @default(uuid())
+  name               String            @unique
+  description        String?
+  creatorId          String?
+  userId             String?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+  successfulRequests Int               @default(0)
+  totalDonations     Float             @default(0)
+  User               User?             @relation(fields: [userId], references: [id])
+  requests           Request[]
+  memberships        CommunityMember[]
 
-  @@index([userId]) // Add this line to create an index on userId
+  @@index([userId])
 }
 
 model CommunityMember {
-  id          String   @id @default(uuid())
-  userId      String
-  communityId String
-  user        User     @relation(fields: [userId], references: [id])
-  community   Community @relation(fields: [communityId], references: [id])
-  createdAt   DateTime @default(now())
-  totalDonated Float @default(0)
+  id           String    @id @default(uuid())
+  userId       String
+  communityId  String
+  createdAt    DateTime  @default(now())
+  totalDonated Float     @default(0)
+  user         User      @relation(fields: [userId], references: [id])
+  community    Community @relation(fields: [communityId], references: [id])
 
   @@unique([userId, communityId])
-  @@index([userId]) // Add this line to create an index on userId
-  @@index([communityId]) // Add this line to create an index on communityId
+  @@index([userId])
+  @@index([communityId])
 }
 
 model Request {
-  id           String     @id @default(cuid())
-  title String
-  textContent  Json?
-  imageString  String?
-  deadline DateTime @default(now()) 
-  donations Donation[]
-  payments Payment[]
-  amount Int
-  pointsUsed Float
-  Comment Comment[]
-  Community Community? @relation(fields: [communityName], references: [name])
-  communityName String?
-  User  User? @relation(fields: [userId], references: [id])
-  userId String
-  Vote Vote[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                  String         @id @default(cuid())
+  title               String
+  textContent         Json?
+  imageString         String?
+  deadline            DateTime       @default(now())
+  amount              Int
+  pointsUsed          Float
+  communityName       String?
+  userId              String
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+  status              String?
+  donations           Donation[]
+  payments            Payment[]
+  Comment             Comment[]
+  Community           Community?     @relation(fields: [communityName], references: [name])
+  User                User?          @relation(fields: [userId], references: [id])
+  Vote                Vote[]
   linkedNotifications Notification[]
-  status String? 
 
-  @@index([userId]) // Add this line to create an index on userId
-  @@index([communityName]) // Add this line to create an index on communityName
-}
-
-enum TypeOfVote {
-  LOVE
-  SUSPISION
+  @@index([userId])
+  @@index([communityName])
 }
 
 model Vote {
-  id String @id @default(uuid())
-
-  Request Request? @relation(fields: [requestId], references: [id])
+  id        String     @id @default(uuid())
   requestId String
+  userId    String
+  voteType  TypeOfVote
+  Request   Request?   @relation(fields: [requestId], references: [id])
+  User      User?      @relation(fields: [userId], references: [id])
 
-  User User? @relation(fields: [userId], references: [id])
-  userId String
-
-  voteType TypeOfVote
-
-  @@index([requestId]) 
-  @@index([userId]) 
+  @@index([requestId])
+  @@index([userId])
   @@map("votes")
 }
 
 model Comment {
-  id        String   @id @default(cuid())
+  id        String            @id @default(cuid())
   text      String
-  createdAt DateTime @default(now())
+  createdAt DateTime          @default(now())
   userId    String
   requestId String
-  parentId  String?  // Optional parent comment ID
-  User      User     @relation(fields: [userId], references: [id])
-  Request   Request  @relation(fields: [requestId], references: [id])
-  parent    Comment? @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  replies   Comment[] @relation("CommentReplies")
+  parentId  String?
+  User      User              @relation(fields: [userId], references: [id])
+  Request   Request           @relation(fields: [requestId], references: [id])
+  parent    Comment?          @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  replies   Comment[]         @relation("CommentReplies")
   reactions CommentReaction[]
 
   @@index([userId])
@@ -225,21 +212,21 @@ model CommentReaction {
 }
 
 model Donation {
-  id        String   @id @default(cuid())
-  User      User?    @relation(fields: [userId], references: [id])
-  userId    String
-  Request   Request? @relation(fields: [requestId], references: [id])
-  requestId String
-  amount    Float
-  createdAt DateTime @default(now())
-  phoneNumber String?
-  payment   Payment?
-  invoice   String
-  status    String
-  mpesaReceiptNumber String?
-  transactionDate    DateTime?
+  id                  String         @id @default(cuid())
+  userId              String
+  requestId           String
+  amount              Float
+  createdAt           DateTime       @default(now())
+  phoneNumber         String?
+  invoice             String
+  status              String
+  mpesaReceiptNumber  String?
+  transactionDate     DateTime?
+  User                User?          @relation(fields: [userId], references: [id])
+  Request             Request?       @relation(fields: [requestId], references: [id])
+  payment             Payment?
   linkedNotifications Notification[]
-  answer    Answer?  @relation("AnswerDonation")
+  answer              Answer?        @relation("AnswerDonation")
 
   @@index([userId])
   @@index([requestId])
@@ -247,26 +234,195 @@ model Donation {
 
 model Transaction {
   id         String   @id @default(cuid())
-  giver      User     @relation(name: "GiverRelation", fields: [giverId], references: [id])
   giverId    String
-  receiver   User     @relation(name: "ReceiverRelation", fields: [receiverId], references: [id])
   receiverId String
   amount     Float
   timestamp  DateTime @default(now())
+  giver      User     @relation("GiverRelation", fields: [giverId], references: [id])
+  receiver   User     @relation("ReceiverRelation", fields: [receiverId], references: [id])
 
-  @@index([giverId]) // Add this line to create an index on giverId
-  @@index([receiverId]) // Add this line to create an index on receiverId
+  @@index([giverId])
+  @@index([receiverId])
 }
 
 model Wallet {
   id        String   @id @default(cuid())
-  user      User?    @relation(fields: [userId], references: [id])
-  userId    String @unique
+  userId    String   @unique
   balance   Float    @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  user      User?    @relation(fields: [userId], references: [id])
 
-  @@index([userId]) // Add this line to create an index on userId
+  @@index([userId])
+}
+
+model Payment {
+  id                 String        @id @default(cuid())
+  resultCode         String?
+  resultDesc         String?
+  amount             Float
+  userts             DateTime
+  userId             String?
+  requestId          String?
+  donationId         String?       @unique
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  mpesaReceiptNumber String?
+  phoneNumber        String?
+  transactionDate    DateTime?
+  paymentMethod      PaymentMethod
+  checkoutRequestId  String?
+  currency           String?
+  merchantRequestId  String?
+  status             PaymentStatus @default(PENDING)
+  sender             User?         @relation(fields: [userId], references: [id])
+  request            Request?      @relation(fields: [requestId], references: [id])
+  donation           Donation?     @relation(fields: [donationId], references: [id])
+  points             Points?
+  answer             Answer?       @relation("AnswerPayment")
+
+  @@index([userId])
+  @@index([requestId])
+  @@index([paymentMethod])
+}
+
+model Points {
+  id        String   @id @default(cuid())
+  userId    String
+  amount    Int
+  paymentId String   @unique
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+  payment   Payment  @relation(fields: [paymentId], references: [id])
+
+  @@index([userId])
+}
+
+model Notification {
+  id          String           @id @default(cuid())
+  recipientId String
+  issuerId    String
+  requestId   String?
+  type        NotificationType
+  read        Boolean          @default(false)
+  createdAt   DateTime         @default(now())
+  donationId  String?
+  content     String
+  title       String
+  recipient   User             @relation("Recepient", fields: [recipientId], references: [id], onDelete: Cascade)
+  issuer      User             @relation("Issuer", fields: [issuerId], references: [id], onDelete: Cascade)
+  request     Request?         @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  donation    Donation?        @relation(fields: [donationId], references: [id], onDelete: Cascade)
+
+  @@index([recipientId])
+  @@index([issuerId])
+  @@index([requestId])
+  @@index([donationId])
+  @@map("notifications")
+}
+
+model Circle {
+  id            String               @id @default(uuid())
+  name          String
+  description   String?
+  ownerId       String
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+  owner         User                 @relation(fields: [ownerId], references: [id])
+  members       CircleMember[]
+  helpRequests  CircleHelpRequest[]
+  contributions CircleContribution[]
+
+  @@index([ownerId])
+}
+
+model CircleMember {
+  id        String   @id @default(uuid())
+  circleId  String
+  userId    String
+  createdAt DateTime @default(now())
+  circle    Circle   @relation(fields: [circleId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@unique([circleId, userId])
+}
+
+model CircleHelpRequest {
+  id          String        @id @default(uuid())
+  circleId    String
+  requesterId String
+  title       String
+  description String
+  amount      Float?
+  status      RequestStatus @default(PENDING)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  circle      Circle        @relation(fields: [circleId], references: [id])
+  requester   User          @relation(fields: [requesterId], references: [id])
+
+  @@index([circleId])
+  @@index([requesterId])
+}
+
+model CircleContribution {
+  id        String   @id @default(uuid())
+  circleId  String
+  userId    String
+  amount    Float
+  createdAt DateTime @default(now())
+  circle    Circle   @relation(fields: [circleId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([circleId])
+  @@index([userId])
+}
+
+model NotificationSettings {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  emailEnabled Boolean  @default(true)
+  pushEnabled  Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model DepositWallet {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  balance   Float    @default(0)
+  name      String?  @default("Donation Pool")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+}
+
+enum PrayerStatus {
+  PENDING
+  ANSWERED
+  CLOSED
+}
+
+enum TypeOfVote {
+  LOVE
+  SUSPISION
 }
 
 enum PaymentMethod {
@@ -282,71 +438,6 @@ enum PaymentStatus {
   CANCELLED
 }
 
-model Payment {
-  id                 String   @id @default(cuid())
-  merchantRequestId   String?  @unique
-  checkoutRequestId   String?
-  resultCode         String?
-  resultDesc         String?
-  amount             Float
-  userts             DateTime
-  sender             User?     @relation(fields: [userId], references: [id])
-  userId             String?
-  request            Request? @relation(fields: [requestId], references: [id])
-  requestId          String?
-  donation           Donation? @relation(fields: [donationId], references: [id])
-  donationId         String?   @unique
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
-  points             Points?
-  mpesaReceiptNumber String?
-  phoneNumber        String?
-  transactionDate    DateTime?
-  paymentMethod      PaymentMethod
-  currency           String?
-  status             PaymentStatus @default(PENDING)
-  answer             Answer?  @relation("AnswerPayment")
-
-  @@index([userId]) 
-  @@index([requestId]) 
-  @@index([paymentMethod])
-}
-
-model Points {
-  id        String   @id @default(cuid())
-  user      User     @relation(fields: [userId], references: [id])
-  userId    String
-  amount    Int      
-  payment   Payment  @relation(fields: [paymentId], references: [id])
-  paymentId String   @unique
-  createdAt DateTime @default(now())
-
-  @@index([userId]) 
-}
-
-model Notification {
-  id        String   @id @default(cuid())
-  recipientId String
-  recipient User @relation("Recepient", fields: [recipientId], references: [id], onDelete: Cascade)
-  issuerId String
-  issuer User @relation("Issuer", fields: [issuerId], references: [id], onDelete: Cascade)
-  requestId String?
-  request Request? @relation(fields: [requestId], references: [id], onDelete: Cascade)
-  type NotificationType
-  title String
-  content String
-  read Boolean @default(false)
-  createdAt DateTime @default(now())
-  donationId String?
-  donation Donation? @relation(fields: [donationId], references: [id], onDelete: Cascade)
-
-  @@map("notifications")
-  @@index([recipientId]) 
-  @@index([issuerId]) 
-  @@index([requestId]) 
-  @@index([donationId]) 
-}
-
 enum NotificationType {
   LIKE
   COMMENT
@@ -357,62 +448,6 @@ enum NotificationType {
   PAYMENT_RECEIVED
   PAYMENT_COMPLETED
   PAYMENT_SENT
-}
-
-model Circle {
-  id          String   @id @default(uuid())
-  name        String
-  description String?
-  ownerId     String
-  owner       User     @relation(fields: [ownerId], references: [id])
-  members     CircleMember[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  helpRequests CircleHelpRequest[]
-  contributions CircleContribution[]
-
-  @@index([ownerId]) // Add this line to create an index on ownerId
-}
-
-model CircleMember {
-  id        String   @id @default(uuid())
-  circleId  String
-  userId    String
-  circle    Circle   @relation(fields: [circleId], references: [id])
-  user      User     @relation(fields: [userId], references: [id])
-  createdAt DateTime @default(now())
-  
-  @@unique([circleId, userId])
-}
-
-model CircleHelpRequest {
-  id          String   @id @default(uuid())
-  circleId    String
-  circle      Circle   @relation(fields: [circleId], references: [id])
-  requesterId String
-  requester   User     @relation(fields: [requesterId], references: [id])
-  title       String
-  description String
-  amount      Float?
-  status      RequestStatus @default(PENDING)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@index([circleId])
-  @@index([requesterId])
-}
-
-model CircleContribution {
-  id        String   @id @default(uuid())
-  circleId  String
-  circle    Circle   @relation(fields: [circleId], references: [id])
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  amount    Float
-  createdAt DateTime @default(now())
-
-  @@index([circleId])
-  @@index([userId])
 }
 
 enum CircleStatus {
@@ -434,39 +469,14 @@ enum RequestStatus {
   FULFILLED
 }
 
-model NotificationSettings {
-  id        String   @id @default(cuid())
-  userId    String   @unique
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  emailEnabled Boolean @default(true)
-  pushEnabled  Boolean @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+model Hold {
+  id        String  @id @default(cuid())
+  user      User    @relation(fields: [userId], references: [id])
+  userId    String  
+  amount    Decimal
+  status    String  @default("PENDING")
+  reference String  @unique
 
   @@index([userId])
 }
 
-model PushSubscription {
-  id        String   @id @default(cuid())
-  userId    String
-  endpoint  String   @unique
-  p256dh    String
-  auth      String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-}
-
-model DepositWallet {
-  id          String   @id @default(cuid())
-  user        User     @relation(fields: [userId], references: [id])
-  userId      String   @unique
-  balance     Float    @default(0)
-  name        String?  @default("Donation Pool")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@index([userId])
-}

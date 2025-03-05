@@ -11,16 +11,18 @@ export async function POST(req: Request) {
     const { email, amount, reference, callback_url, metadata } = body;
     const { getUser } = getKindeServerSession();
     const user = await getUser();
+    console.log(body, 'why what whennnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn')
 
     if (!user) {
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
     const transactionType = metadata?.type;
+    console.log(transactionType, 'memeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee')
     const requestId = metadata?.request_id;
 
-    // console.log('Metadata receiveddddddd:', metadata);
-    // console.log('metaaaaaaaaaaaaaaaaaaaaaaa', metadata?.request_id)
+    console.log('Metadata receiveddddddd:', metadata);
+    console.log('metaaaaaaaaaaaaaaaaaaaaaaa', metadata?.request_id)
 
 
     if (!process.env.PAYSTACK_SECRET_KEY) {
@@ -30,16 +32,23 @@ export async function POST(req: Request) {
     // Fetch user's deposit wallet
     const depositWallet = await prisma.depositWallet.findUnique({
       where: { userId: user.id },
+    }) ?? await prisma.depositWallet.create({
+      data: { 
+        userId: user.id, 
+        balance: 0,
+        name: "Donation Wallet" 
+      }
     });
-
-    if (!depositWallet) {
-      return NextResponse.json({ message: 'Deposit wallet not found' }, { status: 404 });
-    }
+    
+    console.log(depositWallet, 'depositWalletDetails');
 
     let remainingAmount = amount;
     let shouldUsePaystack = true;
 
+    console.log(remainingAmount, 'remainingAmount', shouldUsePaystack, 'shouldUsePaystackkkkkkkkkkkkkkkkkk')
+
     if (transactionType === 'donation') {
+      console.log('yes its donation yesssssssssssssssssssssssssssssssssssssssssssssssssssssssss')
       // console.log(`[Processing donation] Checking deposit wallet for user:::::::::::::: ${user.id}`);
 
       if (depositWallet.balance >= amount) {
@@ -155,7 +164,7 @@ export async function POST(req: Request) {
 
         console.log(`[Donation] Partial deduction: ${depositWallet.balance}. Remaining: ${remainingAmount} via Paystack.`);
       }
-    }
+    } 
 
     if (shouldUsePaystack) {
       // Initialize transaction with Paystack
