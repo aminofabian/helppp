@@ -17,7 +17,7 @@ async function getWalletData(userId: string) {
 }
 
 async function getUserStats(userId: string) {
-  console.log('Fetching stats for user:', userId);
+  // console.log('Fetching stats for user:', userId);
   
   // Debug: Check all donations in the system
   const allDonationsInSystem = await prisma.donation.findMany({

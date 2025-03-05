@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
     }
 
-    console.log(`Fetching stats for user: ${userId}`);
+    // console.log(`Fetching stats for user: ${userId}`);
 
     // Get user with their points and donations
     let user = await prisma.user.findUnique({
