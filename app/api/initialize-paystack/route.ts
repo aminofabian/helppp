@@ -11,18 +11,18 @@ export async function POST(req: Request) {
     const { email, amount, reference, callback_url, metadata } = body;
     const { getUser } = getKindeServerSession();
     const user = await getUser();
-    console.log(body, 'why what whennnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn')
+    // console.log(body, 'why what whennnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn')
 
     if (!user) {
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
     const transactionType = metadata?.type;
-    console.log(transactionType, 'memeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee')
+    // console.log(transactionType, 'memeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee')
     const requestId = metadata?.request_id;
 
-    console.log('Metadata receiveddddddd:', metadata);
-    console.log('metaaaaaaaaaaaaaaaaaaaaaaa', metadata?.request_id)
+    // console.log('Metadata receiveddddddd:', metadata);
+    // console.log('metaaaaaaaaaaaaaaaaaaaaaaa', metadata?.request_id)
 
 
     if (!process.env.PAYSTACK_SECRET_KEY) {
@@ -45,10 +45,10 @@ export async function POST(req: Request) {
     let remainingAmount = amount;
     let shouldUsePaystack = true;
 
-    console.log(remainingAmount, 'remainingAmount', shouldUsePaystack, 'shouldUsePaystackkkkkkkkkkkkkkkkkk')
+    // console.log(remainingAmount, 'remainingAmount', shouldUsePaystack, 'shouldUsePaystackkkkkkkkkkkkkkkkkk')
 
     if (transactionType === 'donation') {
-      console.log('yes its donation yesssssssssssssssssssssssssssssssssssssssssssssssssssssssss')
+      // console.log('yes its donation yesssssssssssssssssssssssssssssssssssssssssssssssssssssssss')
       // console.log(`[Processing donation] Checking deposit wallet for user:::::::::::::: ${user.id}`);
 
       if (depositWallet.balance >= amount) {
@@ -152,12 +152,12 @@ export async function POST(req: Request) {
           }
         });
 
-        console.log(depositWalletBalance, reference, 'yeeeeeeeeeeeeeeeeeeeeeeeeey!!!!!!!!!!!!!!!!!!!!!!!!!!!wallet created')
+        // console.log(depositWalletBalance, reference, 'yeeeeeeeeeeeeeeeeeeeeeeeeey!!!!!!!!!!!!!!!!!!!!!!!!!!!wallet created')
       
-        console.log(`[Donation] Partial deduction: ${depositWalletBalance}. Remaining: ${remainingAmount} via Paystack.`);
+        // console.log(`[Donation] Partial deduction: ${depositWalletBalance}. Remaining: ${remainingAmount} via Paystack.`);
       
 
-        console.log(`[Donation] Partial deduction: ${depositWallet.balance}. Remaining: ${remainingAmount} via Paystack.`);
+        // console.log(`[Donation] Partial deduction: ${depositWallet.balance}. Remaining: ${remainingAmount} via Paystack.`);
       }
     } 
 
@@ -183,7 +183,7 @@ export async function POST(req: Request) {
       const data = await response.json();
 
       if (!response.ok) {
-        console.error('Paystack initialization failed:', data);
+        // console.error('Paystack initialization failed:', data);
         return NextResponse.json(
           { message: data.message || 'Failed to initialize payment' },
           { status: response.status }

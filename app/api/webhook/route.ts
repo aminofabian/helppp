@@ -19,8 +19,7 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
   const requestId = metadata.request_id || metadata.requestId; // Handle both formats
   const paidAt = event.data.paid_at;
   const transactionType = metadata.type; // 'donation' or 'deposit'
-  console.log("its here: deposittttttttttttttttttttttttttttttttttttttttttttttttttt")
-  console.log(transactionType, 'leo ni leoooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo[o')
+ 
 
   console.log(`[${webhookId}] ============ PAYSTACK TRANSACTION START ============`);
   console.log(`[${webhookId}] Transaction Details:`, {
@@ -36,7 +35,6 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
 
   // Check in-memory cache first
   if (processedReferences.has(reference)) {
-    console.log(`[${webhookId}] Payment already processed (in-memory): ${reference}`);
     return NextResponse.json({ status: "success", message: "Payment already processed" });
   }
 
@@ -49,7 +47,6 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
     });
 
     if (!user) {
-      console.error(`[${webhookId}] User not found for email: ${customerEmail}`);
       throw new Error('User not found');
     }
 
@@ -57,7 +54,6 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
 
     // Handle deposits
     if (transactionType === 'deposit') {
-      console.log(`[${webhookId}] Processing deposit for user:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::: ${user.id}`);
     
       // Update the user's deposit wallet balance
       const depositWallet = await prisma.depositWallet.upsert({
@@ -72,7 +68,6 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
         },
       });
     
-      console.log(`[${webhookId}] Updated deposit wallet balance:`, depositWallet);
     
       // Add reference to processed set
       processedReferences.add(reference);
@@ -98,8 +93,6 @@ async function handlePaystackWebhook(event: any, webhookId: string) {
        where: { reference: reference }
     });
 
-
-console.log(hold, 'hold table foundddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd====================================yeeeeeeeeeeeeeeey')
 // Check if hold exists and has a balance greater than 0
 if (hold && parseFloat(hold.amount.toString()) > 0) {
   // Decrement the deposit wallet balance by the hold amount
@@ -251,40 +244,40 @@ export async function POST(req: Request) {
   const webhookId = crypto.randomBytes(16).toString('hex');
   
   // Immediate logging to verify webhook reception
-  console.log('========================');
-  console.log('WEBHOOK RECEIVED - RAW');
-  console.log('Timestamp:', new Date().toISOString());
-  console.log('Method:', req.method);
-  console.log('URL:', req.url);
-  console.log('Headers:', Object.fromEntries(req.headers.entries()));
-  console.log('========================');
+  // console.log('========================');
+  // console.log('WEBHOOK RECEIVED - RAW');
+  // console.log('Timestamp:', new Date().toISOString());
+  // console.log('Method:', req.method);
+  // console.log('URL:', req.url);
+  // console.log('Headers:', Object.fromEntries(req.headers.entries()));
+  // console.log('========================');
 
-  console.log(`[${webhookId}] ============ PAYSTACK WEBHOOK START ============`);
-  console.log(`[${webhookId}] Webhook received at ${new Date().toISOString()}`);
+  // console.log(`[${webhookId}] ============ PAYSTACK WEBHOOK START ============`);
+  // console.log(`[${webhookId}] Webhook received at ${new Date().toISOString()}`);
 
   try {
     const rawBody = await req.text();
     // Log the raw body immediately
-    console.log('Raw webhook body received::::::::::::::::::::::::::::', rawBody);
-    console.log('Content length:', rawBody.length);
+    // console.log('Raw webhook body received::::::::::::::::::::::::::::', rawBody);
+    // console.log('Content length:', rawBody.length);
     
-    console.log(`[${webhookId}] Headers:`, {
-      signature: req.headers.get('x-paystack-signature'),
-      contentType: req.headers.get('content-type'),
-      userAgent: req.headers.get('user-agent')
-    });
+    // console.log(`[${webhookId}] Headers:`, {
+    //   signature: req.headers.get('x-paystack-signature'),
+    //   contentType: req.headers.get('content-type'),
+    //   userAgent: req.headers.get('user-agent')
+    // });
 
     let event: any;
     try {
       event = JSON.parse(rawBody);
-      console.log(`[${webhookId}] Parsed event:`, JSON.stringify(event, null, 2));
-      console.log(`[${webhookId}] Event type:`, event.event);
-      console.log(`[${webhookId}] Data:`, {
-        reference: event.data?.reference,
-        amount: event.data?.amount,
-        metadata: event.data?.metadata,
-        customer: event.data?.customer
-      });
+      // console.log(`[${webhookId}] Parsed event:`, JSON.stringify(event, null, 2));
+      // console.log(`[${webhookId}] Event type:`, event.event);
+      // console.log(`[${webhookId}] Data:`, {
+      //   reference: event.data?.reference,
+      //   amount: event.data?.amount,
+      //   metadata: event.data?.metadata,
+      //   customer: event.data?.customer
+      // });
 
       
      
@@ -318,11 +311,11 @@ export async function POST(req: Request) {
       .update(rawBody)
       .digest('hex');
 
-    console.log(`[${webhookId}] Signature verification:`, {
-      received: sig,
-      computed: computedSignature,
-      match: sig === computedSignature
-    });
+    // console.log(`[${webhookId}] Signature verification:`, {
+    //   received: sig,
+    //   computed: computedSignature,
+    //   match: sig === computedSignature
+    // });
 
     if (sig !== computedSignature) {
       console.error(`[${webhookId}] Invalid signature`);
@@ -332,10 +325,10 @@ export async function POST(req: Request) {
     // Handle Paystack events
     switch (event.event) {
       case 'charge.success':
-        console.log(`[${webhookId}] Processing charge.success event`);
+        // console.log(`[${webhookId}] Processing charge.success event`);
         
         const result = await handlePaystackWebhook(event, webhookId);
-        console.log(`[${webhookId}] Webhook handler result:`, result);
+        // console.log(`[${webhookId}] Webhook handler result:`, result);
         
         return result;
 
@@ -358,10 +351,14 @@ export async function POST(req: Request) {
       error: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 });
   } finally {
-    console.log(`[${webhookId}] ============ PAYSTACK WEBHOOK END ============`);
-  }
+    const logEntry = {
+      event: 'PAYSTACK_WEBHOOK_END',
+      webhookId: webhookId,
+      timestamp: new Date().toISOString(),
+    };
+    console.info(JSON.stringify(logEntry));
 };
-
+};
 
 
 
