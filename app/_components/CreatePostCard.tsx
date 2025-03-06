@@ -155,41 +155,35 @@ export default function CreatePostCard() {
           <Users className="h-6 w-6 text-primary" />
         </div>
         
-        <div className='flex-grow space-y-4 w-full sm:w-auto'>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button 
-                variant="outline" 
-                className="w-full justify-between bg-white dark:bg-gray-800/50 hover:bg-primary/5 dark:hover:bg-primary/10 text-primary font-medium py-2.5 px-5 border border-primary/20 hover:border-primary/40 rounded-full shadow-sm hover:shadow transition-all duration-300 ease-in-out transform hover:-translate-y-0.5"
+        <div className='flex-grow w-full sm:w-auto'>
+          {isLoading ? (
+            <div className="w-full h-12">
+              <Skeleton className="h-full w-full rounded-full" />
+            </div>
+          ) : joinedCommunities.length > 0 && (
+            <Button 
+              asChild
+              className="w-full bg-gradient-to-r from-primary to-primary-dark hover:from-primary-dark hover:to-primary text-white font-medium py-6 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 ease-in-out transform hover:-translate-y-0.5 group"
+            >
+              <Link 
+                href={`/c/${joinedCommunities[0].name}/create`}
+                className="flex items-center justify-between w-full"
               >
-                <span className="truncate text-base">Create a Help Request</span>
-                <ChevronDown className="ml-2 h-4 w-4 flex-shrink-0 opacity-70" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-72 p-2 shadow-xl animate-in fade-in-80 border-primary/10">
-              {isLoading ? (
-                <div className="p-3 space-y-3">
-                  {[...Array(3)].map((_, i) => (
-                    <Skeleton key={i} className="h-10 w-full" />
-                  ))}
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-sm">
+                    <ImageDown className="h-4 w-4 text-white" />
+                  </div>
+                  <span className="text-base sm:text-lg">Create a Help Request</span>
                 </div>
-              ) : (
-                joinedCommunities.map((community) => (
-                  <DropdownMenuItem key={community.id} className="focus:bg-primary/10 rounded-lg">
-                    <Link 
-                      href={`/c/${community.name}/create`}
-                      className="flex items-center space-x-3 w-full p-2 hover:bg-primary/5 rounded-md transition-colors duration-200"
-                    >
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-white text-sm font-semibold flex-shrink-0">
-                        {community.name.substring(0, 2).toUpperCase()}
-                      </div>
-                      <span className="flex-grow truncate font-medium">{community.name.replace(/_/g, ' ')}</span>
-                    </Link>
-                  </DropdownMenuItem>
-                ))
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
+                <div className="flex items-center space-x-2 text-white/70">
+                  <span className="text-sm">in {joinedCommunities[0].name.replace(/_/g, ' ')}</span>
+                  <div className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center group-hover:bg-white/20 transition-colors duration-200">
+                    <ChevronDown className="h-4 w-4" />
+                  </div>
+                </div>
+              </Link>
+            </Button>
+          )}
         </div>
 
         <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
