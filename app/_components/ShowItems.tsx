@@ -6,6 +6,7 @@ import { RequestCard } from './RequestCard';
 import Loading from '../loading';
 import { motion } from 'framer-motion';
 import { Separator } from "@/components/ui/separator";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const container = {
   hidden: { opacity: 0 },
@@ -39,6 +40,7 @@ export function ShowItems() {
   const [hasMore, setHasMore] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [filter, setFilter] = useState('all');
   const { ref, inView } = useInView({
     threshold: 0.1,
     triggerOnce: false
@@ -80,6 +82,26 @@ export function ShowItems() {
       setIsLoading(false);
     }
   };
+
+  const getFilteredItems = () => {
+    const now = new Date();
+    return items.filter(item => {
+      const deadline = new Date(item.deadline);
+      const isExpired = now > deadline;
+      const isFullyFunded = item.funded >= item.amount;
+
+      switch (filter) {
+        case 'running':
+          return !isExpired && !isFullyFunded;
+        case 'funded':
+          return isFullyFunded;
+        case 'expired':
+          return isExpired && !isFullyFunded;
+        default:
+          return true;
+      }
+    });
+  };
   
   if (error) {
     return (
@@ -92,105 +114,134 @@ export function ShowItems() {
     );
   }
   
+  const filteredItems = getFilteredItems();
+  
   return (
-    <motion.div
-      variants={container}
-      initial="hidden"
-      animate="show"
-      className="space-y-6 relative"
-    >
-      {items.length === 0 && isLoading ? (
-        <motion.div 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="p-8 rounded-lg bg-white/50 dark:bg-gray-900/30 
-                   backdrop-blur-md shadow-lg 
-                   dark:shadow-[0_4px_20px_rgba(0,0,0,0.2)]
-                   border border-gray-200/50 dark:border-gray-800/30
-                   transition-all duration-300"
-        >
-          <Loading />
-        </motion.div>
-      ) : (
-        items.map((request: any, index: number) => (
-          <motion.div
-            key={request.id}
-            variants={item}
-            className="relative group"
-            whileHover={{ scale: 1.01 }}
-            transition={{ type: "spring", stiffness: 300, damping: 20 }}
+    <div className="space-y-6">
+      <div className="flex justify-end mb-4">
+        <Select value={filter} onValueChange={setFilter}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Filter by status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Requests</SelectItem>
+            <SelectItem value="running">Running</SelectItem>
+            <SelectItem value="funded">Fully Funded</SelectItem>
+            <SelectItem value="expired">Expired</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <motion.div
+        variants={container}
+        initial="hidden"
+        animate="show"
+        className="space-y-6 relative"
+      >
+        {items.length === 0 && isLoading ? (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="p-8 rounded-lg bg-white/50 dark:bg-gray-900/30 
+                     backdrop-blur-md shadow-lg 
+                     dark:shadow-[0_4px_20px_rgba(0,0,0,0.2)]
+                     border border-gray-200/50 dark:border-gray-800/30
+                     transition-all duration-300"
           >
-            <div className="transform transition-all duration-300
-                          hover:translate-y-[-2px]">
-              <RequestCard
-                id={request.id}
-                funded={request.funded}
-                contributors={request.contributors}
-                title={request.title}
-                amount={request.amount}
-                commentCount={request.Comment.length}
-                jsonContent={request.textContent}
-                imageString={request.imageString as string}
-                createdAt={request.createdAt}
-                level={request.User?.level as number}
-                deadline={request.deadline}
-                userId={request.User?.id}
-                userName={request.User?.userName as string}
-                communityName={request.communityName as string}
-                voteCount1={request.Vote.reduce((acc: number, vote: any) => {
-                  if (vote.voteType === "LOVE") return acc + 1;
-                  return acc;
-                }, 0)}
-                voteCount2={request.Vote.reduce((acc: number, vote: any) => {
-                  if (vote.voteType === "SUSPISION") return acc + 1;
-                  return acc;
-                }, 0)}
-                pointsUsed={request.pointsUsed}
-              />
-            </div>
-            
-            {index < items.length - 1 && (
-              <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 w-48 
-                           opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                <Separator className="h-px bg-gradient-to-r 
-                                   from-transparent via-primary/30 dark:via-blue-400/30 to-transparent
-                                   transition-all duration-300" />
+            <Loading />
+          </motion.div>
+        ) : filteredItems.length === 0 ? (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-center p-8 rounded-lg bg-white/50 dark:bg-gray-900/30 
+                     backdrop-blur-md shadow-lg"
+          >
+            <p className="text-gray-500 dark:text-gray-400">
+              No {filter !== 'all' ? filter : ''} requests found
+            </p>
+          </motion.div>
+        ) : (
+          filteredItems.map((request: any, index: number) => (
+            <motion.div
+              key={request.id}
+              variants={item}
+              className="relative group"
+              whileHover={{ scale: 1.01 }}
+              transition={{ type: "spring", stiffness: 300, damping: 20 }}
+            >
+              <div className="transform transition-all duration-300
+                            hover:translate-y-[-2px]">
+                <RequestCard
+                  id={request.id}
+                  funded={request.funded}
+                  contributors={request.contributors}
+                  title={request.title}
+                  amount={request.amount}
+                  commentCount={request.Comment.length}
+                  jsonContent={request.textContent}
+                  imageString={request.imageString as string}
+                  createdAt={request.createdAt}
+                  level={request.User?.level as number}
+                  deadline={request.deadline}
+                  userId={request.User?.id}
+                  userName={request.User?.userName as string}
+                  communityName={request.communityName as string}
+                  voteCount1={request.Vote.reduce((acc: number, vote: any) => {
+                    if (vote.voteType === "LOVE") return acc + 1;
+                    return acc;
+                  }, 0)}
+                  voteCount2={request.Vote.reduce((acc: number, vote: any) => {
+                    if (vote.voteType === "SUSPISION") return acc + 1;
+                    return acc;
+                  }, 0)}
+                  pointsUsed={request.pointsUsed}
+                />
+              </div>
+              
+              {index < filteredItems.length - 1 && (
+                <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 w-48 
+                             opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                  <Separator className="h-px bg-gradient-to-r 
+                                     from-transparent via-primary/30 dark:via-blue-400/30 to-transparent
+                                     transition-all duration-300" />
+                </div>
+              )}
+            </motion.div>
+          ))
+        )}
+        
+        {hasMore && (
+          <motion.div 
+            ref={ref}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="text-center py-6 relative"
+          >
+            {isLoading ? (
+              <div className="p-4 rounded-lg bg-white/50 dark:bg-gray-900/30 
+                           backdrop-blur-md shadow-md
+                           dark:shadow-[0_4px_20px_rgba(0,0,0,0.2)]
+                           border border-gray-200/50 dark:border-gray-800/30
+                           transition-all duration-300">
+                <Loading />
+              </div>
+            ) : (
+              <div className="text-sm font-medium text-gray-500 dark:text-gray-400
+                           px-4 py-2 rounded-full 
+                           bg-white/50 dark:bg-gray-800/30
+                           backdrop-blur-sm
+                           shadow-sm hover:shadow-md
+                           border border-gray-200/50 dark:border-gray-700/30
+                           transition-all duration-300
+                           inline-block">
+                Scroll for more
               </div>
             )}
           </motion.div>
-        ))
-      )}
-      
-      {hasMore && (
-        <motion.div 
-          ref={ref}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="text-center py-6 relative"
-        >
-          {isLoading ? (
-            <div className="p-4 rounded-lg bg-white/50 dark:bg-gray-900/30 
-                         backdrop-blur-md shadow-md
-                         dark:shadow-[0_4px_20px_rgba(0,0,0,0.2)]
-                         border border-gray-200/50 dark:border-gray-800/30
-                         transition-all duration-300">
-              <Loading />
-            </div>
-          ) : (
-            <div className="text-sm font-medium text-gray-500 dark:text-gray-400
-                         px-4 py-2 rounded-full 
-                         bg-white/50 dark:bg-gray-800/30
-                         backdrop-blur-sm
-                         shadow-sm hover:shadow-md
-                         border border-gray-200/50 dark:border-gray-700/30
-                         transition-all duration-300
-                         inline-block">
-              Scroll for more
-            </div>
-          )}
-        </motion.div>
-      )}
-    </motion.div>
+        )}
+      </motion.div>
+    </div>
   );
 }
