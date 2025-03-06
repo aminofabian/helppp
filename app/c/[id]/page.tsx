@@ -96,6 +96,16 @@ export default function ShowItems({ params, searchParams }: { searchParams: { pa
       const result = await response.json();
       
       if (!response.ok) {
+        if (response.status === 403) {
+          toast.error(result.message, {
+            description: "Level up to join more communities!",
+            action: {
+              label: "View Levels",
+              onClick: () => router.push('/levels')
+            }
+          });
+          return;
+        }
         throw new Error(result.message || 'Failed to join community');
       }
 

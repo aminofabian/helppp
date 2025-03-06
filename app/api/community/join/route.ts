@@ -16,6 +16,30 @@ export async function POST(req: Request) {
     if (!communityName) {
       return new NextResponse('Community name is required', { status: 400 });
     }
+
+    // Get user's level and current community memberships
+    const userData = await prisma.user.findUnique({
+      where: { id: user.id },
+      include: {
+        memberships: true
+      }
+    });
+
+    if (!userData) {
+      return new NextResponse('User not found', { status: 404 });
+    }
+
+    // Check membership limits based on level
+    const currentMembershipCount = userData.memberships.length;
+    const membershipLimit = userData.level >= 5 ? 3 : 1;
+
+    if (currentMembershipCount >= membershipLimit) {
+      return NextResponse.json({
+        message: `You have reached your community membership limit. Level ${userData.level < 5 ? '5' : '5+'} users can join up to ${membershipLimit} communities.`,
+        membershipLimit,
+        currentMembershipCount
+      }, { status: 403 });
+    }
     
     // First, get the community with current member count
     const community = await prisma.community.findUnique({
