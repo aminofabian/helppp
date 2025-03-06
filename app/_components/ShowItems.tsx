@@ -40,7 +40,7 @@ export function ShowItems() {
   const [hasMore, setHasMore] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [filter, setFilter] = useState('all');
+  const [filter, setFilter] = useState('running');
   const { ref, inView } = useInView({
     threshold: 0.1,
     triggerOnce: false
