@@ -150,124 +150,155 @@ export default function CreatePostCard() {
 
   return (
     <Card className="overflow-hidden bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 dark:from-primary/10 dark:via-primary/20 dark:to-primary/10 shadow-lg border-0">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center p-4 sm:p-5 space-y-4 sm:space-y-0 sm:space-x-5">
-        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center transform transition-transform duration-300 hover:scale-105">
-          <Users className="h-6 w-6 text-primary" />
-        </div>
-        
-        <div className='flex-grow w-full sm:w-auto'>
-          {isLoading ? (
-            <div className="w-full h-12">
-              <Skeleton className="h-full w-full rounded-full" />
+      <div className="p-4 sm:p-5 space-y-5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center transform transition-transform duration-300 hover:scale-105">
+              <Users className="h-6 w-6 text-primary" />
             </div>
-          ) : joinedCommunities.length > 0 && (
+            <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100">
+              Create a Help Request
+            </h2>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button 
+                  id="communities-sheet-trigger"
+                  variant="outline" 
+                  size="icon" 
+                  className="border-primary/20 hover:border-primary/40 hover:bg-primary/5 text-primary rounded-full transition-all duration-300 ease-in-out transform hover:-translate-y-0.5 shadow-sm hover:shadow"
+                >
+                  <Users className="h-5 w-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-full sm:w-[400px]">
+                <SheetHeader>
+                  <SheetTitle>Communities</SheetTitle>
+                </SheetHeader>
+                <ScrollArea className="h-[calc(100vh-8rem)] mt-4">
+                  <div className="space-y-4 pr-4">
+                    {isLoading ? (
+                      <div className="space-y-4">
+                        {[...Array(5)].map((_, i) => (
+                          <div key={i} className="flex items-center space-x-4">
+                            <Skeleton className="h-12 w-12 rounded-full" />
+                            <div className="space-y-2 flex-grow">
+                              <Skeleton className="h-4 w-[200px]" />
+                              <Skeleton className="h-4 w-[150px]" />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      communities.map((community) => (
+                        <Link 
+                          key={community.id} 
+                          href={`/c/${community.name}`}
+                          className="block"
+                        >
+                          <div className="group hover:bg-secondary p-3 sm:p-4 rounded-lg transition-all duration-200">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center space-x-3 min-w-0">
+                                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-white font-semibold flex-shrink-0">
+                                  {community.name.substring(0, 2).toUpperCase()}
+                                </div>
+                                <div className="min-w-0">
+                                  <h3 className="font-semibold group-hover:text-primary transition-colors truncate">
+                                    {community.name.replace(/_/g, ' ')}
+                                  </h3>
+                                  <p className="text-xs sm:text-sm text-muted-foreground line-clamp-1">
+                                    {community.description || 'No description available'}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex flex-col items-end space-y-1 sm:space-y-2 text-xs sm:text-sm text-muted-foreground ml-2">
+                                <div className="flex items-center space-x-1">
+                                  <Users className="w-3 h-3 sm:w-4 sm:h-4" />
+                                  <span>{community._count.memberships}</span>
+                                </div>
+                                <div className="flex items-center space-x-1">
+                                  <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4" />
+                                  <span>{community._count.requests}</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </Link>
+                      ))
+                    )}
+                  </div>
+                </ScrollArea>
+              </SheetContent>
+            </Sheet>
+
             <Button 
+              variant="default"
+              size="icon" 
+              className="bg-primary hover:bg-primary/90 text-white rounded-full transition-all duration-300 ease-in-out transform hover:-translate-y-0.5 shadow-md hover:shadow-lg"
               asChild
-              className="w-full bg-gradient-to-r from-primary to-primary-dark hover:from-primary-dark hover:to-primary text-white font-medium py-6 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 ease-in-out transform hover:-translate-y-0.5 group"
             >
-              <Link 
-                href={`/c/${joinedCommunities[0].name}/create`}
-                className="flex items-center justify-between w-full"
-              >
-                <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-sm">
-                    <ImageDown className="h-4 w-4 text-white" />
-                  </div>
-                  <span className="text-base sm:text-lg">Create a Help Request</span>
-                </div>
-                <div className="flex items-center space-x-2 text-white/70">
-                  <span className="text-sm">in {joinedCommunities[0].name.replace(/_/g, ' ')}</span>
-                  <div className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center group-hover:bg-white/20 transition-colors duration-200">
-                    <ChevronDown className="h-4 w-4" />
-                  </div>
-                </div>
+              <Link href="/create-community">
+                <Plus className="h-5 w-5" />
               </Link>
             </Button>
-          )}
+          </div>
         </div>
 
-        <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
-          <Sheet>
-            <SheetTrigger asChild>
-              <Button 
-                id="communities-sheet-trigger"
-                variant="outline" 
-                size="icon" 
-                className="border-primary/20 hover:border-primary/40 hover:bg-primary/5 text-primary rounded-full transition-all duration-300 ease-in-out transform hover:-translate-y-0.5 shadow-sm hover:shadow"
-              >
-                <Users className="h-5 w-5" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="right" className="w-full sm:w-[400px]">
-              <SheetHeader>
-                <SheetTitle>Communities</SheetTitle>
-              </SheetHeader>
-              <ScrollArea className="h-[calc(100vh-8rem)] mt-4">
-                <div className="space-y-4 pr-4">
-                  {isLoading ? (
-                    <div className="space-y-4">
-                      {[...Array(5)].map((_, i) => (
-                        <div key={i} className="flex items-center space-x-4">
-                          <Skeleton className="h-12 w-12 rounded-full" />
-                          <div className="space-y-2 flex-grow">
-                            <Skeleton className="h-4 w-[200px]" />
-                            <Skeleton className="h-4 w-[150px]" />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    communities.map((community) => (
-                      <Link 
-                        key={community.id} 
-                        href={`/c/${community.name}`}
-                        className="block"
-                      >
-                        <div className="group hover:bg-secondary p-3 sm:p-4 rounded-lg transition-all duration-200">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center space-x-3 min-w-0">
-                              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-white font-semibold flex-shrink-0">
-                                {community.name.substring(0, 2).toUpperCase()}
-                              </div>
-                              <div className="min-w-0">
-                                <h3 className="font-semibold group-hover:text-primary transition-colors truncate">
-                                  {community.name.replace(/_/g, ' ')}
-                                </h3>
-                                <p className="text-xs sm:text-sm text-muted-foreground line-clamp-1">
-                                  {community.description || 'No description available'}
-                                </p>
-                              </div>
-                            </div>
-                            <div className="flex flex-col items-end space-y-1 sm:space-y-2 text-xs sm:text-sm text-muted-foreground ml-2">
-                              <div className="flex items-center space-x-1">
-                                <Users className="w-3 h-3 sm:w-4 sm:h-4" />
-                                <span>{community._count.memberships}</span>
-                              </div>
-                              <div className="flex items-center space-x-1">
-                                <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4" />
-                                <span>{community._count.requests}</span>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </Link>
-                    ))
-                  )}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {isLoading ? (
+            <>
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="h-24">
+                  <Skeleton className="h-full w-full rounded-2xl" />
                 </div>
-              </ScrollArea>
-            </SheetContent>
-          </Sheet>
-
-          <Button 
-            variant="default"
-            size="icon" 
-            className="bg-primary hover:bg-primary/90 text-white rounded-full transition-all duration-300 ease-in-out transform hover:-translate-y-0.5 shadow-md hover:shadow-lg"
-            asChild
-          >
-            <Link href="/create-community">
-              <Plus className="h-5 w-5" />
-            </Link>
-          </Button>
+              ))}
+            </>
+          ) : joinedCommunities.length > 0 ? (
+            joinedCommunities.map((community) => (
+              <Button
+                key={community.id}
+                asChild
+                variant="outline"
+                className="h-24 p-4 border-2 border-primary/10 hover:border-primary/30 bg-white dark:bg-gray-800/50 hover:bg-primary/5 dark:hover:bg-primary/10 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 ease-in-out transform hover:-translate-y-1 group overflow-hidden"
+              >
+                <Link
+                  href={`/c/${community.name}/create`}
+                  className="flex flex-col h-full w-full"
+                >
+                  <div className="flex items-center space-x-3 mb-2">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-white font-semibold flex-shrink-0">
+                      {community.name.substring(0, 2).toUpperCase()}
+                    </div>
+                    <div className="flex-grow min-w-0">
+                      <h3 className="font-medium text-gray-900 dark:text-gray-100 truncate">
+                        {community.name.replace(/_/g, ' ')}
+                      </h3>
+                      <div className="flex items-center space-x-3 text-xs text-gray-500 dark:text-gray-400">
+                        <div className="flex items-center space-x-1">
+                          <Users className="w-3 h-3" />
+                          <span>{community._count.memberships}</span>
+                        </div>
+                        <div className="flex items-center space-x-1">
+                          <TrendingUp className="w-3 h-3" />
+                          <span>{community._count.requests}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center text-primary mt-auto text-sm font-medium">
+                    <span>Create Request</span>
+                    <ImageDown className="h-4 w-4 ml-2 group-hover:transform group-hover:translate-x-0.5 transition-transform" />
+                  </div>
+                </Link>
+              </Button>
+            ))
+          ) : (
+            <div className="col-span-full text-center text-gray-500 dark:text-gray-400 py-8">
+              No communities joined yet. Join a community to create help requests.
+            </div>
+          )}
         </div>
       </div>
     </Card>
