@@ -118,18 +118,38 @@ export function ShowItems() {
   
   return (
     <div className="space-y-6">
-      <div className="flex justify-end mb-4">
-        <Select value={filter} onValueChange={setFilter}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Filter by status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Requests</SelectItem>
-            <SelectItem value="running">Running</SelectItem>
-            <SelectItem value="funded">Fully Funded</SelectItem>
-            <SelectItem value="expired">Expired</SelectItem>
-          </SelectContent>
-        </Select>
+      <div className="flex items-center justify-between mb-6 bg-white/50 dark:bg-gray-900/30 
+                    backdrop-blur-md rounded-xl p-4 
+                    border border-gray-200/50 dark:border-gray-800/30
+                    shadow-sm hover:shadow-md transition-all duration-300">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
+            Status:
+          </span>
+          <div className="flex gap-2">
+            {['running', 'funded', 'expired', 'all'].map((filterOption) => (
+              <button
+                key={filterOption}
+                onClick={() => setFilter(filterOption)}
+                className={`px-4 py-1.5 rounded-full text-sm font-medium 
+                          transition-all duration-300 
+                          ${filter === filterOption
+                  ? 'bg-primary text-white shadow-lg shadow-primary/25 dark:shadow-primary/15 scale-105'
+                  : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                }`}
+              >
+                {filterOption.charAt(0).toUpperCase() + filterOption.slice(1)}
+                {filterOption === 'running' && filter === filterOption && ' 🔥'}
+                {filterOption === 'funded' && filter === filterOption && ' ✨'}
+                {filterOption === 'expired' && filter === filterOption && ' ⏰'}
+                {filterOption === 'all' && filter === filterOption && ' 📋'}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="text-xs font-medium text-gray-400 dark:text-gray-500">
+          {filteredItems.length} {filter !== 'all' ? filter : ''} request{filteredItems.length !== 1 ? 's' : ''} found
+        </div>
       </div>
 
       <motion.div
