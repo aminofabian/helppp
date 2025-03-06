@@ -60,27 +60,27 @@ export default function CreatePostCard() {
 
   if (!isLoading && joinedCommunities.length === 0) {
     return (
-      <Card className="overflow-hidden bg-gradient-to-r from-primary/5 to-primary/10 dark:from-primary/10 dark:to-primary/20 shadow-md">
-        <div className="p-4 sm:p-6 text-center space-y-4">
-          <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
-            <UserPlus2 className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
+      <Card className="overflow-hidden bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 dark:from-primary/10 dark:via-primary/20 dark:to-primary/10 shadow-lg border-0">
+        <div className="p-6 sm:p-8 text-center space-y-6">
+          <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center mx-auto transform transition-transform duration-300 hover:scale-105">
+            <UserPlus2 className="h-8 w-8 sm:h-10 sm:w-10 text-primary" />
           </div>
           
-          <div className="space-y-2 sm:space-y-3">
-            <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100">
+          <div className="space-y-3 sm:space-y-4">
+            <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100">
               Join Communities to Create Requests
             </h3>
-            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 max-w-md mx-auto px-2 sm:px-0">
+            <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 max-w-md mx-auto">
               To create a help request, you'll need to join a community first. Communities help organize requests and connect you with people who can help.
             </p>
           </div>
 
-          <div className="flex flex-col sm:flex-row justify-center gap-3 px-2 sm:px-0">
+          <div className="flex flex-col sm:flex-row justify-center gap-4 px-4 sm:px-0 max-w-md mx-auto">
             <Sheet>
               <SheetTrigger asChild>
                 <Button 
                   variant="default"
-                  className="w-full sm:w-auto bg-primary hover:bg-primary-dark text-white rounded-full transition duration-300 ease-in-out"
+                  className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-white rounded-full transition-all duration-300 ease-in-out shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
                 >
                   <Users className="h-4 w-4 mr-2" />
                   <span className="whitespace-nowrap">Browse Communities</span>
@@ -134,7 +134,7 @@ export default function CreatePostCard() {
             
             <Button 
               variant="outline"
-              className="w-full sm:w-auto rounded-full border-primary/20"
+              className="w-full sm:w-auto rounded-full border-primary/20 hover:border-primary/40 hover:bg-primary/5 transition-all duration-300 ease-in-out transform hover:-translate-y-0.5"
               asChild
             >
               <Link href="/create-community">
@@ -149,42 +149,41 @@ export default function CreatePostCard() {
   }
 
   return (
-    <Card className="overflow-hidden bg-gradient-to-r from-primary/5 to-primary/10 dark:from-primary/10 dark:to-primary/20 shadow-md">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center p-3 sm:p-4 space-y-3 sm:space-y-0 sm:space-x-4">
-        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-          <Users className="h-5 w-5 text-primary" />
+    <Card className="overflow-hidden bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 dark:from-primary/10 dark:via-primary/20 dark:to-primary/10 shadow-lg border-0">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center p-4 sm:p-5 space-y-4 sm:space-y-0 sm:space-x-5">
+        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center transform transition-transform duration-300 hover:scale-105">
+          <Users className="h-6 w-6 text-primary" />
         </div>
         
-        <div className='flex-grow space-y-3 w-full sm:w-auto'>
-          {/* Create Request Dropdown */}
+        <div className='flex-grow space-y-4 w-full sm:w-auto'>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button 
                 variant="outline" 
-                className="w-full justify-between bg-white dark:bg-gray-800 hover:bg-primary/5 dark:hover:bg-primary/20 text-primary font-semibold py-2 px-4 border border-primary/20 rounded-full shadow transition duration-300 ease-in-out"
+                className="w-full justify-between bg-white dark:bg-gray-800/50 hover:bg-primary/5 dark:hover:bg-primary/10 text-primary font-medium py-2.5 px-5 border border-primary/20 hover:border-primary/40 rounded-full shadow-sm hover:shadow transition-all duration-300 ease-in-out transform hover:-translate-y-0.5"
               >
-                <span className="truncate">Create a Help Request</span>
-                <ChevronDown className="ml-2 h-4 w-4 flex-shrink-0" />
+                <span className="truncate text-base">Create a Help Request</span>
+                <ChevronDown className="ml-2 h-4 w-4 flex-shrink-0 opacity-70" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-64 p-2">
+            <DropdownMenuContent className="w-72 p-2 shadow-xl animate-in fade-in-80 border-primary/10">
               {isLoading ? (
-                <div className="p-2 space-y-2">
+                <div className="p-3 space-y-3">
                   {[...Array(3)].map((_, i) => (
-                    <Skeleton key={i} className="h-8 w-full" />
+                    <Skeleton key={i} className="h-10 w-full" />
                   ))}
                 </div>
               ) : (
                 joinedCommunities.map((community) => (
-                  <DropdownMenuItem key={community.id} className="focus:bg-primary/10">
+                  <DropdownMenuItem key={community.id} className="focus:bg-primary/10 rounded-lg">
                     <Link 
                       href={`/c/${community.name}/create`}
-                      className="flex items-center space-x-2 w-full p-2"
+                      className="flex items-center space-x-3 w-full p-2 hover:bg-primary/5 rounded-md transition-colors duration-200"
                     >
-                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-white text-sm font-semibold flex-shrink-0">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-white text-sm font-semibold flex-shrink-0">
                         {community.name.substring(0, 2).toUpperCase()}
                       </div>
-                      <span className="flex-grow truncate">{community.name.replace(/_/g, ' ')}</span>
+                      <span className="flex-grow truncate font-medium">{community.name.replace(/_/g, ' ')}</span>
                     </Link>
                   </DropdownMenuItem>
                 ))
@@ -193,17 +192,16 @@ export default function CreatePostCard() {
           </DropdownMenu>
         </div>
 
-        <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-          {/* Communities Sheet Trigger */}
+        <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
           <Sheet>
             <SheetTrigger asChild>
               <Button 
                 id="communities-sheet-trigger"
                 variant="outline" 
                 size="icon" 
-                className="border-primary/20 hover:bg-primary/10 dark:hover:bg-primary/20 text-primary rounded-full transition duration-300 ease-in-out"
+                className="border-primary/20 hover:border-primary/40 hover:bg-primary/5 text-primary rounded-full transition-all duration-300 ease-in-out transform hover:-translate-y-0.5 shadow-sm hover:shadow"
               >
-                <Users className="h-4 w-4" />
+                <Users className="h-5 w-5" />
               </Button>
             </SheetTrigger>
             <SheetContent side="right" className="w-full sm:w-[400px]">
@@ -269,11 +267,11 @@ export default function CreatePostCard() {
           <Button 
             variant="default"
             size="icon" 
-            className="bg-primary hover:bg-primary-dark text-white rounded-full transition duration-300 ease-in-out"
+            className="bg-primary hover:bg-primary/90 text-white rounded-full transition-all duration-300 ease-in-out transform hover:-translate-y-0.5 shadow-md hover:shadow-lg"
             asChild
           >
             <Link href="/create-community">
-              <Plus className="h-4 w-4" />
+              <Plus className="h-5 w-5" />
             </Link>
           </Button>
         </div>
