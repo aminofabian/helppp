@@ -261,7 +261,7 @@ export default function CreatePostCard() {
                 key={community.id}
                 asChild
                 variant="outline"
-                className="relative h-32 p-5 border-0 bg-gradient-to-br from-white via-white to-primary/5 dark:from-gray-800 dark:via-gray-800 dark:to-primary/20 rounded-3xl shadow-lg hover:shadow-xl transition-all duration-500 ease-out transform hover:-translate-y-1 hover:scale-[1.02] group overflow-hidden before:absolute before:inset-0 before:bg-gradient-to-r before:from-primary/80 before:to-primary before:opacity-0 before:transition-opacity before:duration-500 hover:before:opacity-100"
+                className="relative h-32 p-4 border-0 bg-gradient-to-br from-white via-white to-primary/5 dark:from-gray-800 dark:via-gray-800 dark:to-primary/20 rounded-3xl shadow-lg hover:shadow-xl transition-all duration-500 ease-out transform hover:-translate-y-1 hover:scale-[1.02] group overflow-hidden before:absolute before:inset-0 before:bg-gradient-to-r before:from-primary/80 before:to-primary before:opacity-0 before:transition-opacity before:duration-500 hover:before:opacity-100"
               >
                 <Link
                   href={`/c/${community.name}/create`}
@@ -269,22 +269,22 @@ export default function CreatePostCard() {
                 >
                   <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-primary/20 to-transparent rounded-full blur-2xl transform translate-x-16 -translate-y-16 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                   
-                  <div className="flex items-start space-x-4 relative">
-                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary to-primary-dark flex items-center justify-center text-white font-semibold flex-shrink-0 shadow-lg transform group-hover:scale-110 transition-transform duration-500">
+                  <div className="flex items-start space-x-3 relative">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary-dark flex items-center justify-center text-white font-semibold flex-shrink-0 shadow-lg transform group-hover:scale-110 transition-transform duration-500">
                       {community.name.substring(0, 2).toUpperCase()}
                     </div>
                     <div className="flex-grow min-w-0">
-                      <h3 className="font-semibold text-gray-900 dark:text-gray-100 truncate text-lg group-hover:text-white transition-colors duration-300">
+                      <h3 className="font-semibold text-gray-900 dark:text-gray-100 truncate text-base group-hover:text-white transition-colors duration-300">
                         {community.name.replace(/_/g, ' ')}
                       </h3>
-                      <div className="flex items-center space-x-4 text-xs text-gray-500 dark:text-gray-400 group-hover:text-white/70 transition-colors duration-300">
-                        <div className="flex items-center space-x-1.5">
-                          <Users className="w-3.5 h-3.5" />
-                          <span>{community._count.memberships} members</span>
+                      <div className="flex items-center space-x-3 text-xs text-gray-500 dark:text-gray-400 group-hover:text-white/70 transition-colors duration-300">
+                        <div className="flex items-center space-x-1">
+                          <Users className="w-3 h-3" />
+                          <span className="truncate">{community._count.memberships}</span>
                         </div>
-                        <div className="flex items-center space-x-1.5">
-                          <TrendingUp className="w-3.5 h-3.5" />
-                          <span>{community._count.requests} requests</span>
+                        <div className="flex items-center space-x-1">
+                          <TrendingUp className="w-3 h-3" />
+                          <span className="truncate">{community._count.requests}</span>
                         </div>
                       </div>
                     </div>
@@ -292,14 +292,14 @@ export default function CreatePostCard() {
 
                   <div className="mt-auto flex items-center justify-between relative">
                     <div className="flex items-center text-primary group-hover:text-white transition-colors duration-300 font-medium">
-                      <span>Create Request</span>
-                      <div className="relative w-12 h-5 ml-2 overflow-hidden">
-                        <ImageDown className="h-5 w-5 absolute transform transition-all duration-300 left-0 group-hover:translate-x-7 group-hover:opacity-0" />
-                        <ImageDown className="h-5 w-5 absolute transform transition-all duration-300 -left-7 group-hover:translate-x-7 opacity-0 group-hover:opacity-100" />
+                      <span className="text-sm">Create Request</span>
+                      <div className="relative w-8 h-5 ml-1.5 overflow-hidden">
+                        <ImageDown className="h-4 w-4 absolute transform transition-all duration-300 left-0 group-hover:translate-x-4 group-hover:opacity-0" />
+                        <ImageDown className="h-4 w-4 absolute transform transition-all duration-300 -left-4 group-hover:translate-x-4 opacity-0 group-hover:opacity-100" />
                       </div>
                     </div>
-                    <div className="w-8 h-8 rounded-full bg-white/10 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                      <ChevronDown className="w-5 h-5 text-white transform -rotate-45" />
+                    <div className="w-6 h-6 rounded-full bg-white/10 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                      <ChevronDown className="w-4 h-4 text-white transform -rotate-45" />
                     </div>
                   </div>
 
