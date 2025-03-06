@@ -1,5 +1,5 @@
 'use client'
-import React, { useState, ChangeEvent } from 'react';
+import React, { useState, ChangeEvent, useEffect } from 'react';
 import { Card, CardFooter, CardHeader } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import Image from 'next/image';
@@ -83,6 +83,8 @@ export function CreateRequestForm({
   const [file, setFile] = useState<File | null>(null);
   const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [showLevelError, setShowLevelError] = useState(false);
+  const [showLevelRestrictionDialog, setShowLevelRestrictionDialog] = useState(false);
+  const [showActiveRequestDialog, setShowActiveRequestDialog] = useState(false);
   
   const { toast } = useToast();
   
@@ -309,41 +311,88 @@ export function CreateRequestForm({
     setCurrentTab("time");
   };
 
-  if (hasRunningRequest) {
-    return (
-      <div className="my-8 max-w-7xl mx-auto px-4">
-        <div className="mb-8 p-4 bg-orange-100 border border-orange-200 rounded-xl text-orange-800">
-          <div className="flex items-center gap-3">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-            </svg>
-            <div>
-              <h3 className="font-semibold">Active Request Found</h3>
-              <p className="text-sm">You already have an active request. Please wait for it to be completed before creating a new one.</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // Show appropriate dialog when component mounts
+  useEffect(() => {
+    if (validUserLevel === 1) {
+      setShowLevelRestrictionDialog(true);
+    } else if (hasRunningRequest) {
+      setShowActiveRequestDialog(true);
+    }
+  }, [validUserLevel, hasRunningRequest]);
 
   return (    
     <div className="my-4 sm:my-8 max-w-7xl mx-auto px-2 sm:px-4">
-      {validUserLevel === 1 && (
-        <div className="mb-4 sm:mb-8 p-3 sm:p-4 bg-orange-100 border border-orange-200 rounded-xl text-orange-800">
-          <div className="flex items-center gap-3">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-            </svg>
-            <div>
-              <h3 className="font-semibold">Level 1 Restriction</h3>
-              <p className="text-sm">You need to reach Level 2 to post help requests. Continue helping others to level up!</p>
-            </div>
-          </div>
-        </div>
-      )}
+      <Dialog open={showLevelRestrictionDialog} onOpenChange={setShowLevelRestrictionDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Level 1 Restriction</DialogTitle>
+            <DialogDescription>
+              <div className="mt-4 space-y-4">
+                <div className="flex items-center gap-3 text-orange-600">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                  <p className="font-medium">You need to reach Level 2 to post help requests.</p>
+                </div>
+                <p className="text-sm text-slate-600 dark:text-slate-400">
+                  Continue helping others to level up! Contributing to the community will help you gain access to more features.
+                </p>
+                <div className="flex justify-between items-center pt-4">
+                  <Link
+                    href="/access-denied"
+                    className="text-sm text-primary hover:text-primary/80 transition-colors"
+                  >
+                    Learn more about access levels
+                  </Link>
+                  <button
+                    onClick={() => setShowLevelRestrictionDialog(false)}
+                    className="px-4 py-2 bg-primary text-white rounded-xl hover:bg-primary/90 transition-colors text-sm"
+                  >
+                    Got it
+                  </button>
+                </div>
+              </div>
+            </DialogDescription>
+          </DialogHeader>
+        </DialogContent>
+      </Dialog>
 
-      {validUserLevel > 1 && (
+      <Dialog open={showActiveRequestDialog} onOpenChange={setShowActiveRequestDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Active Request Found</DialogTitle>
+            <DialogDescription>
+              <div className="mt-4 space-y-4">
+                <div className="flex items-center gap-3 text-orange-600">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                  <p className="font-medium">You already have an active request.</p>
+                </div>
+                <p className="text-sm text-slate-600 dark:text-slate-400">
+                  Please wait for your current request to be completed before creating a new one. This helps ensure fair distribution of help within the community.
+                </p>
+                <div className="flex justify-between items-center pt-4">
+                  <Link
+                    href="/access-denied"
+                    className="text-sm text-primary hover:text-primary/80 transition-colors"
+                  >
+                    Learn more about request limits
+                  </Link>
+                  <button
+                    onClick={() => setShowActiveRequestDialog(false)}
+                    className="px-4 py-2 bg-primary text-white rounded-xl hover:bg-primary/90 transition-colors text-sm"
+                  >
+                    Got it
+                  </button>
+                </div>
+              </div>
+            </DialogDescription>
+          </DialogHeader>
+        </DialogContent>
+      </Dialog>
+
+      {validUserLevel > 1 && !hasRunningRequest && (
         <div className="mb-8 space-y-4">
           <Dialog>
             <DialogTrigger asChild>
