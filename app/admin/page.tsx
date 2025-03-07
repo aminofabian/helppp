@@ -236,34 +236,17 @@ export default function AdminPage() {
         const { donations: donationsData, pagination } = await donationsRes.json();
         const requestsData = await requestsRes.json();
 
-        // Automatically close fully funded requests
-        for (const request of requestsData) {
-          if (request.isFullyFunded && request.status !== 'CLOSED' && request.status !== 'BLOCKED') {
-            await fetch('/api/admin/requests', {
-              method: 'PATCH',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({ requestId: request.id, action: 'close' }),
-            });
-          }
-        }
-
-        // Fetch the updated requests after closing fully funded ones
-        const updatedRequestsRes = await fetch('/api/admin/requests');
-        const updatedRequestsData = await updatedRequestsRes.json();
-
         setUsers(usersData);
         setDonations(donationsData);
         setDonationsPagination(pagination);
-        setRequests(updatedRequestsData);
+        setRequests(requestsData);
 
         // Calculate stats
         setStats({
           totalUsers: usersData.length,
           totalDonations: pagination.total,
-          totalAmount: usersData.reduce((sum: number, user: UserData) => sum + user.totalDonated, 0),  // Sum up total donated by each user
-          activeRequests: updatedRequestsData.filter((r: RequestData) => !r.isFullyFunded).length,
+          totalAmount: usersData.reduce((sum: number, user: UserData) => sum + user.totalDonated, 0),
+          activeRequests: requestsData.filter((r: RequestData) => !r.isFullyFunded && r.status !== 'CLOSED' && r.status !== 'BLOCKED').length,
         });
       } catch (error) {
         console.error('Error fetching admin data:', error);
@@ -275,7 +258,7 @@ export default function AdminPage() {
     fetchData();
 
     // Set up polling interval for real-time updates
-    const pollInterval = setInterval(fetchData, 5000); // Poll every 5 seconds
+    const pollInterval = setInterval(fetchData, 30000); // Poll every 30 seconds instead of 5 seconds
 
     // Cleanup interval on component unmount
     return () => clearInterval(pollInterval);
