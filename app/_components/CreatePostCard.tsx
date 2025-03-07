@@ -137,7 +137,7 @@ export default function CreatePostCard() {
               className="w-full sm:w-auto rounded-full border-primary/20 hover:border-primary/40 hover:bg-primary/5 transition-all duration-300 ease-in-out transform hover:-translate-y-0.5"
               asChild
             >
-              <Link href="/create-community">
+              <Link href="/c/create">
                 <Plus className="h-4 w-4 mr-2" />
                 <span className="whitespace-nowrap">Create Community</span>
               </Link>
