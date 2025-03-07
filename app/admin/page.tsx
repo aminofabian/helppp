@@ -156,8 +156,7 @@ export default function AdminPage() {
 
   const getRowColorClass = (request: RequestData) => {
     if (request.status === 'BLOCKED') return 'bg-red-50 dark:bg-red-900/10';
-    if (request.status === 'CLOSED') return 'bg-yellow-50 dark:bg-yellow-900/10';
-    if (request.isFullyFunded) return 'bg-green-50 dark:bg-green-900/10';
+    if (request.status === 'CLOSED' || request.isFullyFunded) return 'bg-yellow-50 dark:bg-yellow-900/10';
     if (request.isExpired) return 'bg-gray-50 dark:bg-gray-900/10';
     return '';
   };
@@ -237,17 +236,34 @@ export default function AdminPage() {
         const { donations: donationsData, pagination } = await donationsRes.json();
         const requestsData = await requestsRes.json();
 
+        // Automatically close fully funded requests
+        for (const request of requestsData) {
+          if (request.isFullyFunded && request.status !== 'CLOSED' && request.status !== 'BLOCKED') {
+            await fetch('/api/admin/requests', {
+              method: 'PATCH',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ requestId: request.id, action: 'close' }),
+            });
+          }
+        }
+
+        // Fetch the updated requests after closing fully funded ones
+        const updatedRequestsRes = await fetch('/api/admin/requests');
+        const updatedRequestsData = await updatedRequestsRes.json();
+
         setUsers(usersData);
         setDonations(donationsData);
         setDonationsPagination(pagination);
-        setRequests(requestsData);
+        setRequests(updatedRequestsData);
 
         // Calculate stats
         setStats({
           totalUsers: usersData.length,
           totalDonations: pagination.total,
           totalAmount: usersData.reduce((sum: number, user: UserData) => sum + user.totalDonated, 0),  // Sum up total donated by each user
-          activeRequests: requestsData.filter((r: RequestData) => !r.isFullyFunded).length,
+          activeRequests: updatedRequestsData.filter((r: RequestData) => !r.isFullyFunded).length,
         });
       } catch (error) {
         console.error('Error fetching admin data:', error);
@@ -546,14 +562,12 @@ export default function AdminPage() {
                         <Badge 
                           variant={
                             request.status === 'BLOCKED' ? "destructive" :
-                            request.status === 'CLOSED' ? "secondary" :
-                            request.isFullyFunded ? "default" :
+                            request.status === 'CLOSED' || request.isFullyFunded ? "secondary" :
                             request.isExpired ? "outline" : "secondary"
                           }
                         >
                           {request.status === 'BLOCKED' ? 'Blocked' :
-                           request.status === 'CLOSED' ? 'Closed' :
-                           request.isFullyFunded ? 'Fully Funded' :
+                           request.status === 'CLOSED' || request.isFullyFunded ? 'Closed' :
                            request.isExpired ? 'Expired' : 'In Progress'}
                         </Badge>
                       </TableCell>
