@@ -53,14 +53,14 @@ export async function POST(req: Request) {
       SMS_API_KEY: process.env.SMS_API_KEY ? 'Set' : 'Not Set',
       SMS_PARTNER_ID: process.env.SMS_PARTNER_ID ? 'Set' : 'Not Set',
       SMS_SENDER_ID: process.env.SMS_SENDER_ID ? 'Set' : 'Not Set',
-      ADMIN_PHONE_NUMBER: process.env.ADMIN_PHONE_NUMBER || '254714282874 (default)'
+      ADMIN_PHONE_NUMBER: process.env.ADMIN_PHONE_NUMBER || '254722522163 (default)'
     });
 
     // Validate environment variables
     const apiKey = process.env.SMS_API_KEY;
     const partnerId = process.env.SMS_PARTNER_ID;
     const senderId = process.env.SMS_SENDER_ID;
-    const adminPhone = process.env.ADMIN_PHONE_NUMBER || '254714282874';
+    const adminPhone = process.env.ADMIN_PHONE_NUMBER || '254722522163';
 
     if (!apiKey || !partnerId || !senderId) {
       console.error('Missing SMS configuration:', {
@@ -96,9 +96,9 @@ export async function POST(req: Request) {
     
     let userMessage;
     if (isSuccessful) {
-      userMessage = `Your withdrawal of ${formattedAmount} has been processed successfully. The funds will be sent to your M-Pesa shortly.\n\nNeed help?\n📧 Email: support@fitrii.com\n📞 Phone: +254714282874 (Call/Text/WhatsApp)`;
+      userMessage = `Your withdrawal of ${formattedAmount} has been processed successfully. The funds will be sent to your M-Pesa shortly.\n\nNeed help?\n📧 Email: support@fitrii.com\n📞 Phone: +254722522163 (Call/Text/WhatsApp)`;
     } else {
-      userMessage = `Your withdrawal request of ${formattedAmount} has been received and is being processed. You'll receive a confirmation once completed.\n\nNeed help?\n📧 Email: support@fitrii.com\n📞 Phone: +254714282874 (Call/Text/WhatsApp)`;
+      userMessage = `Your withdrawal request of ${formattedAmount} has been received and is being processed. You'll receive a confirmation once completed.\n\nNeed help?\n📧 Email: support@fitrii.com\n📞 Phone: +254722522163 (Call/Text/WhatsApp)`;
     }
 
     // Send SMS to admin
