@@ -270,7 +270,7 @@ export default function CreatePostCard() {
                   <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-primary/20 to-transparent rounded-full blur-2xl transform translate-x-16 -translate-y-16 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                   
                   <div className="flex items-start space-x-3 relative">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary-dark flex items-center justify-center text-white font-semibold flex-shrink-0 shadow-lg transform group-hover:scale-110 transition-transform duration-500">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-white font-semibold flex-shrink-0 shadow-lg transform group-hover:scale-110 transition-transform duration-500">
                       {community.name.substring(0, 2).toUpperCase()}
                     </div>
                     <div className="flex-grow min-w-0">
@@ -280,11 +280,11 @@ export default function CreatePostCard() {
                       <div className="flex items-center space-x-3 text-xs text-gray-500 dark:text-gray-400 group-hover:text-white/70 transition-colors duration-300">
                         <div className="flex items-center space-x-1">
                           <Users className="w-3 h-3" />
-                          <span className="truncate">{community._count.memberships}</span>
+                          <span className="truncate">{community._count.memberships} members</span>
                         </div>
                         <div className="flex items-center space-x-1">
                           <TrendingUp className="w-3 h-3" />
-                          <span className="truncate">{community._count.requests}</span>
+                          <span className="truncate">{community._count.requests} requests</span>
                         </div>
                       </div>
                     </div>
