@@ -1,0 +1,64 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  {/* Background with gradient */}
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style={{ stopColor: '#ffffff', stopOpacity: 1 }} />
+      <stop offset="100%" style={{ stopColor: '#f0f0f0', stopOpacity: 1 }} />
+    </linearGradient>
+  </defs>
+  <circle
+    cx="16"
+    cy="16"
+    r="16"
+    fill="url(#bgGradient)"
+  />
+
+  {/* Outer Ring */}
+  <circle
+    cx="16"
+    cy="16"
+    r="14"
+    stroke="#298126"
+    stroke-width="0.75"
+    fill="none"
+  />
+
+  {/* Inner Container */}
+  <circle
+    cx="16"
+    cy="16"
+    r="12"
+    fill="white"
+  />
+
+  {/* Left Hand */}
+  <path
+    d="M11 20
+       C 8 17, 8 14, 11 11
+       C 14 8, 18 8, 20 11"
+    stroke="#298126"
+    stroke-width="2"
+    stroke-linecap="round"
+  />
+
+  {/* Right Hand */}
+  <path
+    d="M21 20
+       C 24 17, 24 14, 21 11
+       C 18 8, 14 8, 11 11"
+    stroke="#0066cc"
+    stroke-width="2"
+    stroke-linecap="round"
+  />
+
+  {/* Heart Center */}
+  <path
+    d="M16 19
+       C 17 18, 19 17, 19 15
+       C 19 13, 17 12, 16 12
+       C 15 12, 13 13, 13 15
+       C 13 17, 15 18, 16 19
+       Z"
+    fill="#f57c21"
+  />
+</svg> 

@@ -7,6 +7,7 @@ import { RegisterLink, LoginLink } from "@kinde-oss/kinde-auth-nextjs/components
 import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
 import UserDropDown from "./UserDropDown";
 import { MagnifyingGlassIcon, HamburgerMenuIcon } from '@radix-ui/react-icons';
+import Logo from './Logo';
 import {
   Sheet,
   SheetContent,
@@ -22,19 +23,7 @@ async function Navbar() {
                   shadow-lg dark:shadow-[0_2px_10px_rgba(0,0,0,0.3)] transition-all duration-300'>
       <div className='container mx-auto h-[10dvh] flex justify-between items-center'>
         {/* Logo with enhanced hover effects */}
-        <Link href='/' className='transform hover:scale-105 transition-all duration-300'>
-          <Image
-            src="/fitrii-logo.png"
-            alt="Logo"
-            width={150}
-            height={150}
-            className='p-2
-                       transition-all duration-300 ease-out
-                       dark:grayscale-[0.1] dark:brightness-110 dark:hover:grayscale-0
-                       dark:hover:brightness-125 dark:filter dark:drop-shadow-[0_0_3px_rgba(255,255,255,0.1)]
-                       dark:grayscale-[0.2] hover:grayscale-0'
-          />
-        </Link>
+        <Logo width={48} height={48} />
         
         {/* Enhanced Search Bar */}
         <div className="relative w-1/3 hidden md:block group">
@@ -107,6 +96,10 @@ async function Navbar() {
                                     dark:bg-gray-900/90 dark:backdrop-blur-lg border-gray-200/50
                                     dark:border-gray-800/50 shadow-2xl">
               <div className="flex flex-col gap-6 pt-10">
+                {/* Mobile Logo */}
+                <div className="flex justify-center">
+                  <Logo width={56} height={56} />
+                </div>
                 {/* Mobile Search with enhanced styling */}
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 flex items-center pl-3">
