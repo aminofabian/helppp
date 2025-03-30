@@ -76,7 +76,9 @@ async function sendEmail(
 
   // Setup email data with "reply-to" field to direct responses appropriately
   const mailOptions = {
-    from: `"${fromName}" <${gmailUser}>`, // Always sent from your Gmail
+    from: process.env.GMAIL_USER 
+      ? { name: 'Fitrii', address: process.env.GMAIL_USER } 
+      : 'Fitrii <no-reply@fitrii.com>', // Fallback to a default email if GMAIL_USER is undefined
     to: toEmail,
     replyTo: replyToEmail, // Where replies should go
     subject: subject,
