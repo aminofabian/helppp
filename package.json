@@ -60,6 +60,7 @@
     "lucide-react": "^0.365.0",
     "next": "^14.2.6",
     "next-themes": "^0.3.0",
+    "nodemailer": "^6.10.0",
     "npm": "^10.8.2",
     "pg": "^8.13.1",
     "react": "^18",
@@ -86,6 +87,7 @@
   "devDependencies": {
     "@tailwindcss/typography": "^0.5.12",
     "@types/node": "^20",
+    "@types/nodemailer": "^6.4.17",
     "@types/paystack__inline-js": "^1.0.1",
     "@types/react": "^18",
     "@types/react-dom": "^18",
