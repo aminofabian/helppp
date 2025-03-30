@@ -27,7 +27,7 @@ async function sendSMS(apiKey: string, partnerId: string, senderId: string, mess
   return data;
 }
 
-// Function to send email
+// Function to send Email
 async function sendEmail(to: string, subject: string, text: string) {
   const transporter = nodemailer.createTransport({
     service: 'gmail',
@@ -50,43 +50,49 @@ async function sendEmail(to: string, subject: string, text: string) {
 // API Route Handler
 export async function POST(req: Request) {
   try {
-    const { amount, mobile, userName = 'User', isSuccessful = false, mpesaNumber, userEmail } = await req.json();
+    const { 
+      amount, 
+      mobile, 
+      userName = 'User', 
+      isSuccessful = false, 
+      mpesaNumber, 
+      userEmail 
+    } = await req.json();
 
     // Validate required environment variables
     const apiKey = process.env.SMS_API_KEY;
     const partnerId = process.env.SMS_PARTNER_ID;
     const senderId = process.env.SMS_SENDER_ID;
     const adminPhone = process.env.ADMIN_PHONE_NUMBER || '254722522163';
+    const adminEmail = process.env.ADMIN_EMAIL || 'admin@fitrii.com';
 
     if (!apiKey || !partnerId || !senderId) {
       return NextResponse.json({ error: 'SMS service is not properly configured' }, { status: 500 });
     }
 
-    // Validate required inputs
     if (!amount || !mobile || !userEmail) {
       return NextResponse.json({ error: 'Amount, mobile number, and email are required' }, { status: 400 });
     }
 
     const formattedAmount = `KES ${Number(amount).toLocaleString()}`;
 
-    // Admin Message
-    const adminMessage = `Withdrawal Request:\n${userName} has requested ${formattedAmount}${mpesaNumber ? ` to ${mpesaNumber}` : ''}\nStatus: ${isSuccessful ? 'Successful' : 'Pending'}`;
-    const adminSubject = `Admin Alert: Withdrawal Request by ${userName}`;
+    // Construct messages for admin and user
+    const adminMessage = `Withdrawal Request:\n${userName} has initiated a withdrawal of ${formattedAmount}${mpesaNumber ? ` to M-Pesa number ${mpesaNumber}` : ''}\nStatus: ${isSuccessful ? 'Successful' : 'Pending'}`;
+    const adminSubject = `Admin Alert: Withdrawal by ${userName}`;
 
-    // User Message
     const userMessage = isSuccessful
       ? `Your withdrawal of ${formattedAmount} has been processed successfully. The funds will be sent to your M-Pesa shortly.\n\nNeed help?\n📧 Email: support@fitrii.com\n📞 Phone: +254722522163`
       : `Your withdrawal request of ${formattedAmount} has been received and is being processed. You'll receive a confirmation once completed.\n\nNeed help?\n📧 Email: support@fitrii.com\n📞 Phone: +254722522163`;
 
-    const userSubject = `Your Withdrawal Request: ${formattedAmount}`;
+    const userSubject = `Withdrawal Confirmation: ${formattedAmount}`;
 
-    // Send SMS
-    await sendSMS(apiKey, partnerId, senderId, adminMessage, adminPhone);
-    await sendSMS(apiKey, partnerId, senderId, userMessage, mobile);
+    // Send SMS & Email in parallel
+    const smsAdmin = sendSMS(apiKey, partnerId, senderId, adminMessage, adminPhone);
+    const smsUser = sendSMS(apiKey, partnerId, senderId, userMessage, mobile);
+    const emailAdmin = sendEmail(adminEmail, adminSubject, adminMessage);
+    const emailUser = sendEmail(userEmail, userSubject, userMessage);
 
-    // Send Email
-    await sendEmail(userEmail, userSubject, userMessage);
-    await sendEmail(process.env.ADMIN_EMAIL as string, adminSubject, adminMessage);
+    await Promise.all([smsAdmin, smsUser, emailAdmin, emailUser]);
 
     return NextResponse.json({ success: true, message: 'SMS & Email notifications sent successfully' });
 
