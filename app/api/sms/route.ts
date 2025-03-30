@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
-
+import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
 
 // Existing SMS sending function
 async function sendSMS(apiKey: string, partnerId: string, senderId: string, message: string, mobile: string) {
@@ -41,49 +41,52 @@ async function sendSMS(apiKey: string, partnerId: string, senderId: string, mess
   return data;
 }
 
-// New email sending function
+// New email sending function using a single Gmail account as mediator
 async function sendEmail(
-  recipient: string, 
+  toEmail: string, 
   subject: string, 
   htmlContent: string, 
-  textContent: string
+  textContent: string,
+  replyToEmail: string = 'support@fitrii.com',
+  fromName: string = 'Fitrii Support'
 ) {
-  // Validate environment variables
-  const emailUser = process.env.EMAIL_USER;
-  const emailPass = process.env.EMAIL_PASS;
-  const emailHost = process.env.EMAIL_HOST || 'smtp.gmail.com';
-  const emailPort = parseInt(process.env.EMAIL_PORT || '587');
+  // Get mediator Gmail credentials from environment variables
+  const gmailUser = process.env.GMAIL_USER;
+  const gmailPass = process.env.GMAIL_APP_PASSWORD; // App password is more secure for Gmail
 
-  if (!emailUser || !emailPass) {
-    console.error('Missing email configuration:', {
-      hasEmailUser: !!emailUser,
-      hasEmailPass: !!emailPass,
+  if (!gmailUser || !gmailPass) {
+    console.error('Missing Gmail configuration:', {
+      hasGmailUser: !!gmailUser,
+      hasGmailPass: !!gmailPass,
     });
-    throw new Error('Email service is not properly configured');
+    throw new Error('Gmail mediator is not properly configured');
   }
 
-  // Create a transporter
+  // Create a transporter using Gmail
   const transporter = nodemailer.createTransport({
-    host: emailHost,
-    port: emailPort,
-    secure: emailPort === 465, // true for 465, false for other ports
+    service: 'gmail', 
+    host: 'smtp.gmail.com',
+    secure: false,
     auth: {
-      user: emailUser,
-      pass: emailPass,
+      user: gmailUser,
+      pass: gmailPass,
     },
   });
 
-  // Setup email data
+  // Setup email data with "reply-to" field to direct responses appropriately
   const mailOptions = {
-    from: `"Fitrii Support" <${emailUser}>`,
-    to: recipient,
+    from: `"${fromName}" <${gmailUser}>`, // Always sent from your Gmail
+    to: toEmail,
+    replyTo: replyToEmail, // Where replies should go
     subject: subject,
     text: textContent,
     html: htmlContent,
   };
 
   console.log('Email Request:', {
-    to: recipient,
+    from: `"${fromName}" <${gmailUser}>`,
+    to: toEmail,
+    replyTo: replyToEmail,
     subject: subject,
   });
 
@@ -100,14 +103,30 @@ async function sendEmail(
 
 export async function POST(req: Request) {
   try {
+    // Get authenticated user from Kinde session
+    const { getUser } = getKindeServerSession();
+    const user = await getUser();
+
+    // Check if user is authenticated
+    if (!user) {
+      return NextResponse.json(
+        { error: 'User not authenticated' },
+        { status: 401 }
+      );
+    }
+
     const { 
       amount = null,
       mobile,
-      email = null, // Add email as an optional parameter
-      userName = 'User',
       isSuccessful = false,
       mpesaNumber = null
     } = await req.json();
+
+    // Use user's information from Kinde
+    const userEmail = user.email;
+    const userName = user.given_name || user.family_name 
+      ? `${user.given_name || ''} ${user.family_name || ''}`.trim() 
+      : user.email?.split('@')[0] || 'User';
 
     // Debug: Log all environment variables (redacted)
     console.log('Environment Variables Status:', {
@@ -115,8 +134,14 @@ export async function POST(req: Request) {
       SMS_PARTNER_ID: process.env.SMS_PARTNER_ID ? 'Set' : 'Not Set',
       SMS_SENDER_ID: process.env.SMS_SENDER_ID ? 'Set' : 'Not Set',
       ADMIN_PHONE_NUMBER: process.env.ADMIN_PHONE_NUMBER || '254722522163 (default)',
-      EMAIL_USER: process.env.EMAIL_USER ? 'Set' : 'Not Set',
-      EMAIL_PASS: process.env.EMAIL_PASS ? 'Set' : 'Not Set',
+      GMAIL_USER: process.env.GMAIL_USER ? 'Set' : 'Not Set',
+      GMAIL_APP_PASSWORD: process.env.GMAIL_APP_PASSWORD ? 'Set' : 'Not Set',
+    });
+
+    console.log('User Info:', {
+      id: user.id,
+      email: userEmail,
+      name: userName,
     });
 
     // Validate environment variables for SMS
@@ -138,15 +163,15 @@ export async function POST(req: Request) {
     }
 
     // Check if email config is available
-    const emailConfigured = !!(process.env.EMAIL_USER && process.env.EMAIL_PASS);
+    const emailConfigured = !!(process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD);
     if (!emailConfigured) {
-      console.error('Missing email configuration');
+      console.error('Missing Gmail configuration');
     }
 
     // If neither SMS nor email is configured, return error
     if (!smsConfigured && !emailConfigured) {
       return NextResponse.json(
-        { error: 'Neither SMS nor email service is properly configured' },
+        { error: 'Neither SMS nor Gmail service is properly configured' },
         { status: 500 }
       );
     }
@@ -246,7 +271,7 @@ This is an automated email from Fitrii. Please do not reply to this email.`;
       }
     }
 
-    // Send Email if configured and email addresses are available
+    // Send Email if configured and user has an email address
     if (emailConfigured) {
       try {
         // Send email to admin
@@ -254,19 +279,23 @@ This is an automated email from Fitrii. Please do not reply to this email.`;
           adminEmail, 
           adminEmailSubject, 
           adminEmailHtml, 
-          adminEmailText
+          adminEmailText,
+          adminEmail, // Reply-to goes back to admin
+          'Fitrii System' // From name for admin notifications
         );
 
-        // Send email to user if email is provided
-        if (email) {
+        // Send email to user if they have an email in their Kinde profile
+        if (userEmail) {
           results.email.user = await sendEmail(
-            email, 
+            userEmail, 
             userEmailSubject, 
             userEmailHtml, 
-            userEmailText
+            userEmailText,
+            'support@fitrii.com', // Reply-to support for user questions
+            'Fitrii Support' // From name for customer-facing emails
           );
         } else {
-          results.email.user = { skipped: 'User email not provided' };
+          results.email.user = { skipped: 'User email not available in Kinde profile' };
         }
       } catch (error: any) {
         console.error('Email sending error:', error.message);
@@ -301,6 +330,9 @@ This is an automated email from Fitrii. Please do not reply to this email.`;
     );
   }
 }
+
+
+
 
 // Function to send SMS
 // async function sendSMS(apiKey: string, partnerId: string, senderId: string, message: string, mobile: string) {
