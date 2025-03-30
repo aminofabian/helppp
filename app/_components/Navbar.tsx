@@ -23,7 +23,7 @@ async function Navbar() {
                   shadow-lg dark:shadow-[0_2px_10px_rgba(0,0,0,0.3)] transition-all duration-300'>
       <div className='container mx-auto h-[10dvh] flex justify-between items-center'>
         {/* Logo with enhanced hover effects */}
-        <Logo width={48} height={48} />
+        <Logo width={96} height={96} />
         
         {/* Enhanced Search Bar */}
         <div className="relative w-1/3 hidden md:block group">
