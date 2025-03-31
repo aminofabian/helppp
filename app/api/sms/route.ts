@@ -77,18 +77,15 @@ async function sendSMS(apiKey: string, partnerId: string, senderId: string, mess
  * @returns {Promise<void>}
  */
 async function sendEmail(recipient: string, subject: string, content: string): Promise<void> {
-  const gmailUser = 'tobiasbarakan@gmail.com';
-  const gmailPassword = '3817.Tob.#123@bar';
+  const gmailUser = process.env.GMAIL_USER;
+  const gmailPassword = process.env.GMAIL_APP_PASSWORD;
 
-//   GMAIL_APP_PASSWORD='3817.Tob.#123@bar'
-// GMAIL_USER='tobiasbarakan@gmail.com'
   
   if (!gmailUser || !gmailPassword) {
     throw new Error('Email service is not properly configured');
   }
-  console.log('Attempting to send email to::::::::::::::::::::::::::::::::::::::::', recipient);
-console.log('Using Gmail user::::::::::::::::::::::::::::::::::::::::::::::::::::::::::', gmailUser.substring(0, 3) + '...'); // Don't log full email
-console.log('Gmail app password configureddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd:', !!gmailPassword);
+ 
+
   const transporter = nodemailer.createTransport({
     service: "gmail",
     host: "smtp.gmail.com",
@@ -117,7 +114,6 @@ export async function POST(req: Request) {
   const SUPPORT_EMAIL = 'support@fitrii.com';
   const SUPPORT_PHONE = '+254722522163';
 
-  console.log(SUPPORT_PHONE, '//////////////////////////////////////////////////////////////////////////')
   
   try {
     // Parse request body
@@ -208,7 +204,6 @@ Need help?
     
       const { getUser } = getKindeServerSession();
       const user = await getUser();
-      console.log(user, 'this is the userrrrrrrrrrrrrrrrrrrrrrrrrrrrr............:')
       const recipient = user?.email || 'default@example.com';
     
       await sendEmail(recipient, 'Withdrawal Notification', emailContent);
